@@ -10,8 +10,12 @@
 *.toc
 *.fdb_latexmk
 *.fls
+*.synctex
 *.synctex.gz
 *.xml
+
+# Figures (stored in OneDrive)
+papers/**/figures/
 
 # PDF outputs (optional - keep if you want to track PDFs)
 *.pdf
@@ -22,12 +26,10 @@
 *~
 .DS_Store
 
-# IDE
-.vscode/
-.idea/
-
 # OS
 Thumbs.db
 
-# Figures (stored in OneDrive)
-papers/*/figures/
+# IDE
+.vscode/
+.idea/
+todo.md
