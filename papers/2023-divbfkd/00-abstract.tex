@@ -1,0 +1,8 @@
+Knowledge distillation (KD) is a well-known technique to effectively compress a large network (teacher) to a smaller network (student) with little sacrifice in performance.
+However, most KD methods require a large training set and internal access to the teacher, which are rarely available due to various restrictions.
+These challenges have originated a more practical setting known as \textit{black-box few-shot KD}, where the student is trained with few images and a black-box teacher.
+Recent approaches typically generate additional synthetic images but lack an active strategy to promote their \textit{diversity}, a crucial factor for student learning.
+To address these problems, we propose a novel training scheme for generative adversarial networks, where we adaptively select \textit{high-confidence} images under the teacher's supervision and introduce them to the adversarial learning on-the-fly.
+Our approach helps expand and improve the diversity of the distillation set, significantly boosting student accuracy.
+Through extensive experiments, we achieve state-of-the-art results among other few-shot KD methods on seven image datasets.
+The code is available at \url{https://github.com/votrinhan88/divbfkd}.

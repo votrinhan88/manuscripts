@@ -1,0 +1,80 @@
+\begin{foldable}
+  Over the recent years, deep learning models have made impressive progress---from classifying millions of images~\cite{russakovsky2015imagenet} to intelligently conversing with humans on various modalities and tasks.
+  However, their ever-increasing sizes are a constant barrier to real-world deployment.
+  This upscaling trend is the primary concern of model compression techniques, which aim to deliver powerful models at a deployable size (\eg, for mobile phones or embedded systems).
+  While the removal of redundancy, quantization, or parameter sharing in the original model can help fulfill this goal, \textit{knowledge distillation} (KD)~\cite{hinton2015distilling} stands out for its efficiency and versatility.
+\end{foldable}
+
+\begin{foldable}
+  The main idea of KD is to transfer the knowledge from a complex pre-trained network (\textit{teacher}) to a simpler network (\textit{student}).
+  The pioneering solution was to train the student to simultaneously give correct predictions and mimic the teacher's outputs~\cite{hinton2015distilling}.
+  With additional guidance, the student can approximate the teacher's performance despite its smaller size.
+  This work has brought forth a new research area that most current KD methods are built upon~\cite{chen2017learning,meng2019conditional,nguyen2021knowledge}.
+\end{foldable}
+
+\begin{foldable}
+  The fruitful performance of KD typically relies on the availability of an extensive training set to train the student.
+  Traditional KD methods often assume that the student is distilled with the same data used for training the teacher~\cite{hinton2015distilling,kim2018paraphrasing,ahn2019variational,tian2020contrastive}.
+  However, in real-world scenarios, the distillation often happens at an external party side, where one can only afford a limited-size training set.
+  For example, to distill Google's FaceNet (trained using approximately 200 million non-public face images~\cite{schroff2015facenet}) into an in-house model without access to a large-scale dataset like Google's, an external party may only be able to gather a few thousand images or even less.
+  This scenario poses the \textit{few-shot} setting and makes it more challenging than standard KD.
+\end{foldable}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.99\columnwidth]{./figures/01-introduction-standard_kd_vs_bbfskd.pdf}
+  \caption{
+    Common KD methods (a) assume no constraints whereas black-box few-shot KD, and (b) only has access to a few images and the teacher's predictive probabilities.
+  }
+  \label{fig:01-introduction-standard_kd_vs_bbfskd}
+\end{figure}
+
+\begin{foldable}
+  Another assumption made by traditional KD methods is the requirement of a \textit{white-box} teacher \ie, we have complete access to its parameters, activations, or gradients, \etc~\cite{romero2014fitnets,yim2017gift,kimura2018few,chen2019data}.
+  However, the teacher model is often \textit{black-box}, \ie, only its final predictions are accessible.
+  Understandably, companies often avoid full disclosure of the model parameters as it is their competitive edge and intellectual property.
+  For instance, even with a paid subscription to ChatGPT API~\cite{openai2022}, only text outputs and their prediction confidence can be retrieved.
+  The realistic constraints in the \textit{black-box few-shot} KD setting (Fig.~\ref{fig:01-introduction-standard_kd_vs_bbfskd}) render most KD methods inapplicable and demand novel approaches.
+\end{foldable}
+
+\begin{foldable}
+  Recently, some methods have addressed the few-shot KD problem, but most of them still require a white-box teacher~\cite{kimura2018few,kong2020learning}.
+  To the best of our knowledge, only two methods apply a black-box teacher to few-shot KD, namely BBKD~\cite{wang2020neural} and FS-BBT~\cite{nguyen2022black}.
+  Both these methods leverage MixUp~\cite{zhang2018mixup} to generate synthetic images.
+  However, as MixUp linearly interpolates between two original images, the synthetic images are either very similar to the original images or do not have realistic semantics, adding little value to the student's training.
+  To overcome this problem, FS-BBT employs a conditional variational autoencoder (CVAE)~\cite{sohn2015learning} to generate out-of-distribution synthetic images.
+  However, while the pixel-based loss in CVAE is beneficial for reconstructing images, it is not intended for promoting image diversity and have side-effect blurring artifacts~\cite{bond2021deep}.
+\end{foldable}
+
+\begin{foldable}
+  We address the problem of black-box few-shot KD \ie, distilling the student with only a few images and a black-box teacher.
+  To boost student performance, we expand the distillation set with diverse synthetic images.
+  To achieve diversity in the synthetic images, we propose a novel training scheme for Wasserstein Generative Adversarial Network (WGAN)~\cite{arjovsky2017wasserstein}:
+  \begin{itemize}
+    \item {
+        Firstly, we specifically define \textit{high-confidence} images, which are synthetic images that the teacher can predict confidently w.r.t.\ a threshold.
+        To avoid biased and abnormal images, we leverage the teacher to compute \textit{adaptive thresholds} in a class-specific and dataset-agnostic manner.
+      }
+    \item {
+        Then, during the WGAN training loop, we select high-confidence images from the latest iteration on-the-fly and introduce them in the role of additional real images.
+        Our WGAN learned with high-confidence images can generate diverse synthetic images close to the teacher's training images.
+      }
+    \item Finally, we augment our few-shot images with synthetic images to improve the training of the student, leading to a significantly better performance.
+  \end{itemize}
+\end{foldable}
+
+\begin{foldable}
+  We summarize our contributions as follows:
+  \begin{enumerate}
+    \item We propose \textbf{Diverse Black-box Few-Shot Knowledge Distillation} (\textbf{DivBFKD}), a novel solution for black-box few-shot KD, which directly addresses the diversity aspect of synthetic images to improve distillation.
+    \item We propose a novel training scheme for WGAN, introducing high-confidence images efficiently and on-the-fly to the adversarial learning, which improves diversity in image generation.
+    \item {
+        We propose adaptive thresholds, a teacher-based criteria to avoid selecting biased and abnormal high-confidence images.
+        The criteria can be adaptively applied to arbitrary classes and datasets.
+      }
+    \item {
+        We conduct comprehensive evaluation on multiple image classification tasks and architectures, achieving SOTA results among few-shot KD methods.
+        We also provide thorough analysis of our method for further insights.
+      }
+  \end{enumerate}
+\end{foldable}

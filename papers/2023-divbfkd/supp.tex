@@ -1,0 +1,90 @@
+\begin{foldable}
+  In this supplementary, we provide the implementation details on our experiments, including description on the datasets (full and few-shot) as well as the architecture and training of our teacher, student, and WGAN networks.
+\end{foldable}
+
+\section{Datasets} \label{sec:supp-datasets}
+\begin{table}[ht]
+  \centering
+  \begin{threeparttable}
+    \caption{
+      Dataset details and their augmentation transforms.
+      $N$ ($\times 10^3$) denotes the number of images in thousands and $K$ denotes the number of classes.
+      Dimension (images and transforms) are in pixels (px).
+    }
+    \label{tab:Dataset-details}
+    \begin{tabular}{c c c c c}
+      \toprule
+      \textbf{Dataset} & $N~(\times 10^3)$ & $K$ & \textbf{Dimension} & \textbf{Transforms} \\
+      \midrule
+      MNIST         & 60  & 10   & $1\times 28 \times 28$          & Resize to 32$\times$32 \\
+      FMNIST       & 60  & 10   & $1\times 28 \times 28$           & Resize to 32$\times$32 \\
+      SVHN          & 73  & 10   & $3\times 32 \times 32$          & $\Bigl[$ \makecell{Zero-padding (4 px/side) \\ Random crop to $32\times32$} $\Bigr]$\\
+      CIFAR10       & 50  & 10   & $3\times 32 \times 32$          & $\Biggl[$ \makecell{Zero-padding (4 px/side) \\ Random horizontal flip \\ Random crop to $32\times32$} $\Biggr]$\\
+      CIFAR100      & 50  & 100  & $3\times 32 \times 32$          & $\Biggl[$ \makecell{Zero-padding (4 px/side) \\ Random horizontal flip \\ Random crop to $32\times32$} $\Biggr]$\\
+      Tiny-ImageNet & 100 & 200  & $3\times 64 \times 64$          & $\Biggl[$ \makecell{Zero-padding (8 px/side) \\ Random horizontal flip \\ Random crop to $64\times64$} $\Biggr]$\\
+      Imagenette    & 9.5 & 10   & $3\times 408 \times 472 ^{(*)}$ & $\Biggl[$ \makecell{Resize to $256\times256$ \\ Random horizontal flip \\ Random crop to $224\times224$} $\Biggr]$\\
+      \bottomrule
+    \end{tabular}
+    \begin{tablenotes}[flushleft] \footnotesize
+    \item {[$*$] Imagenette dimensions are reported as mean values}
+    \end{tablenotes}
+  \end{threeparttable}
+\end{table}
+
+\begin{foldable}
+  We use a total of seven image classification datasets for our experiments: MNIST~\cite{lecun2002gradient}, FMNIST~\cite{xiao2017fashion}, SVHN~\cite{netzer2011reading}, CIFAR10, CIFAR100~\cite{krizhevsky2009learning}, Tiny-ImageNet~\cite{le2015tiny}, and Imagenette~\cite{howard2020imagenette}.
+  Only MNIST and FMNIST have black-and-white images (1 color channel) while the other datasets have colored images (3 color channels).
+  Depending on their relative difficulty, we only use basic image transformations to augment our data, including resizing, zero-padding, random horizontally flipping, random cropping.
+  We present the datasets' details and corresponding transforms in Table~\ref{tab:Dataset-details}.
+  For Imagenette, we report the average value; their image dimension ranges from 27$\times$80 to 4368$\times$2912.
+\end{foldable}
+
+\section{Construction of the few-shot dataset} \label{sec:supp-construction-fewshot}
+\begin{foldable}
+  Following~\cite{wang2020neural,nguyen2022black}, to construct the few-shot dataset $\mathcal{D}$, we used $N = 2000$ images for MNIST, FMNIST, SVHN, CIFAR10, and Imagenette, $N=5000$ images for CIFAR100, and $N=10000$ images for Tiny-ImageNet.
+  They were randomly drawn from the original training set such that each class had $N/K$ images ($K$ is the number of classes).
+\end{foldable}
+
+\section{Training setting of the Teacher} \label{sec:supp-training}
+\begin{foldable}
+  We trained the teacher network with a stochastic gradient descent (SGD) optimizer using 0.9 momentum, $5\times10^{-4}$ weight decay, and 128 batch size.
+  We fixed the learning rate to $10^{-2}$ on MNIST and FMNIST.
+  On other datasets, we scheduled the learning rate to $10^{-1}$ at the beginning and decreased it by ten times at 50\% and 75\% progress.
+  We trained for 100 epochs on MNIST and FMNIST, and 200 epochs on other datasets.
+\end{foldable}
+
+\section{Our WGAN architecture} \label{sec:supp-wgan-arch}
+\begin{foldable}
+  We employed a deep convolutional GAN as in~\cite{radford2015unsupervised}, where the generator and discriminator had symmetrical architectures:
+  \begin{itemize}
+    \item {
+        The generator accepts latent vectors of dimension 100 for MNIST, 200 for FMNIST, and 256 for other datasets.
+        The latent inputs are then projected to 256 base feature maps of dimension 8$\times$8 (except for Imagenette, 7$\times$7), which then undergo batch normalization.
+        These feature maps are passed through upscaling convolutional blocks, each consisting of a nearest neighbor (2$\times$) upsample layer, a convolutional layer with half the channels, a batch normalization, and a leaky ReLU activation.
+        Finally, once the feature maps have identical dimension to that of the training images, they are compressed to either grayscale or RGB with a final convolutional layer and a sigmoid activation to map the output pixel values to range $[0, 1]$.
+      }
+    \item {
+        The discriminator feeds forward input images through convolutional blocks, each consisting of a (0.5$\times$) downscaling convolutional layer, a batch normalization (except for the first block), and a leaky ReLU activation.
+        While the final block has 256 base feature maps of dimension 8$\times$8 (except for Imagenette, 7$\times$7), each previously adjacent block has half the channels.
+        These base feature maps are eventually passed through a linear layer to yield a scalar score.
+      }
+  \end{itemize}
+\end{foldable}
+
+\section{Training setting of our WGAN} \label{sec:supp-training-wgan}
+\begin{foldable}
+  We followed the implementation in~\cite{gulrajani2017improved} to train our WGAN~\cite{arjovsky2017wasserstein}.
+  As recommended, we enforced the Lipschitz constraint on the discriminator with gradient penalty, whose coefficient with the Wasserstein loss was set to 10:1.
+  The number of discriminator updates per generator updates was set to 5.
+  However, we alternatively used the RMSProp optimizer with learning rate $5 \times 10^{-5}$ and batch size 250 for both models.
+  We used the number of epochs of 500 for MNIST, 1000 for FMNIST and SVHN, 2000 for CIFAR10 and Imagenette, and 5000 for CIFAR100 and Tiny-ImageNet.
+\end{foldable}
+
+\section{Training setting of our Student} \label{sec:supp-training-student}
+\begin{foldable}
+  For a fair comparison, we used the same number of synthetic images for distillation as in other few-shot KD methods~\cite{kimura2018few,wang2020neural,nguyen2022black}, which is 24\,K for MNIST, 48\,K for FMNIST, 40\,K for SVHN, CIFAR10, CIFAR100, and Imagenette, and 50\,K for Tiny-ImageNet.
+  We trained the Student with an SGD optimizer using 0.9 momentum and $5 \times 10^{-4}$ weight decay.
+  We fixed the learning rate to $10^{-2}$ on MNIST and FMNIST.
+  On other datasets, we scheduled the learning rate to $10^{-1}$ at the beginning and decrease it by ten times at 50\% and 75\% distillation progress.
+  We used a batch size of 250 and the number of epochs of 100 for MNIST, 200 for FMNIST and SVHN, 400 for CIFAR10 and Imagenette, and 1000 for CIFAR100 and Tiny-ImageNet.
+\end{foldable}

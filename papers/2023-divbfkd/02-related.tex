@@ -1,0 +1,63 @@
+\subsection{Knowledge Distillation}
+\begin{foldable}
+  Transferring knowledge from a large model (teacher) to a smaller model (student) was first introduced in~\cite{bucila2006model}, then formally popularized in~\cite{hinton2015distilling}.
+  Its key idea is to exploit the knowledge encoded in the teacher's `softened' probabilistic outputs, which are continuous and often more informative than the `hard' class labels.
+  The additional supervision helps the student capture underlying inter-class relationships and improve its performance.
+\end{foldable}
+
+\begin{foldable}
+  Existing KD methods often involve logits-based, feature-based, and relation-based knowledge~\cite{gou2021knowledge}.
+  Logits-based methods use the teacher's logits (\ie, pre-softmax activations) as the guidance for the student~\cite{ba2014deep,hinton2015distilling,nguyen2021knowledge}, optionally with adaptive temperature~\cite{li2023curriculum} or an ensemble of teachers~\cite{guo2020online}.
+  Feature-based methods extract knowledge from the teacher's internal attributes \eg, parameters and inter-layer connections~\cite{liu2019knowledge}, intermediate features~\cite{romero2014fitnets}, attention maps~\cite{zagoruyko2016paying}, and feature-space probability distribution~\cite{passalis2018learning}.
+  Finally, relation-based methods distill the knowledge in the relationships between different layers or data samples~\cite{park2019relational,yim2017gift,chen2020learning}.
+  Although useful, these methods would struggle when only a few images are available in the distillation set and we can only access the black-box teacher's final predictions.
+\end{foldable}
+
+\subsection{Knowledge distillation with limited data.}
+\begin{foldable}
+  The fundamental challenge of distillation on limited data is that the few available images cannot fully represent the actual images manifold.
+  Consequently, the student fails to generalize to an unseen set.
+  Thus, few-shot KD methods leverage data augmentation or generative models to augment the distillation set~\cite{kimura2018few,kong2020learning,wang2020neural,nguyen2022black}.
+  Their approaches also vary depending on the accessibility of the teacher.
+  FSKD~\cite{kimura2018few} uses trainable synthetic images that are part of the student's parameters.
+  These images require adversarial signals from a white-box teacher for optimization.
+  WaGe~\cite{kong2020learning} explores the data space in the approximate neighborhood of the few-shot data samples.
+  This requires the logits of a white-box teacher for a Wasserstein-based loss.
+  Most recently, BBKD~\cite{wang2020neural} and FS-BBT~\cite{nguyen2022black} only require a black-box teacher for the distillation.
+  Both use MixUp to construct synthetic images for a larger distillation set for the student.
+  While BBKD embraces active learning to choose synthetic images for distillation, FS-BBT trains a CVAE as an additional source of synthetic images.
+  FS-BBT is the current SOTA few-shot KD method.
+\end{foldable}
+
+\subsection{Data-free knowledge distillation.}
+\begin{foldable}
+  As an even more extreme setting than few-shot, data-free KD methods assume no training data to train the student.
+  To compensate, they often extract the knowledge from a white-box teacher \eg, its activation statistics~\cite{lopes2017data}, gradients~\cite{nayak2019zero,chen2019data}, and batch-norm layers~\cite{yin2020dreaming}.
+  So far, only two methods use black-box teachers, namely ZSDB3KD~\cite{wang2021zero} and IDEAL~\cite{zhang2022ideal}.
+  Although the data-free KD setting has several applications \eg, model inversion attack~\cite{zhang2020secret}, it is not really practical in the context of model compression.
+  When we distill a large model, we often have data to validate the large and distilled models.
+  Thus, few images can be also used for the distillation phase.
+  As will be shown in \S\ref{ssec:04-experiments-comparison_zero_shot}., even with a small portion of data, our method significantly outperforms data-free KD methods.
+\end{foldable}
+
+\subsection{Generative Adversarial Networks in Knowledge Distillation}
+\begin{foldable}
+  Using Generative Adversarial Networks (GAN) to generate synthetic images is a popular approach in \textit{data-free} KD methods~\cite{chen2019data,addepalli2020degan,do2022momentum,zhang2022ideal}.
+  However, our WGAN is trained with a novel scheme with \textit{three-fold differences}:
+  \begin{enumerate}
+    \item {
+        \textbf{Generator:} Existing methods typically rely on the teacher's signals to tame the generator with extra losses \eg, one-hot, feature, and diversity losses.
+        However, these losses are strictly inapplicable in our setting due to the absence of gradients from a black-box teacher.
+      }
+    \item {
+        \textbf{Discriminator:} Existing methods cannot use a discriminator due to the lack of real images.
+        In contrast, since our method allows to use any available real images, it uses the discriminator to distinguish real/fake images.
+        Moreover, our method also trains the discriminator with high-confidence images to boost the diversity in image generation.
+      }
+    \item {
+        \textbf{Teacher:} The teacher is trained for predicting image labels rather than distinguishing real/fake images.
+        However, existing methods usually force the teacher to a discriminator's role, exposing it to knowledge gap.
+        In contrast, we use teacher in a way where its intended strength is guaranteed to support our WGAN training.
+      }
+  \end{enumerate}
+\end{foldable}
