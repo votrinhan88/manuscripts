@@ -1,0 +1,91 @@
+\section{Large-Scale Models and Knowledge Distillation} \label{sec:11-introduction-deployment}
+\begin{foldable}
+  The history of modern deep learning exemplifies the bitter lesson~\cite{sutton2019bitter}: a story of scale, where general, compute-driven approaches ultimately outperform hand-crafted solutions.
+  When \cite{krizhevsky2012imagenet} introduced AlexNet in 2012, its roughly 60M parameters and strong performance on ImageNet signalled that raw model capacity, combined with sufficient data and compute, could surpass decades of hand-crafted feature engineering.
+  What followed was an arms race that has shown little sign of abating.
+  Vision models scaled rapidly: parameter counts of VGGNet~\cite{simonyan2014very} and ResNet~\cite{he2016deep} reached 100s of millions, while vision transformers soon crossed the 1B scale~\cite{dosovitskiy2020image,zhai2022scaling}.
+  Language models followed an even steeper trajectory after the Transformer~\cite{vaswani2017attention} architecture arrived, with BERT~\cite{devlin2019bert} featuring 340M parameters, followed by GPT-3~\cite{brown2020language} reaching 175B parameters.
+  They soon crossed the 1T mark thanks to the mixture-of-experts architecture~\cite{fedus2022switch}.
+  As of writing, flagship models, such as Claude Mythos~\cite{anthropic2026assessing} or GPT-5~\cite{openai2025introducing} are all speculated to have trillions of parameters, especially when open-source counterparts too fall in this range~\cite{meta2025llama4,yang2025qwen3}, backed by infrastructure demands~\cite{nvidia2024demistifying}.
+  Their training data have expanded in tandem to 10s of trillions of tokens.
+  The empirical result is compelling: larger models, trained on larger datasets, consistently achieve state-of-the-art performance across vision, language, and multimodal tasks.
+\end{foldable}
+
+\begin{foldable}
+  Yet this scaling success has created a deployment paradox: these large models cannot run on the resource-constrained devices where they are most needed.
+  Edge devices---smartphones, tablets, microcontrollers, and embedded sensors---are constrained by battery life, thermal envelopes, and silicon area.
+  Industrial and medical applications frequently impose hard latency bounds: an autonomous vehicle cannot afford the round-trip to a remote inference server, and a clinical decision-support system must respond within the timescales of patient care.
+  Even in cloud settings, the cost of serving a multi-billion-parameter model at scale can be prohibitive, driving demand for smaller, faster alternatives.
+  The gap between a model's research-time performance and its practical deployability is therefore not a minor engineering inconvenience but a fundamental obstacle to the real-world impact of deep learning research.
+\end{foldable}
+
+\begin{foldable}
+  The research community has responded with a family of model compression techniques designed to recover deployable models without sacrificing too much of the performance earned through scale.
+  Structured and unstructured \emph{pruning} removes redundant weights or entire sub-networks, reducing parameter counts and, with appropriate hardware support, inference time~\cite{han2015learning,molchanov2016pruning}.
+  \emph{Quantization} reduces the numerical precision of weights and activations from 32-bit floating point to lower-bit representations, cutting memory footprint and accelerating arithmetic on compatible hardware~\cite{hubara2018quantized,jacob2018quantization}.
+  Neural architecture search automates the design of efficient architectures subject to resource constraints~\cite{zoph2018learning,tan2019mnasnet}.
+  Each of these approaches has yielded meaningful compression ratios, and in practice they are often combined.
+\end{foldable}
+
+\begin{foldable}
+  Among these techniques, knowledge distillation (\ac{KD}) has attracted particular interest and constitutes the central subject of this thesis.
+  Introduced by \cite{hinton2015distilling}, \ac{KD} frames model compression as a \emph{learning problem}: a compact \emph{student} network is trained not merely on ground-truth labels but on the richer output distribution of a large, pre-trained \emph{teacher} network.
+  The student learns to replicate the teacher's behaviour, absorbing generalization patterns that hard labels alone do not convey.
+  Crucially, \ac{KD} is architecture-agnostic — the student need not share the teacher's topology, depth, or even modality — and it treats the teacher as a fixed oracle whose internal parameters are never modified.
+  This decoupling gives practitioners the freedom to design students that are expressly suited to deployment targets: a slender convolutional network for a microcontroller, a quantization-friendly architecture for a mobile chip, or a distilled language model for on-device text processing.
+  The approach is therefore not merely a compression heuristic but a principled transfer mechanism that can bridge the gap between large-scale research models and resource-constrained production systems.
+\end{foldable}
+
+\begin{foldable}
+  To appreciate why mimicking the teacher is more powerful than learning from ground-truth labels alone, it is necessary to understand what a neural network's output actually encodes.
+  A classifier trained on, say, one thousand object categories does not produce a single definitive answer; it produces a full probability distribution over all categories.
+  When a one-hot label is used as the training target, all of the probability mass is concentrated on a single correct class and every other class is assigned zero.
+  This is an extraordinarily sparse signal: it tells the student only which class is correct, conveying nothing about the relative plausibility of all other classes.
+  The teacher's output distribution, by contrast, spreads probability mass across many classes in a way that reflects the network's learned understanding of the input.
+  For a given image of a cat, the teacher might place most of its probability on ``cat'', a smaller amount on ``dog'', and a tiny but non-zero amount on ``leopard'' or ``tiger'', while assigning essentially nothing to ``car'' or ``aeroplane''.
+  These non-zero probabilities are not noise; they are structured and meaningful, encoding the teacher's internal representation of inter-class similarity.
+  Hinton et al.\ coined the term \emph{dark knowledge} to describe this latent information carried in the small probability mass assigned to incorrect classes~\cite{hinton2015distilling}.
+\end{foldable}
+
+\begin{foldable}
+  Dark knowledge is the central insight behind \ac{KD}.
+  A hard label tells the student that an image is a cat.
+  The teacher's soft output tells the student that a cat is much more similar to a dog than it is to a car, and more similar to a tiger than to a fish.
+  This relational structure is exactly the kind of generalization knowledge that the teacher has acquired over many training iterations on a large dataset.
+  When the student is trained to match these soft targets, it absorbs this structure directly, rather than having to rediscover it from raw data.
+  Each training example therefore carries substantially more information than it would under hard-label supervision, which translates to improved student generalization, particularly when training data is limited.
+\end{foldable}
+
+\begin{foldable}
+  In practice, the soft probability distribution produced by a neural network's final softmax layer can be too sharply peaked to be useful as a supervisory signal.
+  When a teacher is highly confident, most classes receive probabilities so close to zero that they offer negligible gradient signal to the student.
+  To address this, Hinton et al.\ introduced \emph{temperature scaling}: before computing the softmax, the logits are divided by a temperature parameter $T > 1$~\cite{hinton2015distilling}.
+  Higher temperatures produce softer, more uniform distributions, amplifying the relative differences between the small probabilities assigned to non-target classes.
+  At $T = 1$ the standard softmax is recovered; as $T$ increases the distribution becomes progressively flatter, making the inter-class probability ratios more pronounced and the gradients richer.
+  In practice, $T$ is treated as a hyperparameter and is set to the same value for both the teacher (when generating soft targets) and the student (during training), so that the student learns to match the softened distribution.
+  After training is complete, $T$ is reset to $1$ for inference.
+\end{foldable}
+
+\begin{foldable}
+  The standard \ac{KD} training objective combines two complementary loss terms~\cite{hinton2015distilling}.
+  The first is a Kullback--Leibler divergence between the student's softened output distribution and the teacher's softened output distribution, computed at temperature $T$.
+  This term drives the student to reproduce the dark knowledge encoded in the teacher's soft targets.
+  The second is a standard cross-entropy loss between the student's output (at $T = 1$) and the ground-truth one-hot labels, which ensures that the student remains anchored to the correct class.
+  These two terms are combined as a weighted sum, with a scalar hyperparameter $\alpha$ controlling the balance between mimicking the teacher and fitting the hard labels.
+  In most practical settings the soft-target term is weighted more heavily, reflecting the observation that the teacher's distribution carries the richest learning signal.
+  The combined objective allows the student to benefit from both sources of supervision simultaneously.
+\end{foldable}
+
+\begin{foldable}
+  The key insight, then, is that soft targets are information-dense.
+  A single training example annotated with a one-hot label carries, at most, one bit of useful signal about which class is correct.
+  The same example annotated with the teacher's full probability distribution carries information about every pairwise relationship between classes, as perceived by the teacher.
+  This information efficiency is why students trained with \ac{KD} consistently outperform students of identical architecture trained from scratch on hard labels, even when both use the same training data.
+  The student does not merely learn to classify; it learns a compressed version of the teacher's internal model of the world.
+\end{foldable}
+
+\begin{foldable}
+  This formulation of \ac{KD} rests on two implicit assumptions: that the full training dataset is available to generate soft targets, and that the teacher model can be queried freely to obtain its output distribution over all classes.
+  In many real deployments, however, neither assumption holds.
+  \S\ref{sec:12-introduction-gap} examines the gap between these idealised conditions and the constraints encountered in practice, and explains how addressing that gap motivates the three research contributions of this thesis.
+\end{foldable}

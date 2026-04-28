@@ -1,0 +1,16 @@
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+\begin{foldable}
+  Knowledge distillation (KD) has emerged as a powerful technique for compressing large neural networks into compact, deployable models by training a student to mimic a teacher's outputs.
+  Standard KD methods, however, assume that the practitioner has access to the full training dataset and the internal parameters of the teacher network.
+  Yet, this assumption routinely fail in real-world deployments where data is proprietary, privacy-sensitive, or simply unavailable, and where teachers are exposed only as black-box APIs.
+\end{foldable}
+
+\begin{foldable}
+  This thesis addresses KD under three increasingly restrictive practical constraints: (i) few-shot access to real data with a black-box teacher, (ii) complete absence of real data with a black-box teacher, and (iii) dataset distillation for text, where the goal is to synthesise a tiny surrogate dataset that preserves model training utility.
+  For the first setting, we propose \emph{DivBFKD}, a framework that improves the diversity of the limited proxy data through explicit diversity regularization, enabling more effective black-box \ac{KD} from only a handful of samples per class.
+  For the second setting, we propose \emph{DIPKD}, a data-free black-box \ac{KD} method that synthesises diverse training images by incorporating structured image priors, overcoming the mode collapse and low fidelity that plague existing generator-based approaches.
+  For the third and final setting, we propose \emph{TAKE}, a trajectory-aware knowledge estimation method for text dataset distillation that leverages training dynamics to better preserve the knowledge encoded in large text corpora.
+  Across all three settings, the proposed methods achieve state-of-the-art performance on standard benchmarks, demonstrating that effective KD is achievable even under severe practical constraints.
+\end{foldable}

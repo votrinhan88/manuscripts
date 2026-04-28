@@ -1,0 +1,151 @@
+\section{Knowledge Distillation Under Restricted Access} \label{sec:24-background-kdrestricted}
+
+\begin{foldable}
+  The assumptions identified in \S\ref{sec:23-background-kdfoundations-assumptions}---full dataset availability and white-box teacher access---define the standard KD setting.
+  This section surveys what happens as those assumptions are relaxed, progressing from the few-shot setting (limited data, full probability outputs available) through data-free white-box distillation (no data, teacher internals accessible) to the strictest practical regime: data-free black-box distillation, where neither real data nor teacher internals are available and the teacher returns only hard labels.
+\end{foldable}
+
+\subsection{Few-Shot Knowledge Distillation}
+\label{sec:24-background-kdrestricted-fewshot}
+
+\begin{foldable}
+  In the few-shot KD setting, the student is trained on a small labelled subset $\mathcal{D}_{\text{few}} \subset \mathcal{D}$ containing on the order of 100--500 images per class, while the teacher returns its full class probability vector for any queried image.
+  The teacher access is therefore identical to the standard setting; the constraint is on data coverage.
+\end{foldable}
+
+\begin{foldable}
+  The degradation mechanism is straightforward.
+  Standard KD relies on querying the teacher on a large, diverse set of training examples to collect soft targets that span the input distribution.
+  When $\mathcal{D}_{\text{few}}$ is small, the set of queries is narrow: it covers only a few modes of the teacher's training distribution and misses the inter-class boundary regions where soft targets are most informative.
+  The student effectively receives a compressed and biased view of the teacher's knowledge --- one that is rich for the modes present in $\mathcal{D}_{\text{few}}$ and absent everywhere else.
+  This coverage deficit leads to overfitting on the few-shot examples and poor generalization on the full test distribution.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Standard augmentation} attempts to alleviate the problem by increasing the number of training examples through synthetic transformations.
+  MixUp~\cite{zhang2017mixup} interpolates between pairs of training images and their labels, creating convex combinations that encourage linear behaviour between training points.
+  CutMix~\cite{yun2019cutmix} mixes regions of different images, producing examples that combine local patches from multiple classes.
+  These methods increase the effective sample count and encourage smoother decision boundaries, but they operate within the convex hull of the few-shot training set: the synthesised images are still anchored to the observed examples and do not explore unseen input regions.
+  Semantic diversity, the coverage of the teacher's full input distribution, is therefore not improved by standard augmentation.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Generative augmentation} uses generative models to synthesise new images that extend beyond the few-shot support.
+  BBKD (Zheng et al., 2021) trains a conditional GAN on $\mathcal{D}_{\text{few}}$ and uses the synthetic images to augment the student's training set.
+  FS-BBT~\cite{nguyen2022black} conditions the generator on teacher feedback, refining the synthetic images toward regions where the teacher has high confidence.
+  Both methods produce visually plausible images that expand the training set beyond $\mathcal{D}_{\text{few}}$, and both demonstrate accuracy improvements over augmentation-only baselines.
+\end{foldable}
+
+\begin{foldable}
+  However, GAN generators trained on few-shot data inherit the distributional limitations of their training set.
+  A generator trained on 100 images per class will model the modes present in those 100 images and largely ignore the long tail of the class distribution.
+  The synthetic images it produces therefore cluster around the same modes as $\mathcal{D}_{\text{few}}$, inheriting rather than correcting the diversity deficit.
+  This is not a failure of the GAN training procedure per se --- it reflects the fact that a generator can only model a distribution it has been trained to approximate.
+\end{foldable}
+
+\begin{foldable}
+  The progression from standard to generative augmentation thus represents genuine progress --- but it does not dissolve the core tension.
+  Generative augmentation improves over MixUp and CutMix by escaping the strict convex hull of $\mathcal{D}_{\text{few}}$, yet the generator's learned distribution remains tethered to the same few-shot support through which all its training signal has passed.
+  The improvement is one of degree rather than kind: the synthesised images are more varied, but their diversity is still bounded by the diversity that $\mathcal{D}_{\text{few}}$ could communicate to the generator during training.
+  Seen in distributional terms, the few-shot generator is caught in a loop --- it can only synthesise from what it has seen, and what it has seen is already insufficient to cover the teacher's full input distribution.
+  Standard and generative augmentation both operate inside the information horizon defined by the few-shot set; neither provides a mechanism to step outside it.
+  Addressing the coverage deficit therefore requires a signal that is not derived from $\mathcal{D}_{\text{few}}$ at all --- one that operates outside the convex hull of the few-shot support and can anchor synthesis to regions of the teacher's distribution that the few-shot examples do not represent.
+  This is precisely the problem that Chapter~\ref{ch:30-research01} takes up, though the details of how that external signal is constructed are deferred to that chapter.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Open problem (Ch.~\ref{ch:30-research01}):}
+  In black-box few-shot KD, how can GAN-based synthesis be made to produce data that is \emph{both} high-fidelity \emph{and} semantically diverse, without access to teacher internals, when the generator itself is trained on a few-shot dataset that already lacks diversity?
+\end{foldable}
+
+\subsection{Data-Free Knowledge Distillation: White-Box}
+\label{sec:24-background-kdrestricted-dfkd-whitebox}
+
+\begin{foldable}
+  The data-free white-box setting removes the training data entirely: no real images are available, but the teacher's internal computations --- logits, intermediate activations, batch normalization statistics, and gradients with respect to the input --- are fully accessible.
+  The core strategy is \emph{model inversion}: instead of collecting teacher queries from real data, a generator is trained to synthesise images that the teacher recognises as informative.
+\end{foldable}
+
+\begin{foldable}
+  DAFL~\cite{chen2019data} trains a generator by maximising the teacher's activation strength and information entropy jointly: a high-activation image is one the teacher responds strongly to, and high entropy encourages coverage across classes.
+  DeepInversion~\cite{yin2020dreaming} frames synthesis as optimization: starting from random noise, each image is updated to minimise the KL divergence between its layer-wise feature distributions and the teacher's stored BatchNorm statistics (running mean and variance).
+  The BatchNorm statistics serve as a summary of the real training distribution, enabling synthesis that is anchored to the distribution the teacher was trained on.
+  DFKD (Choi et al., 2020) adds an adversarial component: a generator is trained to maximise the disagreement between teacher and student predictions, forcing the synthesised images to explore boundary regions where the student currently makes errors.
+  Meta-KD (Pan et al., 2021) uses meta-learning to generalise the inversion procedure across tasks, improving sample efficiency when distilling multiple models.
+\end{foldable}
+
+\begin{foldable}
+  All of these methods are powerful but share a critical dependency: they require gradient flow \emph{through} the teacher (for generator training) or read access to the teacher's internal statistics (BatchNorm means and variances for DeepInversion).
+  In the black-box API setting, neither is available.
+  The teacher is a sealed function $T: \mathcal{X} \rightarrow \{1, \ldots, K\}$ that takes an image and returns a label; the weights, activations, and statistics that model inversion requires are not exposed.
+  White-box inversion methods are therefore inapplicable in the deployment scenarios this thesis targets.
+\end{foldable}
+
+\begin{foldable}
+  Despite this inapplicability, white-box methods establish an important existence result: useful synthetic data can be produced entirely without real images, provided the generator has access to the teacher's internal statistics.
+  DeepInversion's use of BatchNorm statistics as a distributional anchor demonstrates that a generator anchored to the teacher's training distribution can recover images that meaningfully support distillation.
+  The question, then, is what happens when that anchor is removed.
+  The black-box setting does not merely make model inversion harder --- it changes the problem in a qualitative sense.
+  Without gradients, without BatchNorm statistics, and without layer topology, the generator loses every handle on the teacher's training distribution that made inversion tractable in the first place.
+  There is no internal summary of what the real data looked like, and no pathway for the teacher's distributional knowledge to flow back to the generator.
+  The generator must instead rely entirely on the teacher's output behaviour --- and in the hardest variant of the black-box setting, that output behaviour is compressed to a single integer per query.
+  This is not a harder version of model inversion; it is a different problem, one that requires a generator to reconstruct distributional coverage of the teacher's input space from a signal that was never designed to carry it.
+  The following subsection examines how existing methods have approached this problem and where the two principal deficits --- domain coverage and supervision information --- remain unresolved.
+\end{foldable}
+
+\subsection{Data-Free Knowledge Distillation: Black-Box}
+\label{sec:24-background-kdrestricted-dfkd-blackbox}
+
+\begin{foldable}
+  The data-free black-box (BBDFKD) setting is the strictest practically motivated regime: no real training data is available, and the teacher returns only a top-1 hard label $T(\mathbf{x}) \in \{1, \ldots, K\}$ for each queried image.
+  This matches the API deployment model of large production systems (commercial vision APIs, cloud-hosted language models) in which the provider exposes only a label interface to protect model internals and limit adversarial probing.
+\end{foldable}
+
+\begin{foldable}
+  Zero-Shot Decision Boundary~\cite{wang2021zero} (ZSDB3) explores the teacher's decision boundary by generating query images near the hyperplanes that separate class regions, then using the resulting hard labels to train the student.
+  The method avoids requiring any data by navigating the input space using random walk procedures.
+  Its limitation is scalability: decision boundary exploration in high-dimensional image spaces becomes increasingly sparse for complex datasets with many fine-grained classes, and the boundary-sampled images are far from the natural image manifold.
+\end{foldable}
+
+\begin{foldable}
+  IDEAL~\cite{zhang2022ideal} takes a different approach: a generator is trained using the \emph{student's} gradients as a proxy feedback signal.
+  Since the teacher is a black box, IDEAL substitutes the student's current predictions for the teacher's --- the generator is rewarded for producing images on which the student and teacher disagree.
+  This enables end-to-end training without white-box teacher access, but it introduces a dependency on the student's current state: the generator is pulled toward the student's current failure modes rather than the teacher's distribution.
+  As the student improves, the generator feedback signal shifts, causing a form of sequential mode collapse --- the generated images at any given training stage are diverse only with respect to the current student checkpoint.
+\end{foldable}
+
+\begin{foldable}
+  DFHL-RS~\cite{yuan2024data} introduces a random search variant of the generator update, adding stochastic exploration to partially counteract the mode collapse of IDEAL.
+  The method improves coverage on moderate-scale benchmarks but retains the hard-label bottleneck: since the teacher returns only top-1 labels, there is no soft distillation signal, and the student is trained on the least informative possible supervision.
+\end{foldable}
+
+\begin{foldable}
+  Two structural deficits are shared by all existing BBDFKD methods.
+  First, the synthetic data lacks \emph{domain coverage}: without real images to anchor the generator, the synthesised distribution is not constrained to cover the teacher's training distribution.
+  The generator may produce images that are plausible under some learned prior but do not reflect the diversity of the real-world inputs on which the teacher's knowledge is defined.
+  Second, the hard-label interface is an \emph{information bottleneck}: a single integer per query provides $\log_2 K$ bits of supervision, compared to the $K$-dimensional probability vector that contains the inter-class relational structure that makes KD effective.
+\end{foldable}
+
+\begin{foldable}
+  To make the domain-coverage deficit concrete, consider a teacher trained on ImageNet, which comprises 1{,}000 classes and approximately 1.2 million training images spanning a highly multimodal natural-image manifold.
+  A \ac{BBDFKD} generator with no access to real images must implicitly reconstruct this manifold from hard-label feedback alone --- in effect inverting a 1{,}000-way classifier using only its top-1 decisions.
+  The difficulty of this inversion is severe: natural images occupy a tiny, low-dimensional manifold within pixel space, and the fraction of pixel-space samples that fall anywhere near that manifold is vanishingly small.
+  A generator initialised from a generic prior and updated solely by top-1 label agreement will gravitate toward the modes that its prior already favours, because those are the regions where label feedback is most consistent.
+  The long tail of each class --- atypical viewpoints, unusual lighting, boundary-region examples that lie close to adjacent classes --- receives little or no gradient signal and remains uncovered.
+  The practical consequence is a biased distillation corpus: the student is trained overwhelmingly on visually prototypical exemplars and is never exposed to the discriminative boundary structure on which the teacher's generalization depends.
+  Distributional fidelity between the synthetic corpus and the teacher's training distribution is therefore violated at the level of class coverage, not merely at the level of individual image quality.
+\end{foldable}
+
+\begin{foldable}
+  The information-bottleneck deficit is equally concrete.
+  For a $K = 1{,}000$-class teacher operating at moderate temperature ($\tau = 4$), a soft target vector encodes the full inter-class similarity structure: the probability mass assigned to visually related classes --- distinct dog breeds, different vehicle types, similar textures --- carries relational information that constrains how the student organises its own representation space.
+  A hard top-1 label, by contrast, carries at most $\log_2 1{,}000 \approx 10$ bits of class identity information under a uniform class prior, and far less in practice because confident teacher predictions concentrate nearly all mass on a single class.
+  The difference is qualitative, not merely quantitative: two images from the same coarse class but distinct fine-grained subclasses --- a golden retriever and a German shepherd, both labelled \texttt{dog} --- receive identical supervision under hard-label access, while a soft target would assign them different relative probabilities over related breeds and thereby expose the within-class substructure.
+  A student trained exclusively on hard labels cannot recover this within-class geometry; its representation must treat the two images as equivalent inputs carrying the same learning signal.
+  This is the specific failure mode that motivates the soft-label recovery component developed in Chapter~\ref{ch:40-research02}: restoring even an approximation of the soft probability vector partially repairs the distributional fidelity of the supervision signal, independent of whether the synthetic images themselves fully cover the real data manifold.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Open problem (Ch.~\ref{ch:40-research02}):}
+  In black-box data-free KD, how can a student simultaneously (i) generate synthetic images that cover the teacher's full input distribution, and (ii) recover a soft distillation signal approximating the teacher's class probabilities --- both without any real training data and with only hard-label access to the teacher?
+\end{foldable}

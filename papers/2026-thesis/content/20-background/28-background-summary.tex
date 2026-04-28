@@ -1,0 +1,89 @@
+\section{Summary and Research Gaps} \label{sec:28-background-summary}
+
+\begin{foldable}
+  This chapter has built the technical foundation for the thesis along two parallel tracks.
+\end{foldable}
+
+\begin{foldable}
+  Track~A (Sections~\ref{sec:21-background-deeplearning}--\ref{sec:25-background-synthetic}) established the image knowledge distillation pipeline: the deep learning architectures whose deployment cost motivates compression;
+  the compression landscape that positions KD as the preferred method; the standard KD framework and the rich soft-target signal it transfers; the increasingly restricted settings --- few-shot, data-free white-box, data-free black-box --- that arise in practice;
+  and the generative and contrastive tools that must be enlisted when the standard assumptions fail.
+\end{foldable}
+
+\begin{foldable}
+  Track~B (Sections~\ref{sec:26-background-datasetdistillation}--\ref{sec:27-background-importanceselection}) established the text dataset distillation pipeline: the language modelling and \ac{NLP} task foundations;
+  the dataset distillation objective and why image methods do not transfer to text;
+  the prior text DD methods and their shared limitations;
+  and the importance-scoring and optimal-transport machinery that provides principled, coverage-aware selection.
+\end{foldable}
+
+\begin{foldable}
+  The unifying thread is distributional fidelity.
+  In both tracks, the compact artefact --- a student model or a surrogate corpus --- must cover the distribution of the teacher or full dataset.
+  Coverage failures manifest differently in the two tracks (mode collapse in GAN-based synthesis;
+  coverage gaps in clustering-based corpus selection) but stem from the same root cause: the optimization objective used to produce the artefact does not directly penalise distributional divergence from the target.
+\end{foldable}
+
+\begin{foldable}
+  It is worth being precise about why this indirect penalization matters.
+  Existing methods do not ignore distributional fidelity; they pursue it through proxy objectives that correlate with distributional coverage without measuring it directly.
+  \ac{GAN} training minimises a divergence between the generated and real distributions, but the practical objective --- adversarial cross-entropy or Wasserstein distance estimated on a finite batch --- is a tractable surrogate, not a direct measure of how well the generated distribution covers the target.
+  Gradient-matching objectives in dataset distillation enforce that a surrogate corpus induces similar training dynamics to the full dataset, which correlates with coverage but does not bound it.
+  Clustering-based selection methods use intra-cluster distance as a proxy for representativeness, which can be dominated by high-density regions and systematically under-select low-frequency but semantically distinct examples.
+  This indirection is not a failure of prior design choices --- direct minimization of distributional divergence between a generated or selected artefact and the target distribution is computationally expensive, typically requiring approximations whose cost scales poorly with dimension and sample size.
+  The tractable proxies are therefore principled engineering decisions, not oversights.
+  What the thesis argues is that advances in contrastive representation learning, importance weighting, and discrete optimal transport now make direct penalization tractable in the three specific settings under study.
+  Each of the three contributions makes this direct minimization feasible in its respective context; without this framing, the three methods appear as independent engineering improvements rather than as instances of a single principle applied in different regimes.
+\end{foldable}
+
+\begin{foldable}
+  Table~\ref{tab:research-gaps} summarises the three settings this thesis addresses, the representative prior methods, their core limitations, and the corresponding contributions.
+\end{foldable}
+
+\begin{table}[t]
+  \centering
+  \caption{Research gaps addressed by the three thesis contributions.}
+  \label{tab:research-gaps}
+  \begin{tabular}{p{3.2cm}p{3.2cm}p{3.8cm}p{2.8cm}}
+    \hline
+    \textbf{Setting} & \textbf{Representative prior work} & \textbf{Core limitation} & \textbf{Thesis contribution} \\
+    \hline
+    Black-box few-shot KD &
+    BBKD, FS-BBT &
+    GAN mode collapse; no explicit diversity mechanism &
+    DivBFKD (Ch.~\ref{ch:30-research01}) \\[4pt]
+    Black-box data-free KD &
+    ZSDB3~\cite{wang2021zero}, IDEAL~\cite{zhang2022ideal}, DFHL-RS~\cite{yuan2024data} &
+    Poor domain coverage; hard-label information bottleneck &
+    DIPKD (Ch.~\ref{ch:40-research02}) \\[4pt]
+    Text dataset distillation &
+    DiLM~\cite{maekawa2024dilm}, DaLLME~\cite{tao2024textual} &
+    Hard-sample bias; no distributional coverage guarantee &
+    TAKE (Ch.~\ref{ch:50-research03}) \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{foldable}
+  Three open problems follow directly from the analysis.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Gap~1 $\rightarrow$ Chapter~\ref{ch:30-research01}.}
+  In black-box few-shot knowledge distillation, how can GAN-based synthesis be directed to produce data that is both high-fidelity and semantically diverse, without access to the teacher's internal representations, when the generator is itself trained on a few-shot dataset that already lacks diversity?
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Gap~2 $\rightarrow$ Chapter~\ref{ch:40-research02}.}
+  In black-box data-free knowledge distillation, how can a student simultaneously generate synthetic data that covers the teacher's full input distribution and recover a soft distillation signal approximating the teacher's class probabilities --- both without any real training data and with access to only hard-label teacher queries?
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Gap~3 $\rightarrow$ Chapter~\ref{ch:50-research03}.}
+  In text dataset distillation, how can per-sample importance scores be corrected for hard-sample bias, and how can the selected corpus be formally guaranteed to cover the importance-reweighted source distribution?
+\end{foldable}
+
+\begin{foldable}
+  Chapters~\ref{ch:30-research01}, \ref{ch:40-research02}, and~\ref{ch:50-research03} each address one of these gaps.
+  Chapter~\ref{ch:70-conclusion} revisits them collectively and identifies the unifying principle that connects all three solutions: that explicitly minimising distributional divergence --- whether through contrastive diversity enforcement, importance-aware generation, or optimal transport selection --- is the decisive factor separating the proposed methods from their predecessors.
+\end{foldable}

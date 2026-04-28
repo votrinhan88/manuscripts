@@ -1,0 +1,82 @@
+\section{Model Compression} \label{sec:22-background-compression}
+
+\subsection{The Compression Landscape}
+\label{sec:22-background-compression-landscape}
+
+\begin{foldable}
+  The gap between the accuracy achievable by large neural networks and the computational budget available at deployment has motivated a substantial body of work on model compression.
+  The field broadly divides into four families: pruning, quantization, low-rank factorization, and architecture search.
+  Each makes a different trade-off between compression ratio, hardware portability, and the degree of access required to the original model.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Pruning} removes parameters or entire structural units from a trained network.
+  Unstructured pruning zeros individual weights below a magnitude threshold, yielding sparse weight tensors; Han et al.~\cite{han2015learning} showed that over 90\% of parameters in
+  AlexNet and VGG can be pruned with negligible accuracy loss when combined with retraining.
+  However, irregular sparsity does not translate directly to wall-clock speedups without specialised sparse hardware or libraries.
+  Structured pruning removes whole filters, channels, or layers, producing dense sub-networks that accelerate inference on commodity hardware~\cite{molchanov2016pruning}, but the coarser granularity typically requires a larger pruning ratio to achieve the same compression.
+  Both variants require access to the network's weight matrices and at least one pass of retraining, placing them in the white-box compression category.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Quantization} reduces the numerical precision of weights and/or activations.
+  Fixed-point (INT8) quantization~\cite{jacob2018quantization} is now standard in production inference pipelines and is directly supported by most modern hardware accelerators; it typically recovers near-full-precision accuracy with a four-fold memory reduction.
+  Extreme approaches such as binary neural networks represent each weight as a single bit~\cite{hubara2018quantized}, achieving large memory savings at the cost of accuracy on complex tasks.
+  Quantization operates on the model's internal weight representation and generally requires calibration data and access to layer statistics, making it incompatible with black-box settings.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Low-rank factorization} decomposes weight matrices into products of smaller matrices (e.g., $W \approx UV^{\top}$ with $\text{rank}(U) \ll \min(m,n)$), reducing parameter count and arithmetic at the cost of an approximation error that is difficult to control across layers.
+  The technique is most effective for fully connected and embedding layers where matrices are large and relatively low-rank, but scales poorly to the large convolutional filters in modern CNNs.
+\end{foldable}
+
+\begin{foldable}
+  \ac{NAS} uses automated search to find efficient architectures directly, rather than compressing an existing one~\cite{zoph2018learning}.
+  \ac{NAS} methods can produce models that outperform hand-designed compressed networks, but the search itself is computationally expensive and yields architectures that are task- and hardware-specific.
+  \ac{NAS} is better understood as a design-time tool than a post-training compression technique, and it does not address the case where the model to be compressed is already deployed and inaccessible.
+\end{foldable}
+
+\begin{foldable}
+  Reviewing the four families together reveals a shared structural requirement that is easy to overlook when the methods are considered in isolation.
+  Pruning, quantization, and low-rank factorization all operate on the internal weight representation of the model: they read weight matrices, modify them, and require at least one subsequent pass of calibration or retraining against task data.
+  This is not an incidental implementation detail but a fundamental prerequisite---without direct access to parameters and activations, none of these transformations can be applied.
+  \ac{NAS} imposes a different kind of constraint: rather than requiring access to an existing model's internals, it requires that a new architecture be trained from scratch, making it a design-time tool rather than a post-deployment compression technique.
+  The boundary this draws is consequential.
+  Any setting in which a trained model is accessible only as an opaque input-output function---a black-box \ac{API} that accepts queries and returns predictions---rules out all four families simultaneously: pruning and quantization because they cannot read or write weights; low-rank factorization for the same reason; and \ac{NAS} because the model to be compressed already exists and retraining it from a different architecture is not an option.
+  \ac{KD} is the one compression paradigm that does not cross this boundary.
+  A distillation procedure queries the deployed model, collects its output predictions, and trains a separate student network on those predictions; at no point does it require access to the teacher's weights, gradients, or internal activations.
+  This compatibility with the black-box deployment setting is what motivates the following analysis.
+\end{foldable}
+
+\subsection{Why Knowledge Distillation?}
+\label{sec:22-background-compression-why-kd}
+
+\begin{foldable}
+  Knowledge distillation~\cite{hinton2015distilling}, reviewed in detail in \S\ref{sec:23-background-kdfoundations}, occupies a distinct position in the compression landscape for three reasons.
+\end{foldable}
+
+\begin{foldable}
+  First, it is \textbf{architecture-agnostic}.
+  The student network is designed independently of the teacher: it can be a smaller version of the same architecture, a fundamentally different design (e.g., a \ac{CNN} student learning from a
+  Transformer teacher), or even a non-neural model.
+  Pruning and quantization, by contrast, operate on the teacher's existing structure and produce compressed variants of it.
+\end{foldable}
+
+\begin{foldable}
+  Second, it requires \textbf{no modification of the teacher}.
+  The teacher is treated as a fixed oracle that responds to queries; its weights, activations, and gradients are never modified.
+  This is a practical requirement in many real-world settings where the teacher is a third-party model accessible only through an API, an arrangement that rules out all weight-based compression methods.
+\end{foldable}
+
+\begin{foldable}
+  Third, it \textbf{leverages richer information than hard labels}.
+  A teacher's class probability vector for a given input encodes not only the predicted class but also the relative similarity structure among classes --- the so-called dark knowledge that Hinton et al.\ identified as the principal source of KD's effectiveness.
+  This soft supervision signal is strictly more informative than the one-hot ground-truth label, and is available at no additional annotation cost.
+\end{foldable}
+
+\begin{foldable}
+  The output-only interface that KD requires is both its key strength and, in the most constrained settings, its limiting factor.
+  When the API returns only a top-1 hard label rather than a full probability vector, even the soft supervision signal is lost.
+  \S\ref{sec:23-background-kdfoundations} defines the KD framework precisely and maps out the family of assumptions under which each variant operates;
+  \S\ref{sec:24-background-kdrestricted} then traces what happens as those assumptions are progressively relaxed.
+\end{foldable}

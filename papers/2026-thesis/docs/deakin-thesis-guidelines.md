@@ -1,0 +1,131 @@
+# Deakin HDR Examination Procedures — Formatting & Submission Guide
+
+**Source:** Deakin University Students Research Support  
+**Last updated:** 27 February 2026  
+**Reference:** https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/examination-procedures
+
+> **Note:** This document focuses on formatting, content structure, and technical submission requirements. For examination procedures, timelines, and post-submission processes, see [Deakin's full examination procedures](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/examination-procedures).
+
+---
+
+## Preparation and Submission
+
+### Thesis Formatting Requirements
+
+1. **Font:** Not less than 12 point
+2. **Spacing & line length:** Appropriate to font size
+3. **Margins:** Not less than 20mm on binding side (left side)
+   - Thesis will be printed double-sided if requested by examiner
+   - Must be formatted for print if examiner requests hard copy
+4. **Figures, tables, diagrams:** Insert in text as close as possible to first reference, with suitable captions
+5. **Length limits:**
+   - Masters thesis: Not exceeding 50,000 words
+   - Doctoral thesis: Not exceeding 100,000 words
+   - Includes: title page, contents, abstract, bibliography, figures, tables, appendices, notes
+
+### Title Page (Page 1 - Not Numbered)
+- Use provided standard format; do not add additional information or change layout
+- **Thesis title limit:** 10 words maximum
+- Avoid acronyms and abbreviations
+- Non-compliance may delay progression to examination
+
+### Candidate Declaration Form (Page 2 - Not Numbered)
+- Must be signed electronically or printed and scanned
+- Required for all submissions
+
+### RTP/Funding Acknowledgement (Page 3 - Not Numbered - If Applicable)
+- Required if you received scholarship or any financial support for project
+- Include The Research Training Program (RTP)/Funding Acknowledgement form
+
+### Authorship Statement (If Applicable)
+- Required if thesis includes any multi-authored publications
+- One form per multi-authored publication
+- Must describe contributions by you and every other author
+- Must be signed by all authors
+
+### Acknowledgement Page (Page 4 - Not Numbered - Optional)
+- If professional editor used, editing assistance must be acknowledged
+
+### List of Publications (Page 5 - Not Numbered - Optional)
+- Indicate if each publication was submitted or accepted
+- Full versions may be included as appendix (not numbered)
+- Note: Will be included in word count; alternatively, provide link to publication
+
+### COVID-19 Thesis Impact Statement (Optional)
+- Maximum 600 words
+- May be included as additional page and/or addressed within thesis content
+
+### Course Learning Outcomes Statement (Required)
+- Written statement (maximum 1 page)
+- Demonstrate how you have met course learning outcomes with at least one example
+- Submit to HDR Examinations at same time as thesis
+- May reference progress review milestone or individual learning plan as evidence
+
+### Submission of Thesis
+
+**Platform:** HDR Examinations online system
+**Format specifications:** Single PDF document (unsecured) of maximum file size: 100MB
+**Thesis formatting checklist:** Refer to PDF checklist to verify compliance
+**Terms and conditions:** You must read and accept terms and conditions at submission
+
+### iThenticate Plagiarism Report (Required)
+Submit simultaneously with thesis (same day, matching document); detects plagiarism and ensures compliance with Australian code for responsible conduct; review with supervisor before submission
+
+---
+
+## After Examination: Amended Thesis & Export
+
+### If Amendments Required
+- Combine Response to Examiners form + tracked-changes thesis as single document
+- Simultaneously upload clean copy (no tracked changes) as Library Copy for supervisor/coordinator review
+- **Timeline:** Up to 4 months to submit
+
+---
+
+## Preparing Library Copy of Thesis
+**Purpose:** Clean, electronic copy of final thesis version required for lodgement with Deakin Library before degree awarded
+**Submission platform:** HDR Examinations
+**Timing:**
+- If amendments required: Submit library copy at same time as amended thesis
+- If no amendments: Submit after results released
+
+### Library Copy Components (3 required)
+
+#### Clean Electronic Thesis Document
+**Format specifications:**
+- Single, unsecured PDF (preferably PDF/A)
+- Maximum 100MB
+- Convert from Word using university computer (print to PDF)
+- Verify all figures, tables, contents formatted correctly
+
+**Library copy submission checklist:** Refer to PDF checklist for all formatting requirements
+
+**Page structure (same as examination copy):**
+1. **Title page**
+2. **Candidate declaration form**
+3. **RTP/Funding Acknowledgement**
+4. **Authorship statement**
+5. **Acknowledgement page**
+6. **List of publications**
+7. **COVID-19 Thesis Impact Statement**
+8.(*) NOT INCLUDED: Course Learning Outcomes Statement
+
+#### Digital Copyright and Access Form
+Complete and sign to govern copyright and accessibility (choose: full online access via Deakin Research Online, citation/abstract only, or limited-period restriction); upload with personal email, matching thesis title, and signature.
+
+#### Thesis Summary
+Write 50–59 words for graduation program and Deakin Research Online: begin with "This research/thesis/study", avoid first person and jargon, describe research and outcomes clearly, multiple sentences, no errors.
+
+---
+
+## External Procedures (Reference Only)
+- **Before submission:** complete mandatory coursework, attend submission seminar (within 6 months), give notice (8 weeks standard, 12 weeks exhibition/performance).
+- **Examination takes **~3 months; outcomes are accept as-is, accept with amendments (4 months to resubmit), or re-examination (12 months).
+- **Post-graduation:** degree conferred within weeks, ceremonies February/June/October/December.
+
+---
+
+## Resources & Checklists
+**Formatting checklists:** [Thesis formatting](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/examination-procedures) (200 KB) | [Library copy submission](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/examination-procedures) (221.8 KB)
+**Required forms for submission:** Response to Examiners | RTP/Funding Acknowledgement | Course learning outcomes statement
+**Full procedures:** [Deakin examination procedures](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/examination-procedures) | [FAQs for students](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/hdr-examinations-faqs-for-students)

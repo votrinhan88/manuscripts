@@ -1,0 +1,213 @@
+\section{Dataset Distillation} \label{sec:26-background-datasetdistillation}
+
+\subsection{Language Models and \ac{NLP} Foundations}
+\label{sec:26-background-datasetdistillation-nlpfoundations}
+
+\begin{foldable}
+  Track~B of this thesis operates in the natural language processing domain, where the scale problem introduced in \S\ref{sec:21-background-deeplearning-lm} takes a specific form: the datasets required to fine-tune or continually train large language models are themselves prohibitively large, and the cost of processing them grows proportionally with their size.
+  This subsection provides the language modelling and task foundations needed to understand both the problem and the solution proposed in Chapter~\ref{ch:50-research03}.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Tokenization and word representations.}
+  Text cannot be fed directly to a neural network as raw characters; it must first be converted to a numerical representation.
+  Tokenization splits a string into a vocabulary of sub-word units using algorithms such as
+  Byte-Pair Encoding (BPE) or WordPiece, balancing vocabulary size against the frequency of unknown tokens.
+  Each token is then mapped to a dense vector (word embedding) in $\mathbb{R}^d$ via a learnable look-up table.
+  Pre-trained static embeddings such as GloVe learn a fixed representation per token from co-occurrence statistics, while contextual embeddings --- the standard in modern \ac{NLP} --- vary the token's representation based on its surrounding context.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Tokenization and dataset distillation.}
+  The choice of tokenization algorithm has direct consequences for any method that assigns per-example importance scores, as those used in importance-based dataset distillation.
+  Because \ac{BPE} and WordPiece produce variable-length token sequences for the same surface text, the model's loss is computed over sequences of different lengths across examples.
+  Gradient norms --- a natural proxy for importance --- therefore reflect both the informational content of an example and the sheer number of tokens it contributes to the loss sum.
+  Without normalization, longer examples accumulate larger gradient norms by arithmetic necessity rather than by informativeness, introducing a length bias into the importance ranking.
+  A second artefact arises from vocabulary frequency: rare or domain-specific words are decomposed into multiple sub-word units, each of which has been seen less often during pre-training and therefore carries higher per-token loss.
+  An example rich in rare terminology will exhibit elevated loss not because it is more informative about the task boundary, but because its tokens are lower-frequency in the pre-training distribution --- a distributional mismatch between pre-training and fine-tuning corpora that inflates apparent importance.
+  Both artefacts --- length bias and vocabulary-frequency bias --- must be accounted for when computing importance scores over a heterogeneous corpus.
+  Chapter~\ref{ch:50-research03} addresses this by normalising gradient norms by sequence length, partially decoupling the importance estimate from these tokenization-induced confounds and improving distributional fidelity of the resulting surrogate corpus.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Transformer architecture.}
+  The Transformer~\cite{vaswani2017attention} block processes an input sequence $(\mathbf{x}_1, \ldots, \mathbf{x}_n)$ through alternating multi-head self-attention and position-wise feed-forward sublayers, each wrapped in a residual connection and layer normalization.
+  Multi-head self-attention allows each token to attend to all other tokens in the sequence simultaneously, computing a weighted combination of value projections where the weights are derived from query-key dot products:
+  \begin{equation}
+    \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right)V.
+    \label{eq:attention}
+  \end{equation}
+  Running $h$ attention heads in parallel and concatenating their outputs enables the model to capture multiple distinct relational patterns across the sequence.
+  Positional encodings are added to the token embeddings to inject sequence order, which is otherwise absent from the permutation-invariant attention mechanism.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{The fine-tuning paradigm and the dataset distillation problem.}
+  Pre-trained models such as BERT encode general linguistic knowledge acquired from large unlabelled corpora spanning hundreds of millions of words.
+  Fine-tuning adapts this knowledge to a specific task by continuing gradient-based optimization on a labelled dataset: all model parameters are updated, and a lightweight task head is added on top of the encoder.
+  The computational cost of fine-tuning is dominated by the number of gradient steps, each of which requires a full forward and backward pass through the model.
+  This count scales linearly with both dataset size and the number of training epochs.
+  For a corpus of 100k examples, three training epochs, and a batch size of 32, fine-tuning requires approximately 9,375 gradient steps; at 110M parameters per step for BERT-base, the total floating-point work is substantial even before accounting for validation and checkpointing.
+  Critically, this cost is not incurred once: it compounds across hyperparameter searches (learning rate, warmup schedule, weight decay), cross-validation splits for rigorous evaluation, and continual learning scenarios where the model must be re-adapted as new data arrives.
+  Each such repetition processes the same corpus in full, treating every example as equally necessary despite empirical evidence that model performance is driven by a small fraction of high-information examples.
+  Dataset distillation targets this inefficiency directly.
+  By replacing the full corpus with a compact surrogate $\tilde{\mathcal{D}}$ that preserves the distributional structure relevant to the task, the number of required gradient steps is reduced by an order of magnitude while final task accuracy is maintained.
+  The surrogate functions as a distilled representation of the original corpus --- one that achieves distributional fidelity at a fraction of the computational cost.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{BERT and pre-training.}
+  BERT~\cite{devlin2019bert} (Bidirectional Encoder Representations from Transformers) adapts the Transformer encoder for general-purpose language understanding by pre-training on two objectives over large unlabelled corpora: masked language modelling (predicting randomly masked tokens from their context) and next-sentence prediction (classifying whether two sentences are consecutive).
+  The resulting representations encode rich syntactic and semantic information transferable to downstream tasks via fine-tuning.
+  BERT-base (12 layers, 110M parameters) is fine-tuned on task-specific labelled data by adding a lightweight classification head and training end-to-end for a small number of epochs.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{\ac{NLI} task definitions.}
+  The experiments in Chapter~\ref{ch:50-research03} span two families of language tasks.
+  \emph{Text classification} assigns a single label to a document: topic classification, sentiment analysis (positive/negative).
+  \ac{NLI} operates on pairs of sentences --- a premise and a hypothesis --- and predicts one of three relations: entailment (the hypothesis follows from the premise), contradiction (they are mutually inconsistent), or neutral (neither).
+  \ac{NLI} is generally harder than classification because it requires modelling cross-sentence semantic relationships rather than the distributional features of a single document; the interaction space is quadratic in sentence length.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{\ac{NLI} versus text classification for dataset distillation.}
+  The structural difference between text classification and \ac{NLI} has direct implications for how difficult dataset distillation is on each task family.
+  In text classification, the label is determined by the distributional properties of a single document: topic classifiers respond to keyword frequencies and thematic vocabulary, while sentiment classifiers respond to lexical polarity and intensity markers.
+  A surrogate corpus must therefore capture the marginal distribution of documents across class-defining features --- a well-studied space that importance-based selection methods can approximate by targeting high-gradient examples near decision boundaries.
+  \ac{NLI} imposes a strictly harder requirement.
+  The label is a function of the \emph{relationship} between a premise sentence and a hypothesis sentence; neither sentence alone determines the label, and the same premise can participate in examples with all three relation types depending on the hypothesis paired with it.
+  This means the surrogate must preserve the joint distribution over sentence-pair relationships rather than the marginal distribution over individual sentences.
+  The effective feature space is higher-dimensional: it includes not only the content of each sentence separately but also the semantic conjunction of the two.
+  Two further consequences follow for importance scoring.
+  First, gradient norms computed from a single-document classification head --- a natural proxy for example importance in text classification --- do not straightforwardly reflect the informativeness of a sentence pair, because the gradient is sensitive to how both sentences interact through the cross-attention computation rather than to either sentence in isolation.
+  Second, ensuring diversity in the surrogate requires covering the space of premise-hypothesis conjunctions, not merely the space of individual sentence topics or lengths.
+  Chapter~\ref{ch:50-research03} evaluates the proposed method on both task families and reports results separately for classification and \ac{NLI} benchmarks, providing evidence on whether importance-based selection can handle this structural distinction.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Why corpus scale motivates dataset distillation.}
+  Fine-tuning BERT on a large task corpus (e.g., $>$100k examples) requires significant computation per training run, and the cost multiplies across hyperparameter searches, continual learning updates, and ablation studies.
+  Dataset distillation addresses this by finding a compact surrogate corpus $\tilde{\mathcal{D}}$ that, when used for fine-tuning, matches the performance achieved on the full corpus.
+  The gain compounds when the same corpus is used repeatedly --- a common pattern in NLP benchmarking.
+\end{foldable}
+
+\subsection{Problem Definition}
+\label{sec:26-background-datasetdistillation-definition}
+
+\begin{foldable}
+  Dataset distillation~\cite{zhao2020dataset} (also called dataset condenzation) seeks a small surrogate dataset $\tilde{\mathcal{D}}$ with $|\tilde{\mathcal{D}}| = K \ll N = |\mathcal{D}|$ such that a model trained on $\tilde{\mathcal{D}}$ performs approximately as well as one trained on the full dataset $\mathcal{D}$:
+  \begin{equation}
+    \tilde{\mathcal{D}}^{*} = \arg\min_{|\tilde{\mathcal{D}}|=K}
+    \mathbb{E}_{\theta \sim \mathcal{A}(\tilde{\mathcal{D}})}\!\left[\mathcal{L}(\theta; \mathcal{D})\right],
+    \label{eq:dd-objective}
+  \end{equation}
+  where $\mathcal{A}(\tilde{\mathcal{D}})$ denotes the learning algorithm applied to $\tilde{\mathcal{D}}$.
+  The compression ratio $N/K$ is typically large --- ranging from $10\times$ to $100\times$ in practice --- and the surrogate may consist of either selected real examples (coreset selection) or synthesised examples that do not appear in $\mathcal{D}$.
+\end{foldable}
+
+\begin{foldable}
+  Dataset distillation and knowledge distillation are complementary but distinct. KD compresses a \emph{model}: given a trained teacher, it produces a smaller student with similar predictive behaviour.
+  DD compresses a \emph{dataset}: given a full training corpus, it produces a smaller surrogate that induces similar model behaviour when used for training.
+  The two problems share the distributional fidelity requirement --- both the student and the surrogate corpus must represent the teacher's or full dataset's distribution faithfully --- but they differ in their input (a trained model vs.\ a raw dataset) and output (a model vs.\ a corpus).
+\end{foldable}
+
+\begin{foldable}
+  A complete DD method for the text setting should satisfy three desiderata.
+  First, it should be \emph{knowledge-informed}: the selection or synthesis of $\tilde{\mathcal{D}}$ should reflect each example's contribution to model learning, not just its frequency or surface features.
+  Second, it should ensure \emph{distributional coverage}: the surrogate should represent the full range of semantic variation in $\mathcal{D}$, not just its high-frequency modes.
+  Third, for text, it should produce \emph{human-readable output}: unlike image distillation where synthetic pixels need not be interpretable, text examples must be fluent and coherent to be usable for fine-tuning and to support interpretability and privacy auditing.
+\end{foldable}
+
+\subsection{Image Dataset Distillation}
+\label{sec:26-background-datasetdistillation-image}
+
+\begin{foldable}
+  Image dataset distillation methods synthesise a small set of images by optimising them to
+  preserve some property of training on the full dataset.
+  Three optimization targets have been explored.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Gradient matching}~\cite{zhao2020dataset} (DC) synthesises $\tilde{\mathcal{D}}$ such that the model gradients computed on $\tilde{\mathcal{D}}$ match those computed on $\mathcal{D}$ at each training step:
+  \begin{equation}
+    \min_{\tilde{\mathcal{D}}} \sum_{t} \left\| \nabla_\theta \mathcal{L}(\theta_t;
+    \tilde{\mathcal{D}}) - \nabla_\theta \mathcal{L}(\theta_t; \mathcal{D}) \right\|^2.
+    \label{eq:dc-objective}
+  \end{equation}
+  Because the gradient matching loss is differentiable with respect to the pixel values of the synthesised images, the images can be optimised directly by backpropagation.
+  The resulting synthetic images often appear unnatural --- they encode gradient information rather than visual realism --- but they reliably reproduce the training dynamics of the full dataset on simple benchmarks such as MNIST and CIFAR-10.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Trajectory matching}~\cite{cazenavette2022dataset} (MTT) extends gradient matching to the full training trajectory: it optimises $\tilde{\mathcal{D}}$ such that the model trained on it for $T$ steps mimics the parameter trajectory of a model trained on $\mathcal{D}$ for a longer expert trajectory.
+  Matching the entire trajectory rather than single-step gradients improves performance on larger and more complex datasets.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Distribution matching}~\cite{zhao2023dataset} (DM) takes a softer approach: instead of matching gradients directly, it minimises the discrepancy between the feature-space distributions of real and synthetic data.
+  Distribution matching is more computationally scalable than gradient or trajectory matching because it does not require unrolling the training computation graph.
+\end{foldable}
+
+\begin{foldable}
+  All three methods share a fundamental incompatibility with the text domain.
+  They synthesise examples by gradient-based optimization in the continuous pixel space of images.
+  Text tokens are discrete: there is no well-defined gradient of a loss with respect to an integer token index.
+  Straight-through estimators and continuous relaxations partially address this, but they introduce approximation errors that compound across the typically long token sequences of text examples, and the resulting ``soft'' token sequences are not human-readable.
+\end{foldable}
+
+\subsection{Text Dataset Distillation}
+\label{sec:26-background-datasetdistillation-text}
+
+\begin{foldable}
+  The discrete and sequential nature of text requires a fundamentally different approach to dataset distillation.
+  Prior methods for text DD fall into two families.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Soft-embedding methods} apply continuous optimization in the embedding space rather than the discrete token space.
+  SLDD~\cite{sucholutsky2021soft} optimises a set of soft-label, continuous embedding vectors that, when used as training inputs, preserve model performance.
+  DDTC~\cite{li2021data} and DDAL~\cite{maekawa2023dataset} similarly learn embedding sequences optimised by gradient matching against a differentiable fine-tuning model.
+  DiLM~\cite{maekawa2024dilm} combines gradient matching with $k$-centre subset selection, identifying a small coreset of real examples whose gradient signal is most representative of the full dataset.
+  These methods achieve good compression ratios on simple classification tasks but share two limitations.
+  The optimised embeddings are \emph{architecture-locked}: the soft embeddings are tailored to a specific model architecture and cannot be used to fine-tune a different model.
+  More fundamentally, none of these methods produce natural language text --- the output is a set of continuous vectors that are uninterpretable and cannot be shared, audited, or used outside the training pipeline.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Clustering-based methods} select real examples by clustering the full dataset in embedding space and taking cluster representatives.
+  DaLLME~\cite{tao2024textual} embeds all training examples using a large language model and applies $k$-means clustering, selecting the example closest to each centroid.
+  This approach is fast, architecture-agnostic, and produces human-readable output (real examples rather than soft embeddings).
+  However, $k$-means assigns uniform weight to each cluster regardless of its contribution to model learning: rare but semantically important examples are not distinguished from frequent low-information ones.
+  The selection does not formally minimise any measure of distributional divergence, and the per-sample importance of selected examples is not considered.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{LLM-based generation.}
+  An alternative to selecting from $\mathcal{D}$ is to generate a synthetic candidate pool by fine-tuning a language model on $\mathcal{D}$ and sampling from it.
+  This avoids the gradient-flow problem entirely: the generation process is autoregressive and produces fluent, human-readable text.
+  Privacy is a natural byproduct: since the synthetic examples are generated rather than extracted from the original corpus, they do not directly expose training data.
+  This generation paradigm forms the generation stage of the TAKE pipeline (\S\ref{sec:54-research03-methodology}).
+\end{foldable}
+
+\begin{foldable}
+  However, generation alone does not solve the selection problem.
+  A large synthetic candidate pool must still be distilled to a compact surrogate of size $K$, and the selection step must address two residual problems shared by all prior text DD methods.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Residual problem 1 --- hard-sample bias.}
+  Naive per-sample importance scores based on model gradients are dominated by hard or noisy examples at convergence.
+  As the model fits the training distribution, its loss on clean, easy examples falls to near zero; gradient norms are therefore large only for samples the model still struggles with --- which are disproportionately mislabelled or atypical examples.
+  Selecting high-scoring samples by single-checkpoint gradient norms therefore biases the surrogate toward noise.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Residual problem 2 --- coverage gap.}
+  Greedy or clustering-based selection does not formally minimise the distributional divergence between $\tilde{\mathcal{D}}$ and the full importance-reweighted corpus.
+  Even with corrected per-sample scores, a greedy selector may concentrate on the highest-scoring examples and neglect lower-scoring but semantically distinct regions of the distribution.
+\end{foldable}
+
+\begin{foldable}
+  \S\ref{sec:27-background-importanceselection} introduces the two technical tools --- trajectory-integrated importance scoring and optimal transport --- that Chapter~\ref{ch:50-research03} uses to address both problems.
+\end{foldable}

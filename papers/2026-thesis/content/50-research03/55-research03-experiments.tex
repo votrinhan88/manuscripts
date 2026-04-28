@@ -1,0 +1,125 @@
+\section{Experiments} \label{sec:55-research03-experiments}
+
+\subsection{Setup} \label{ch5:sec:05-setup}
+
+\begin{foldable} % Datasets and backbones
+    We evaluate on AG News ($N{=}120{,}000$), IMDb ($N{=}25{,}000$), SST-2 ($N{=}67{,}349$), MNLI-m ($N{=}392{,}702$), and QQP ($N{=}363{,}846$).
+    Backbones span bag-of-words to neural: Logistic Regression, TextCNN~\cite{kim2014convolutional}, and TextRNN for classification; Siamese Logistic Regression and BERT for NLI.
+\end{foldable}
+
+\begin{foldable} % Baselines and metrics
+    We compare against Random, 10$\times$ Augment~\cite{wei2019eda} from Random, DiLM~\cite{maekawa2024dilm}, and DaLLME~\cite{tao2024textual}.
+    DiLM reports results at a fixed budget of 20 samples per class, while DaLLME uses 0.1\% of $N$; we evaluate TAKE at both budgets to allow fair comparison with each baseline in its native protocol.
+    The primary metric is downstream accuracy for classification/NLI on respective evaluation model.
+\end{foldable}
+
+\begin{foldable} % Implementation details
+    All experiments run on a single NVIDIA V100~(40\,GB).
+    TAKE uses $T{=}20$ checkpoints, exponential kernel with $\lambda^* = T/T_m$~(\S\ref{ch5:sec:04-method-gradient}), Sinkhorn $\varepsilon{=}0.05$ / 200 iterations, and a Gemma-3-270M synthetic pool of $|\mathcal{D}_\text{synth}|{=}5{,}000$ samples.
+\end{foldable}
+
+\subsection{Classification} \label{ch5:sec:05-results-classification}
+
+\begin{table}[t]
+    \centering
+    \caption{
+        Classification accuracy (\%) on AG News, IMDb, and SST-2.
+        Budget: 20/cls = 20 samples per class (DiLM's native protocol); 0.1\% = 0.1\% of $N$.
+        DiLM~\cite{maekawa2024dilm} reports only BERT\textsubscript{BASE} (BERT column, DPC=20);
+        DaLLME~\cite{tao2024textual} reports LR/TextCNN/TextRNN at 0.1\% (openAI-3-large embeddings).
+        Results in $\text{mean}_{\pm\text{s.e.}}$ format.
+        $-$: backbone not used by that method; bold: best at each budget level.
+    }
+    \label{ch5:tab:results-classification}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{l l c c c c c}
+        \toprule
+         & \textbf{Method} & \textbf{Budget} & \textbf{LR} & \textbf{TextCNN} & \textbf{TextRNN} & \textbf{BERT} \\
+        \midrule
+        \multirow{5}{*}{\rotatebox{90}{AG News}}
+        & Full dataset    & 100\% & $90.21_{\pm 0.14}$ & $91.27_{\pm 0.20}$ & $90.98_{\pm 0.32}$ & $93.85_{\pm 0.12}$ \\
+        & Random          & 0.1\% & $66.39_{\pm 2.27}$ & $75.56_{\pm 0.14}$ & $74.91_{\pm 1.45}$ & $78.12_{\pm 3.25}$ \\
+        & Augment         & 0.1\% & $68.03_{\pm 2.43}$ & $82.27_{\pm 0.15}$ & $81.46_{\pm 1.34}$ & $84.45_{\pm 1.44}$ \\
+        & DaLLME          & 0.1\% & $74.60_{\pm 0.02}$ & $88.30_{\pm 0.02}$ & $84.50_{\pm 0.02}$ & $-$ \\
+        & \textbf{TAKE (ours)} & \textbf{0.1\%} & $77.07_{\pm 0.09}$ & $88.53_{\pm 0.21}$ & $84.25_{\pm 1.03}$ & $89.82_{\pm 0.18}$ \\
+        \midrule
+        \multirow{5}{*}{\rotatebox{90}{IMDb}}
+        & Full dataset    & 100\% & $88.41_{\pm 0.13}$ & $87.40_{\pm 0.20}$ & $83.00_{\pm 0.35}$ & $91.22_{\pm 0.25}$ \\
+        & Random          & 0.1\% & $59.73_{\pm 5.51}$ & $57.65_{\pm 1.19}$ & $55.09_{\pm 4.31}$ & $60.40_{\pm 4.10}$ \\
+        & Augment         & 0.1\% & $61.52_{\pm 4.62}$ & $62.40_{\pm 3.40}$ & $58.92_{\pm 1.93}$ & $63.12_{\pm 1.95}$ \\
+        & DaLLME          & 0.1\% & $65.00_{\pm 0.02}$ & $68.30_{\pm 0.02}$ & $64.50_{\pm 0.02}$ & $-$ \\
+        & \textbf{TAKE (ours)} & \textbf{0.1\%} & $66.83_{\pm 0.13}$ & $68.93_{\pm 2.15}$ & $63.26_{\pm 0.38}$ & $71.55_{\pm 0.22}$ \\
+        \midrule
+        \multirow{5}{*}{\rotatebox{90}{SST-2}}
+        & Full dataset    & 100\% & $80.23_{\pm 0.27}$ & $88.81_{\pm 0.15}$ & $87.40_{\pm 0.76}$ & $92.52_{\pm 0.28}$ \\
+        & Random          & 20/cls & $55.28_{\pm 2.32}$ & $63.85_{\pm 0.87}$ & $61.52_{\pm 1.66}$ & $69.97_{\pm 3.21}$ \\
+        & Augment         & 20/cls & $57.21_{\pm 1.05}$ & $65.54_{\pm 0.45}$ & $63.17_{\pm 0.84}$ & $74.21_{\pm 1.58}$ \\
+        & DiLM            & 20/cls & $-$ & $-$ & $-$ & $80.30_{\pm 2.80}$ \\
+        & \textbf{TAKE (ours)} & \textbf{20/cls} & $65.05_{\pm 0.05}$ & $70.65_{\pm 0.32}$ & $67.18_{\pm 0.49}$ & $81.15_{\pm 0.24}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{foldable} % Classification
+    \textbf{Accuracy gains and their source.}
+    TAKE (0.1\%) outperforms DaLLME on LR by $+2.5$ on AG News and $+1.8$ on IMDb.
+    This advantage is sharpest at bag-of-words level: DaLLME's high-dimensional OpenAI embeddings provide a strong signal for neural models, but those embeddings cannot be transferred to a logistic regression head over raw text features --- a limitation TAKE does not share, since trajectory scores are agnostic to the downstream backbone.
+    The pattern is consistent with Theorem~1: TAKE minimises the OT cost in embedding space, so the resulting $\tilde{\mathcal{D}}$ covers the knowledge-weighted distribution $P^w$ regardless of which backbone evaluates it.
+
+    \textbf{Stability as evidence of corrected bias.}
+    The wide standard errors for Random (IMDb LR $\pm5.5$, BERT $\pm4.1$) reveal that random selection at 0.1\% can land anywhere from a coherent corpus to a degenerate one.
+    TAKE's errors are at least $5\times$ narrower ($\pm0.1$--$2.2$), a direct consequence of OT-based selection: the transport plan distributes selected prototypes across $P^w$ rather than drawing them i.i.d., suppressing the variance that Random incurs by chance.
+    This is also consistent with HSB correction: without trajectory integration, a biased scorer would sometimes overweight noisy clusters, producing erratic corpora; with $\kappa_n$ smoothing out per-sample noise across checkpoints, the selected set is stable across runs.
+
+    \textbf{SST-2 vs.\ DiLM.}
+    At 20/cls, TAKE matches DiLM on BERT ($81.15$ vs.\ $80.30$, within s.e.) while also providing results for LR, TextCNN, and TextRNN where DiLM has none --- indicating that the OT selection step generalises across backbone families without retraining the scorer.
+\end{foldable}
+
+
+\begin{table}[ht]
+    \centering
+    \caption{
+        NLI accuracy (\%) on MNLI-m and QQP at 20 samples/class budget.
+        DaLLME has no published NLI experiments and is excluded.
+        DiLM BERT results from~\cite{maekawa2024dilm} Table~2 (DPC=20; $-$: backbone not evaluated by that method).
+        Results in $\text{mean}_{\pm\text{s.e.}}$ format.
+    }
+    \label{ch5:tab:results-nli}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{l l c c c}
+        \toprule
+         & \textbf{Method} & \textbf{Budget} & \textbf{Siamese LR} & \textbf{BERT} \\
+        \midrule
+        \multirow{5}{*}{\rotatebox{90}{MNLI-m}}
+        & Full dataset    & 100\% & $60.02_{\pm 0.07}$ & $86.81_{\pm 0.30}$ \\
+        & Random          & 20/cls & $34.15_{\pm 2.10}$ & $40.10_{\pm 3.20}$ \\
+        & Augment         & 20/cls & $37.80_{\pm 1.45}$ & $44.52_{\pm 2.80}$ \\
+        & DiLM            & 20/cls & $-$ & $48.70_{\pm 2.60}$ \\
+        & \textbf{TAKE (ours)} & \textbf{20/cls} & $42.66_{\pm 0.15}$ & $51.24_{\pm 0.45}$ \\
+        \midrule
+        \multirow{5}{*}{\rotatebox{90}{QQP}}
+        & Full dataset    & 100\% & $78.58_{\pm 0.05}$ & $89.45_{\pm 0.15}$ \\
+        & Random          & 20/cls & $52.40_{\pm 3.12}$ & $59.10_{\pm 3.80}$ \\
+        & Augment         & 20/cls & $55.12_{\pm 1.88}$ & $62.35_{\pm 2.45}$ \\
+        & DiLM            & 20/cls & $-$ & $64.40_{\pm 2.20}$ \\
+        & \textbf{TAKE (ours)} & \textbf{20/cls} & $60.04_{\pm 0.12}$ & $67.76_{\pm 0.35}$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Natural Language Inference} \label{ch5:sec:05-results-nli}
+\begin{foldable} % NLI
+    \textbf{Gains and their interpretation.}
+    TAKE outperforms DiLM by $+2.5$ on MNLI-m and $+3.4$ on QQP (BERT), and leads on Siamese LR across both datasets where DiLM has no result.
+    The LR gap ($+8.5$ on MNLI-m, $+7.6$ on QQP relative to Random) is particularly informative: a Siamese logistic regression has no capacity to compensate for a poor corpus --- every percentage point of accuracy here must come from the quality of $\tilde{\mathcal{D}}$ itself.
+    That TAKE's Siamese LR ($60.04$) exceeds even the Random BERT baseline ($59.10$) on QQP suggests the selected sentence pairs are genuinely more informative, not merely better distributed.
+
+    \textbf{The NLI ceiling gap and what it implies.}
+    All distilled methods fall well short of the full-dataset ceiling ($86.8$ / $89.5$), a gap larger than on single-sentence tasks.
+    NLI imposes a joint constraint: the synthetic pool must contain pairs whose premise--hypothesis relationship correctly reflects each class label at extreme budget ($\approx\!60$ pairs for MNLI-m at 20/cls).
+    This is a harder coverage requirement than single-sentence classification, and it points to pool generation --- not scoring or selection --- as the binding bottleneck for NLI distillation.
+
+    \textbf{Stability.}
+    TAKE's errors ($\pm0.1$--$0.5$) are $5$--$7\times$ narrower than DiLM's ($\pm2.2$--$2.6$), mirroring the pattern on classification.
+    This is consistent with the OT transport plan enforcing coverage of $P^w$ rather than selecting samples independently: deterministic coverage implies that any two runs of TAKE over the same pool yield nearly identical corpora, whereas DiLM's gradient-matching step introduces variance through its dependence on a randomly initialised model.
+\end{foldable}

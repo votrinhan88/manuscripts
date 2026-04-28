@@ -1,0 +1,168 @@
+\section{Sample Importance and Distributional Selection} \label{sec:27-background-importanceselection}
+
+\begin{foldable}
+  This section develops the two technical pillars of the TAKE method (Chapter~\ref{ch:50-research03}), parallel in role to \S\ref{sec:25-background-synthetic} for Track~A.
+  Where \S\ref{sec:25-background-synthetic} addressed distributional coverage at the \emph{generative} level --- how to ensure a GAN produces images that span the target distribution --- this section addresses coverage at the \emph{selection} level: given a large pool of candidate examples with associated importance scores, how should a compact subset be chosen to minimise distributional divergence from the reweighted source?
+\end{foldable}
+
+\subsection{Influence Functions and Hard-Sample Bias}
+\label{sec:27-background-importanceselection-influence}
+
+\begin{foldable}
+  \textbf{Classical influence functions.}
+  Influence functions~\cite{koh2017understanding} formalise the intuition that different training examples contribute differently to a model's predictions.
+  The influence of a training example $z_n = (\mathbf{x}_n, y_n)$ on the model's loss at a test point $z_{\text{test}}$ is approximated using implicit differentiation:
+  \begin{equation}
+    \mathcal{I}(z_n, z_{\text{test}}) \approx
+    -\nabla_\theta \mathcal{L}(z_{\text{test}}, \hat\theta)^\top \,
+    H_{\hat\theta}^{-1} \,
+    \nabla_\theta \mathcal{L}(z_n, \hat\theta),
+    \label{eq:influence}
+  \end{equation}
+  where $\hat\theta$ is the converged model and $H_{\hat\theta} = \frac{1}{N}\sum_n \nabla^2_\theta \mathcal{L}(z_n, \hat\theta)$ is the Hessian of the training loss.
+  A large positive influence indicates that removing $z_n$ from the training set would increase the test loss --- i.e., $z_n$ is informative.
+  A large negative influence indicates that $z_n$ hurts generalization.
+\end{foldable}
+
+\begin{foldable}
+  The practical limitation of classical influence functions is computational. Hessian inversion is $O(p^2)$ in the number of parameters $p$, making it intractable for models of even moderate scale.
+  For BERT-base with $p \approx 110$M parameters, storing a dense Hessian requires several terabytes of memory.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Tractable proxies.}
+  TracIn~\cite{pruthi2020estimating} replaces Hessian inversion with a sum of gradient dot-products across training checkpoints:
+  \begin{equation}
+    \mathrm{TracIn}(z_n, z_{\text{test}}) = \sum_{t=1}^{T} \eta_t \,
+    \nabla_\theta \mathcal{L}(z_{\text{test}}, \theta_t)^\top \,
+    \nabla_\theta \mathcal{L}(z_n, \theta_t),
+    \label{eq:tracin}
+  \end{equation}
+  where $\eta_t$ is the learning rate and $\theta_t$ is the checkpoint at step $t$.
+  TracIn requires no Hessian and is naturally trajectory-aware: it measures how much $z_n$ contributed to the model's improvement throughout training, not just at convergence.
+  TRAK~\cite{park2023trak} scales influence estimation further by projecting per-sample gradients onto a random low-dimensional subspace before computing dot-products, reducing memory cost to $O(p \cdot r)$ where $r \ll p$ is the projection dimension.
+\end{foldable}
+
+\begin{foldable}
+  A simpler proxy --- the gradient norm $\|\nabla_\theta \mathcal{L}(z_n, \hat\theta)\|$ evaluated at the converged checkpoint --- is widely used as a per-sample importance score due to its near-zero computational overhead.
+  The gradient norm at convergence measures how far example $z_n$ is from being fully fitted by the current model.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Hard-sample bias.}
+  The gradient norm proxy, and to a lesser extent any single-checkpoint influence estimator, suffers from a systematic bias at convergence.
+  After sufficient training, a well-fitted model assigns near-zero loss to clean, easy examples; their gradient norms are correspondingly small.
+  Noisy, mislabelled, or atypical examples, however, resist convergence: the model cannot simultaneously fit them and the rest of the dataset, so their gradient norms remain large throughout training.
+  A selector that maximises gradient norms at convergence therefore preferentially selects noisy and hard examples --- precisely the examples that are most harmful to a student trained on the resulting surrogate.
+\end{foldable}
+
+\begin{foldable}
+  Dataset cartography~\cite{swayamdipta2020dataset} provides empirical evidence for this mechanism: when training dynamics are traced over epochs using per-example confidence and variability, the ``hard-to-learn'' stratum (low confidence, high variability) is strongly enriched in mislabelled examples.
+  Co-teaching~\cite{han2018co} arrives at the same conclusion from a noise-robust learning perspective: at late training stages, the large-loss examples that cross-network selection identifies as ``disagreed'' are predominantly noisy.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Trajectory integration as correction.}
+  If single-checkpoint gradient norms are biased by late-stage noise dominance, averaging gradient norms across $T$ checkpoints from different stages of training dilutes this bias.
+  Early-stage checkpoints produce large gradients for \emph{all} examples, not just noisy ones; late-stage checkpoints produce large gradients mainly for noisy examples.
+  Their average assigns moderate, calibrated scores to the full spectrum of the training set.
+  Chapter~\ref{ch:50-research03} formalises this trajectory-integrated score as $\kappa_n = \frac{1}{T}\sum_{t=1}^{T} \|\nabla_\theta \mathcal{L}(z_n, \theta_t)\|$ and proves in Proposition~2 that $\kappa_n$ is an unbiased estimator of example importance under mild conditions on the training trajectory.
+\end{foldable}
+
+\begin{foldable}
+  Correcting the importance score is necessary but not sufficient for distributional coverage.
+  The selection rule applied to the corrected scores determines whether the chosen subset covers the reweighted source distribution or concentrates on a high-scoring subset of it.
+\end{foldable}
+
+\subsection{Optimal Transport and Distributional Coverage}
+\label{sec:27-background-importanceselection-ot}
+
+\begin{foldable}
+  \textbf{Wasserstein distance.}
+  The Wasserstein-$p$ distance~\cite{villani2008optimal} between two probability distributions $\mu$ and $\nu$ on a metric space $(\mathcal{Z}, d)$ is defined as:
+  \begin{equation}
+    \label{eq:wasserstein}
+    W_p(\mu, \nu) = \left(\inf_{\gamma \in \Gamma(\mu,\nu)} \int d(z, z')^p \, \mathrm{d}\gamma(z, z') \right)^{1/p},
+  \end{equation}
+  where $\Gamma(\mu, \nu)$ is the set of all couplings (joint distributions) with marginals $\mu$ and $\nu$.
+  Geometrically, $W_p(\mu, \nu)$ is the minimum cost of transporting mass from $\mu$ to $\nu$, where cost is measured by distance in the ambient space.
+  Unlike KL and Jensen-Shannon divergences, the Wasserstein distance is well-defined even when $\mu$ and $\nu$ have disjoint supports --- a critical property when $\mu$ is the full training distribution and $\nu$ is a sparse surrogate.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Discrete optimal transport.}
+  In the dataset distillation setting, both the source (full training set with importance weights) and the target (synthetic candidate pool) are discrete.
+  Let the source be $\{(z_n, w_n)\}_{n=1}^{N}$ where $w_n = \kappa_n / \sum_{n'} \kappa_{n'}$ are the normalised trajectory-integrated importance weights.
+  Let the candidate pool be $\{(\tilde{z}_c, 1/C)\}_{c=1}^{C}$ with uniform weights.
+  The discrete OT problem seeks a transport plan $\gamma^* \in \mathbb{R}^{N \times C}_{\geq 0}$ that minimises the total transport cost:
+  \begin{equation}
+    \gamma^* = \arg\min_{\gamma \geq 0} \langle C_{\mathrm{dist}}, \gamma \rangle
+    \quad \text{s.t.} \quad \gamma \mathbf{1}_C = \mathbf{w}, \quad
+    \gamma^\top \mathbf{1}_N = \tfrac{1}{C}\mathbf{1}_C,
+    \label{eq:discrete-ot}
+  \end{equation}
+  where $C_{\mathrm{dist}} \in \mathbb{R}^{N \times C}$ is the pairwise cost matrix with $C_{\mathrm{dist},nc} = d(z_n, \tilde{z}_c)^2$.
+  The entry $\gamma^*_{nc}$ encodes how much importance mass from source example $z_n$ is assigned to candidate $\tilde{z}_c$.
+  The subset of $K$ candidates with the largest total assigned mass $\sum_n \gamma^*_{nc}$ is selected as the surrogate $\tilde{\mathcal{D}}$.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Sinkhorn algorithm.}
+  The discrete OT problem in Equation~\ref{eq:discrete-ot} is a linear programme with $N \times C$ variables, which is expensive to solve exactly for large $N$ and $C$.
+  The Sinkhorn algorithm~\cite{cuturi2013sinkhorn} adds an entropic regularization term $\varepsilon \, \mathrm{KL}(\gamma \| \mathbf{w} \otimes \tfrac{1}{C}\mathbf{1}_C)$ to the objective, converting the LP to a strongly convex problem with a closed-form solution via alternating row and column normalization.
+  The resulting regularised plan $\gamma_\varepsilon^*$ converges to $\gamma^*$ as $\varepsilon \to 0$ and can be computed in $O(N \cdot C)$ per iteration, making it practical for large candidate pools.
+  The regularization parameter $\varepsilon$ controls the smoothness of the transport plan: large $\varepsilon$ produces diffuse plans that spread mass broadly, small $\varepsilon$ produces concentrated plans closer to the exact OT solution.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Why OT outperforms greedy and clustering-based selection.}
+  $k$-means clustering (used in DaLLME~\cite{tao2024textual}) minimises within-cluster variance without regard to the source importance distribution: clusters in high-density but low-importance regions are treated the same as clusters in high-importance regions.
+  Greedy $k$-centre selection minimises the maximum distance from any source point to the nearest selected candidate, again ignoring importance weighting.
+  Optimal transport, by contrast, minimises the expected transport cost from the \emph{importance-reweighted} source distribution to the selected surrogate.
+  When the source weights $w_n = \kappa_n / \sum_{n'}\kappa_{n'}$ reflect the trajectory-integrated importance scores, OT selection directly minimises the distributional divergence between the surrogate and the semantically important regions of the full training distribution.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Toy illustration.}
+  A concrete small example makes the contrast between the three selection strategies precise.
+  Suppose the full training set contains six examples partitioned into two semantic regions: Region~A holds four examples, each assigned a trajectory-integrated importance weight of~$0.25$ after normalization, giving Region~A a combined weight of~$1.0$;
+  Region~B holds two examples, each with weight~$0.05$, giving Region~B a combined weight of~$0.10$.
+  Region~A therefore carries roughly ten times the importance mass of Region~B.
+  From a candidate pool of four synthetic examples --- two near Region~A and two near Region~B --- the task is to select $K = 2$ candidates as the surrogate.
+\end{foldable}
+
+\begin{foldable}
+  $k$-means partitions the four candidates into two clusters based on geometric proximity in feature space, without consulting the importance weights.
+  If the two Region-B candidates are geometrically cohesive (e.g., both lie in a low-frequency corner of the embedding space), they form one cluster; the two Region-A candidates form the other.
+  $k$-means then selects one representative centroid per cluster, yielding one Region-A candidate and one Region-B candidate.
+  The resulting surrogate allocates exactly half its capacity to Region~B despite Region~B carrying only~$9\%$ of the total importance mass --- a factor-of-five mismatch relative to the importance-weighted distribution.
+\end{foldable}
+
+\begin{foldable}
+  Greedy $k$-centre selection chooses the candidate set that minimises the maximum distance from any source point to its nearest selected candidate, again without reference to importance weights.
+  In the toy setting, the two geometric extremes of the candidate pool are one Region-A candidate and one Region-B candidate; selecting them minimises the worst-case coverage radius.
+  The outcome matches $k$-means: one representative per region, irrespective of the ten-to-one importance imbalance.
+  Both geometry-based methods conflate geometric coverage with distributional fidelity, and when the two are decoupled --- as they routinely are in text datasets where low-importance examples cluster in distinctive surface-form niches --- geometric coverage actively misleads the selection.
+\end{foldable}
+
+\begin{foldable}
+  \ac{OT} with the trajectory-integrated weights $\mathbf{w} = (0.25, 0.25, 0.25, 0.25, 0.05, 0.05)$ constructs a transport plan that must move all of Region~A's mass ($1.0$ in unnormalised units) and all of Region~B's mass ($0.10$) to the candidate pool.
+  Because the two Region-A candidates are the nearest feasible receivers for Region~A's mass, the Sinkhorn plan assigns approximately~$0.50$ units of mass to each Region-A candidate and approximately~$0.05$ units to each Region-B candidate.
+  Selecting the $K = 2$ candidates with the largest total assigned mass therefore returns both
+  Region-A candidates and neither Region-B candidate.
+  The surrogate covers Region~A fully and omits Region~B entirely --- which is precisely the outcome that minimises the Wasserstein distance from the importance-reweighted source distribution to the selected subset.
+\end{foldable}
+
+\begin{foldable}
+  The punchline is that \ac{OT}'s advantage over greedy and clustering-based methods is not about geometric coverage: the \ac{OT} surrogate in this example actually has worse worst-case geometric coverage than either $k$-means or $k$-centre, because it leaves Region~B unrepresented.
+  The advantage is about \emph{importance-weighted} coverage.
+  When the source weights reflect training dynamics --- as the trajectory-integrated scores $\kappa_n$ are designed to do --- \ac{OT} selection concentrates surrogate capacity on the regions that matter most to the learning objective, and the distributional divergence between the surrogate and the reweighted source is minimised in a principled, quantifiable sense.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Composition in Chapter~\ref{ch:50-research03}.}
+  The TAKE pipeline composes the two subsections of this section directly.
+  The trajectory-integrated scores $\kappa_n$ (\S\ref{sec:27-background-importanceselection-influence}) provide the importance-reweighted marginal $\mathbf{w}$ for the discrete OT problem.
+  The Sinkhorn algorithm then selects the $K$ synthetic candidates whose combined assigned mass is largest, formally minimising the distributional gap between the surrogate and the importance-weighted training distribution.
+  Theorem~1 in \S\ref{sec:54-research03-methodology} proves that this selection procedure minimises an upper bound on the expected generalization loss of a model trained on $\tilde{\mathcal{D}}$.
+\end{foldable}

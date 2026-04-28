@@ -1,0 +1,79 @@
+\chapter{Supplementary Material for Chapter 3}
+\label{ch:81-appendix-research01}
+
+\begin{foldable}
+    In this supplementary, we provide the implementation details on our experiments, including description on the datasets (full and few-shot) as well as the architecture and training of our teacher, student, and WGAN networks.
+\end{foldable}
+
+\section{Datasets}
+\begin{foldable}
+    We use a total of seven image classification datasets for our experiments: MNIST \cite{lecun1998gradient}, Fashion \cite{xiao2017fashion}, SVHN \cite{netzer2011reading}, CIFAR10, CIFAR100 \cite{krizhevsky2009learning}, Tiny-ImageNet \cite{le2015tiny}, and Imagenette \cite{howard2020imagenette}.
+    Only MNIST and Fashion have black-and-white images (1 color channel) while the other datasets have colored images (3 color channels).
+    Depending on their relative difficulty, we only use basic image transformations to augment our data, including resizing, zero-padding, random horizontally flipping, random cropping.
+    We present the datasets' details and corresponding transforms in Tab. \ref{ch3:tab:Dataset-details}.
+    For Imagenette, we report the average value; their image dimension ranges from 27$\times$80 to 4368$\times$2912.
+\end{foldable}
+
+\begin{table}[ht]
+    \caption{Dataset details and their augmentation transforms. Dimension (images and transforms) are in pixels (px).}
+    \label{ch3:tab:Dataset-details}
+    \centering
+    \begin{tabular}{c|c|c|c|c}
+        \hline
+        \textbf{Dataset} & \textbf{No. images} & \textbf{No. classes} & \textbf{Dimension} & \textbf{Transforms}\tabularnewline \hline
+        \hline
+        MNIST & 60K & 10 & 1$\times$28$\times$28 & Resize to 32$\times$32\tabularnewline \hline
+        Fashion & 60K & 10 & 1$\times$28$\times$28 & Resize to 32$\times$32\tabularnewline \hline
+        SVHN & 73K & 10 & 3$\times$32$\times$32 & $\begin{array}{c}\text{Zero-padding (4 px/side)}\\\text{Random crop to 32\ensuremath{\times}32}\end{array}$\tabularnewline \hline
+        CIFAR10 & 50K & 10 & 3$\times$32$\times$32 & $\begin{array}{c}\text{Zero-padding (4 px/side)}\\\text{Random horizontal flip}\\\text{Random crop to 32\ensuremath{\times}32}\end{array}$\tabularnewline \hline
+        CIFAR100 & 50K & 100 & 3$\times$32$\times$32 & $\begin{array}{c} \text{Zero-padding (4 px/side)}\\ \text{Random horizontal flip}\\ \text{Random crop to 32\ensuremath{\times}32} \end{array}$\tabularnewline \hline
+        Tiny-ImageNet & 100K & 200 & 3$\times$64$\times$64 & $\begin{array}{c} \text{Zero-padding (8 px/side)}\\ \text{Random horizontal flip}\\ \text{Random crop to 64\ensuremath{\times}64} \end{array}$\tabularnewline \hline
+        Imagenette & 9.5K & 10 & $\begin{array}{c} \text{(Mean)}\\ \text{3\ensuremath{\times}408\ensuremath{\times}472} \end{array}$  & $\begin{array}{c}\text{Resize to 256\ensuremath{\times}256}\\\text{Random horizontal flip}\\\text{Random crop to 224\ensuremath{\times}224}\end{array}$\tabularnewline \hline
+    \end{tabular}
+\end{table}
+
+
+\section{Construction of the few-shot dataset}
+\begin{foldable}
+    Following \cite{wang2020neural,nguyen2022black}, we used $N=2000$ images for MNIST, Fashion, SVHN, CIFAR10, and Imagenette, $N=5000$ images for CIFAR100, and $N=10000$ images for Tiny-ImageNet.
+    They were randomly drawn from the original training set such that each class had $\frac{N}{K}$ images ($K$ is the number of classes).
+\end{foldable}
+
+
+\section{Training setting of the Teacher}
+\begin{foldable}
+    We trained the teacher network with a stochastic gradient descent (SGD) optimizer using 0.9 momentum, $5\times10^{-4}$ weight decay, and 128 batch size.
+    We fixed the learning rate to $10^{-2}$ on MNIST and Fashion.
+    On other datasets, we scheduled the learning rate to $10^{-1}$ at the beginning and decreased it by ten times at 50\% and 75\% progress.
+    We trained for 100 epochs on MNIST and Fashion, and 200 epochs on other datasets.
+\end{foldable}
+
+
+\section{Our WGAN architecture}
+\begin{foldable}
+    We employed a deep convolutional GAN as in \cite{radford2015unsupervised}, where the generator and discriminator had symmetrical architectures:
+\end{foldable}
+\begin{itemize}
+    \item The generator accepts latent vectors of dimension 100 for MNIST, 200 for Fashion, and 256 for other datasets. The latent inputs are then projected to 256 base feature maps of dimension 8$\times$8 (except for Imagenette, 7$\times$7), which then undergo batch normalization. These feature maps are passed through upscaling convolutional blocks, each consisting of a nearest neighbor (2$\times$) upsample layer, a convolutional layer with half the channels, a batch normalization, and a leaky ReLU activation. Finally, once the feature maps have identical dimension to that of the training images, they are compressed to either grayscale or RGB with a final convolutional layer and a sigmoid activation to map the output pixel values to range $\left[0,1\right]$.
+    \item The discriminator feeds forward input images through convolutional blocks, each consisting of a (0.5$\times$) downscaling convolutional layer, a batch normalization (except for the first block), and a leaky ReLU activation. While the final block has 256 base feature maps of dimension 8$\times$8 (except for Imagenette, 7$\times$7), each previously adjacent block has half the channels. These base feature maps are eventually passed through a linear layer to yield a scalar score.
+\end{itemize}
+
+
+\section{Training setting of our WGAN}
+\begin{foldable}
+    We followed the implementation in \cite{gulrajani2017improved} to train our WGAN \cite{arjovsky2017wasserstein}.
+    As recommended, we enforced the Lipschitz constraint on the discriminator with gradient penalty, whose coefficient with the Wasserstein loss was set to 10:1.
+    The number of discriminator updates per generator updates was set to 5.
+    However, we alternatively used the RMSProp optimizer with learning rate $5\times10^{-5}$ and batch size 250 for both models.
+    We used the number of epochs of 500 for MNIST, 1000 for Fashion and SVHN, 2000 for CIFAR10 and Imagenette, and 5000 for CIFAR100 and Tiny-ImageNet.
+\end{foldable}
+
+
+\section{Training setting of our Student}
+\begin{foldable}
+    For a fair comparison, we used the same number of synthetic images for distillation as in other few-shot KD methods \cite{kimura2018fewshot,wang2020neural,nguyen2022black}, which is 24K for MNIST, 48K for Fashion, 40K for SVHN, CIFAR10, CIFAR100, and Imagenette, and 50K for Tiny-ImageNet.
+    We trained the Student with an SGD optimizer using 0.9 momentum and $5\times10^{-4}$ weight decay.
+    We fixed the learning rate to $10^{-2}$ on MNIST and Fashion.
+    On other datasets, we scheduled the learning rate to $10^{-1}$ at the beginning and decrease it by ten times at 50\% and 75\% distillation progress.
+    We used a batch size of 250 and the number of epochs of 100 for MNIST, 200 for Fashion and SVHN, 400 for CIFAR10 and Imagenette, and 1000 for CIFAR100 and Tiny-ImageNet.
+\end{foldable}

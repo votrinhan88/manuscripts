@@ -1,0 +1,19 @@
+\chapter{Background} \label{ch:20-background}
+
+\begin{foldable}
+  This chapter establishes the technical foundations for the two parallel tracks that converge on the thesis contributions.
+  Track~A covers the image knowledge distillation pipeline (\S\ref{sec:21-background-deeplearning}--\S\ref{sec:25-background-synthetic}): beginning with the deep learning architectures and compression landscape that motivate the problem, through the standard and restricted-access distillation settings, and ending with the generative and contrastive tools that the thesis uses to enforce distributional coverage.
+  Track~B covers text dataset distillation (\S\ref{sec:26-background-datasetdistillation}--\S\ref{sec:27-background-importanceselection}): beginning with the language model foundations, tracing the dataset distillation paradigm from image to text, and developing the importance-scoring and optimal-transport machinery that underpins Chapter~\ref{ch:50-research03}.
+  Both tracks share the same theoretical root: whether the compressed artefact is a student model or a surrogate corpus, it must faithfully cover the teacher's (or full dataset's) distribution.
+  Distributional fidelity is therefore a first-class design criterion in both settings, not a coincidental commonality.
+  \S\ref{sec:28-background-summary} synthesises the two tracks and states the three open problems that Chapters~\ref{ch:30-research01}--\ref{ch:50-research03} address in turn.
+\end{foldable}
+
+\input{./content/20-background/21-background-deeplearning}
+\input{./content/20-background/22-background-compression}
+\input{./content/20-background/23-background-kdfoundations}
+\input{./content/20-background/24-background-kdrestricted}
+\input{./content/20-background/25-background-synthetic}
+\input{./content/20-background/26-background-datasetdistillation}
+\input{./content/20-background/27-background-importanceselection}
+\input{./content/20-background/28-background-summary}

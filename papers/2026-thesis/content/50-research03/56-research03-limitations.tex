@@ -1,0 +1,24 @@
+\section{Limitations and Ethical Considerations} \label{sec:56-research03-limitations}
+
+\begin{foldable} % Limitations
+    \textbf{(1) Gradient norm proxy.}
+    $I_{(n,t)}$ uses plain gradient norms rather than Fisher-preconditioned scores; the Goodfellow trick~\cite{goodfellow2015efficient} keeps per-sample cost at $O(C + d_\phi)$ per checkpoint.
+    K-FAC~\cite{martens2015optimizing} or EKFAC~\cite{george2018fast} preconditioning are natural extensions when calibrated magnitude scores are needed.
+    %
+    \textbf{(2) Encoder dependence.}
+    The OT cost matrix inherits the geometry of $\phi$; a mismatched encoder can distort transport costs.
+    The $L$-Lipschitz assumption on $\ell$ (Theorem~1) holds approximately when $\phi$ is task-aligned and embeddings are normalised, but remains an approximation for cross-entropy over discrete text.
+    %
+    \textbf{(3) Synthetic pool coverage.}
+    Pool diversity is bounded by the generator's domain coverage.
+    Fine-tuning on $\mathcal{D}_\text{train}$ mitigates this in practice.
+\end{foldable}
+
+\begin{foldable} % Ethical considerations
+    \textbf{(1) Bias propagation.}
+    Distillation concentrates the statistical properties of $\mathcal{D}_\text{train}$, including demographic biases; we recommend corpus auditing before distillation.
+    %
+    \textbf{(2) Privacy risk.}
+    Language models fine-tuned on sensitive data may memorise training examples --- a risk that synthetic generation alone does not fully eliminate.
+    We recommend distance-to-closest-record (DCR) screening of $\mathcal{D}_\text{synth}$ to verify that synthetic samples are not verbatim copies; for regulated domains, differential privacy at the fine-tuning stage provides a formal guarantee against memorization.
+\end{foldable}

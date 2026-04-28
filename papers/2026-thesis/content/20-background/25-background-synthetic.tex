@@ -1,0 +1,154 @@
+\section{Diversity and Quality Control in Synthetic Data} \label{sec:25-background-synthetic}
+
+\subsection{Generative Adversarial Networks}
+\label{sec:25-background-synthetic-gans}
+
+\begin{foldable}
+  Generative adversarial networks~\cite{goodfellow2014generative} (GANs) frame image synthesis as a two-player game.
+  A generator $G: \mathcal{Z} \rightarrow \mathcal{X}$ maps samples from a low-dimensional noise prior $\mathbf{z} \sim p_z$ to images in the data space $\mathcal{X}$.
+  A discriminator $D: \mathcal{X} \rightarrow [0,1]$ attempts to distinguish real images from generated ones.
+  The two networks are trained adversarially:
+  \begin{equation}
+    \min_{G} \max_{D} \; \mathbb{E}_{\mathbf{x} \sim p_{\text{data}}}[\log D(\mathbf{x})]
+    + \mathbb{E}_{\mathbf{z} \sim p_z}[\log(1 - D(G(\mathbf{z})))].
+    \label{eq:gan-minimax}
+  \end{equation}
+  At equilibrium, $G$ produces samples from $p_{\text{data}}$ and $D$ cannot distinguish real from generated images.
+  In practice, this equilibrium is rarely achieved cleanly; two failure modes dominate.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Vanishing gradients} occur when the discriminator becomes too strong early in training and assigns near-zero probability to all generated images.
+  The generator gradient $\nabla_{\theta_G} \log(1 - D(G(\mathbf{z})))$ saturates, and learning stalls.
+  The standard fix --- using $\nabla_{\theta_G} [-\log D(G(\mathbf{z}))]$ instead --- partially alleviates saturation but does not address the underlying distributional mismatch.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Mode collapse} occurs when the generator maps a large region of noise space to a small region of the data space, producing diverse noise vectors that yield similar or identical outputs.
+  The discriminator is fooled by a narrow set of ``easy'' images, and the generator has no incentive to explore the full data distribution.
+  Mode collapse is particularly damaging in the KD context because a collapsed generator cannot produce the diversity of training queries needed to extract the full knowledge of the teacher.
+\end{foldable}
+
+\begin{foldable}
+  The Wasserstein GAN~\cite{arjovsky2017wasserstein} (WGAN) replaces the Jensen-Shannon divergence implicit in the original GAN objective with the Wasserstein-1 (Earth Mover) distance, enforced by clipping discriminator weights to a compact set.
+  The Wasserstein distance is defined even when the real and generated distributions have non-overlapping support, providing meaningful gradients throughout training and largely eliminating the vanishing gradient problem.
+  WGAN-GP~\cite{gulrajani2017improved} replaces weight clipping with a gradient penalty, penalising the discriminator when its gradient norm deviates from one along interpolations between real and generated samples.
+  This soft Lipschitz constraint produces more stable training and better mode coverage than clipping, and WGAN-GP has become a standard component in data-free distillation generators.
+\end{foldable}
+
+\begin{foldable}
+  A key point for what follows: WGAN-GP improves training stability and reduces the severity of mode collapse, but it does not eliminate it in low-data regimes.
+  When the generator is trained on a small support --- as in the few-shot and data-free settings of this thesis --- it can still learn a stable but narrow distribution that scores well on the
+  Wasserstein objective while missing large regions of the target space.
+  Stability is a necessary but not sufficient condition for diversity.
+\end{foldable}
+
+\subsection{The Diversity Problem in Knowledge Distillation}
+\label{sec:25-background-synthetic-problem}
+
+\begin{foldable}
+  Mode collapse can be understood as a distributional coverage failure: the generated distribution $p_G$ approximates some subset of $p_{\text{data}}$ faithfully but assigns zero or negligible mass to a large portion of the real distribution.
+  This is not simply a quality failure --- individual generated images may be indistinguishable from real ones --- it is a \emph{coverage} failure.
+\end{foldable}
+
+\begin{foldable}
+  In the standard KD setting, mode collapse in the generator has a direct and measurable consequence.
+  A student trained on a collapsed synthetic set learns to approximate the teacher's predictions on the modes present in that set.
+  On held-out data that covers the full class distribution, the student's performance degrades in proportion to the fraction of the distribution that was absent from its training set.
+  The binding constraint on student accuracy is not the fidelity of individual generated images but the distributional coverage of the generated set as a whole.
+\end{foldable}
+
+\begin{foldable}
+  This framing is broader than the image KD context.
+  In dataset distillation (Ch.~\ref{ch:50-research03}), the analogous failure is a corpus whose selected examples cluster around the high-frequency training instances and fail to cover low-frequency but semantically distinct examples.
+  In both cases, the question is the same: does the compact artefact --- synthetic image set or selected text corpus --- cover the distribution it is meant to represent?
+  Distributional coverage is therefore the unifying concern across both tracks of the thesis.
+\end{foldable}
+
+\subsection{Evaluation Metrics for Diversity and Generation Quality}
+\label{sec:25-background-synthetic-metrics}
+
+\begin{foldable}
+  Standard image generation metrics conflate fidelity and diversity in ways that make them insensitive to coverage failures.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{\ac{IS}}~\cite{salimans2016improved} measures two properties jointly: the conditional label distribution $p(y \mid \mathbf{x})$ of generated images should be peaked (high fidelity, low entropy per image), and the marginal distribution $p(y) = \int p(y \mid \mathbf{x}) p_G(\mathbf{x}) \, \mathrm{d}\mathbf{x}$ should be spread (high diversity across images).
+  \ac{IS} is computed as $\exp(\mathbb{E}_{\mathbf{x} \sim p_G}[\mathrm{KL}(p(y|\mathbf{x}) \| p(y))])$.
+  Despite its widespread use, \ac{IS} does not measure \emph{intra-class} diversity and does not detect mode collapse within individual classes.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{\ac{FID}}~\cite{heusel2017gans} models both real and generated distributions as Gaussians in Inception feature space and measures the Fréchet distance between them:
+  \begin{equation}
+    \mathrm{FID} = \|\mu_r - \mu_g\|^2 + \mathrm{Tr}\!\left(\Sigma_r + \Sigma_g
+    - 2(\Sigma_r \Sigma_g)^{1/2}\right),
+    \label{eq:fid}
+  \end{equation}
+  where $(\mu_r, \Sigma_r)$ and $(\mu_g, \Sigma_g)$ are the empirical means and covariances of real and generated features.
+  \ac{FID} is sensitive to both the mean (fidelity) and covariance (diversity) of the generated distribution, making it a better overall metric than \ac{IS}.
+  However, it still aggregates fidelity and diversity into a single number and does not separately report how much of the real distribution is covered.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Density and Coverage}~\cite{naeem2020reliable} decompose the distributional similarity into precision-like and recall-like components.
+  Density measures how reliably generated samples fall near real samples (fidelity); Coverage measures what fraction of the real distribution is represented by the generated samples (recall).
+  Formally, Coverage is computed as the proportion of real samples whose neighbourhood in feature space contains at least one generated sample.
+  Coverage is the primary metric for the diversity problem: a set of generated images can have high density (individually high-quality) and low coverage (distributed over only a few modes).
+  All three research chapters report Coverage (or equivalent recall metrics) in addition to FID, enabling a direct assessment of distributional coverage.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Downstream classification accuracy} is the ultimate evaluation criterion throughout the thesis: the purpose of both model KD and dataset DD is to train a student that performs well on the task, not merely to produce images that score well on generative metrics.
+  Generative metrics are used as diagnostic tools; accuracy is the primary measure of success.
+\end{foldable}
+
+\begin{foldable}
+  The three metrics above form a diagnostic hierarchy rather than a flat set of alternatives.
+  Coverage establishes whether the generated set spans the target distribution --- it is the necessary condition for avoiding silent failure modes in which individual samples are high-quality but entire regions of the distribution are absent.
+  \ac{FID} then quantifies the aggregate distributional gap: even when coverage is adequate, a large \ac{FID} signals that the generator has distorted the shape of the distribution in some way.
+  Downstream accuracy is the bottom line that both metrics serve --- it is the empirical verdict on whether the coverage and fidelity achieved at the generative level are sufficient for the student learning task.
+  Crucially, these metrics also reveal a limitation of purely generative objectives.
+  A generator trained to minimise \ac{FID} optimises for aggregate distributional similarity; it may achieve a low \ac{FID} by accurately capturing the high-density modes of the target distribution while leaving low-density regions unrepresented, a failure that is invisible in the single aggregate score but that Coverage would detect.
+  Improving \ac{FID} therefore does not guarantee improving Coverage, and vice versa.
+  This dissociation points to a need that evaluation alone cannot satisfy: a mechanism that actively enforces distributional breadth during generation, before the distribution of the generated set is ever measured.
+  The contrastive learning framework described in the following subsection provides exactly this mechanism.
+\end{foldable}
+
+\subsection{Contrastive Learning as Diversity Enforcement}
+\label{sec:25-background-synthetic-contrastive}
+
+\begin{foldable}
+  Contrastive self-supervised learning provides a principled mechanism for enforcing representational diversity without requiring labels.
+  The core objective is to learn an encoder $f_\theta: \mathcal{X} \rightarrow \mathbb{R}^d$ such that two augmented views of the same image (a positive pair) map to nearby representations, while views of different images (negative pairs) map to distant representations.
+  This \emph{attraction-repulsion} structure directly prevents representation collapse: if all images were mapped to the same embedding, the repulsion term would incur a large loss.
+\end{foldable}
+
+\begin{foldable}
+  SimCLR~\cite{chen2020simple} implements this objective using the Normalised Temperature-scaled Cross-Entropy (NT-Xent) loss over a large batch of positive and negative pairs.
+  For a positive pair $(i, j)$ of views drawn from the same image, the loss is:
+  \begin{equation}
+    \ell_{i,j} = -\log \frac{\exp(\mathrm{sim}(\mathbf{z}_i, \mathbf{z}_j) / \tau)}
+    {\sum_{k \neq i} \exp(\mathrm{sim}(\mathbf{z}_i, \mathbf{z}_k) / \tau)},
+    \label{eq:ntxent}
+  \end{equation}
+  where $\mathbf{z}_i = g(f_\theta(\tilde{\mathbf{x}}_i))$ is the projection of augmented view $\tilde{\mathbf{x}}_i$, $\mathrm{sim}(\cdot, \cdot)$ is cosine similarity, and $\tau$ is a temperature parameter.
+  The denominator sums over all other images in the batch, acting as the negative set.
+\end{foldable}
+
+\begin{foldable}
+  MoCo~\cite{he2020momentum} addresses the large-batch requirement of SimCLR by maintaining a memory queue of negative embeddings encoded by a momentum-updated copy of the encoder.
+  This decouples the negative set size from the batch size, enabling effective contrastive training on hardware with limited memory.
+\end{foldable}
+
+\begin{foldable}
+  Barlow Twins~\cite{zbontar2021barlow} takes a different approach: instead of explicitly comparing instances, it encourages the cross-correlation matrix between the embeddings of two augmented views to be close to the identity matrix.
+  This redundancy-reduction objective drives each embedding dimension to be independently informative, avoiding the need to manage negative pairs explicitly.
+\end{foldable}
+
+\begin{foldable}
+  The relevance of contrastive objectives to the thesis is geometric.
+  The repulsion term in any contrastive loss drives embeddings apart in the representation space, explicitly maximising the separation between different instances.
+  A generator whose outputs are diverse in embedding space is, by construction, covering a larger region of the target distribution.
+  Chapter~\ref{ch:40-research02} exploits this property directly: the Contrast phase of DIPKD applies a contrastive objective to the primer student's features over the synthetic image priors, expanding semantic coverage before the main distillation phase begins.
+\end{foldable}
