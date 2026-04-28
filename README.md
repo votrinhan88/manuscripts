@@ -4,16 +4,29 @@ LaTeX source for academic manuscripts, organized as a monorepo with shared resou
 
 ## Structure
 
-- **papers/** - Individual manuscript directories (named `YYYY-topic`)
-- **shared/** - Common resources
-  - `preamble.tex` - Standard packages and document configurations
+- **papers/** - Individual manuscript directories (example: `YYYY-topic`)
   - `references.bib` - Shared bibliography file
-  - `figures/` - Shared figures/diagrams (external storage)
-  - `templates/` - Paper templates (main.tex and preamble.tex)
-- **tools/** - Build and management scripts
+- **shared/** - Common resources
+  - `main.tex` - <TODO>
+  - `preamble.tex` - Standard packages and document configurations
+- **tools/** - TUI scripts to manage/build/update manuscripts
 - **docs/** - Guidelines and documentation
 
 ## Quick Start
+
+### For New Projects
+
+**Start from the `scaffold` branch** (not `main`):
+
+```bash
+git clone <repo-url>
+git checkout scaffold
+./tools/new-paper.sh --paper=2026-your-topic
+```
+
+The `scaffold` branch contains the project template and tools without any papers. The `main` branch contains published papers and may have conflicting changes.
+
+### For Running Commands
 
 Use the TUI menu interface:
 
