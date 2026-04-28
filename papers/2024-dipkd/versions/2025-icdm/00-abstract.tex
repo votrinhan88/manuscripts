@@ -1,0 +1,6 @@
+Knowledge distillation (KD) is a well-known technique for effectively transferring knowledge from a larger network (teacher) to a smaller network (student) with little sacrifice in performance.
+However, most KD methods require full access to the teacher network and even its original training set, which are impractical due to intellectual property or security concerns.
+These difficulties have originated a more challenging problem known as \textit{black-box data-free KD}, which requires only the teacher's top-1 predictions and without any original data.
+While recent approaches have yet to leverage diversity, we propose Diverse Image Priors Knowledge Distillation ({\methodname}) with twofold novelties: we first synthesize \textit{image priors} --- semantically diverse synthetic images, then we further optimize them for diversity via contrastive learning.
+Through extensive experiments, we achieve state-of-the-art results among other black-box data-free KD methods on eight image benchmarks with thorough ablation studies.
+Our code is available at \url{https://osf.io/5mry8/?view_only=dee9e8fbcd114c34b45aa958a3aa32fa}.

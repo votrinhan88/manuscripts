@@ -1,0 +1,365 @@
+\begin{foldable} % Appendix overview
+    In this extended text, we provide our implementation details (\ref{sec:app01-training}), a complementary study on alternative optimization objectives for our image priors (\ref{sec:app02-experiments-multiobjective}), and an extension to an iterative framework (\ref{sec:app03-extension}). Explicit results to the figures in the main text are also provided for completeness and reproducibility (\ref{sec:app04-explicit}).
+\end{foldable}
+
+
+
+\section{Training Details} \label{sec:app01-training}
+\renewcommand{\thefigure}{A.\arabic{figure}}
+\renewcommand{\thetable}{A.\arabic{table}}
+\renewcommand{\theequation}{A.\arabic{equation}}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+\setcounter{equation}{0}
+
+\subsection{Datasets} \label{ssec:app01-training-datasets}
+\begin{foldable} % Datasets details
+    In our experiments (Sec.~\ref{sec:04-experiments}), we evaluate our method on eight benchmark image datasets: MNIST \citep{lecun2002gradient}, USPS \citep{hull1994database}, SVHN \citep{netzer2011reading}, FMNIST \citep{xiao2017fashion}, CIFAR10, CIFAR100 \citep{krizhevsky2009learning}, TinyImageNet \citep{le2015tiny}, Imagenette \citep{howard2020imagenette}.
+    All datasets are public and easily downloadable with standard libraries.
+    In terms of image content, MNIST, USPS, and SVHN contain small images of digits.
+    FMNIST is also a small-sized dataset of fashion items.
+    The images in CIFAR10, CIFAR100, TinyImageNet, and Imagenette all contain diverse scenes and objects, e.g., animals, plants, food, vehicles, and household goods, to name a few.
+    Notably, TinyImageNet and Imagenette have higher resolution: 64$\times$64 for TinyImageNet, and approximately one magnitude larger than that for Imagenette (ranging from 27$\times$80 to 4368$\times$2912 --- which we reported the average dimension).
+    Of all the benchmarks, only CIFAR100 and TinyImageNet have abundant classes (100 and 200, respectively), while the others have 10 classes.
+    Regarding the dataset size, USPS and Imagenette are relatively smaller.
+    We summarize their details in Table~\ref{tab:appendix-training-datasets}.
+\end{foldable}
+
+\begin{table}[ht] % tab:appendix-training-datasets
+    \caption{Details of the image benchmark datasets.}
+    \centering
+    \begin{tabular}{c|c|c|cc|c|c}
+        \hline                         & \textbf{Dataset} & \textbf{Dimension} & \multicolumn{2}{c|}{\textbf{Size}} & \textbf{No.} & \textbf{Content}  \\
+        & & & train & test & \textbf{classes} & \\
+        \hline
+        \multirow{4}{*}{Simple} & MNIST  & 1$\times$28$\times$28 & \phantom{0}60 K & 10 K           & \phantom{0}10 & Digits \\
+                                & USPS   & 1$\times$16$\times$16 & \phantom{00}9 K & \phantom{0}2 K & \phantom{0}10 & Digits \\
+                                & SVHN   & 3$\times$32$\times$32 & \phantom{0}73 K & 26 K           & \phantom{0}10 & Digits \\
+                                & FMNIST & 1$\times$28$\times$28 & \phantom{0}60 K & 10 K           & \phantom{0}10 & Fashion items \\
+        \hline
+        \multirow{4}{*}{Complex} & CIFAR10      &                    3$\times$32$\times$32 & \phantom{0}50 K &           10 K & \phantom{0}10 & Diverse \\
+                                 & CIFAR100     &                    3$\times$32$\times$32 & \phantom{0}50 K &           10 K &           100 & Diverse \\
+                                 & TinyImageNet &                    3$\times$64$\times$64 &           100 K &           10 K &           200 & Diverse \\
+                                 & Imagenette   & 3$\times$408$\times$472$^\blacktriangle$ & \phantom{00}9 K & \phantom{0}4 K & \phantom{0}10 & Diverse \\
+        \hline
+        \multicolumn{5}{l}{$^\blacktriangle$: The average dimension of Imagenette is reported.} \\
+    \end{tabular}
+    \label{tab:appendix-training-datasets}
+\end{table}
+
+
+\subsection{Teacher and students training} \label{ssec:app01-teacherstudents}
+\subsubsection{Augmentation} \label{sssec:app01-teacherstudents-augment}
+\begin{foldable} % Augmentation
+    To augment the training data (real images for the teacher, synthetic images for students), we design a basic augmentation pipeline.
+    Firstly, if the images are very small (in MNIST, USPS, FMNIST), we resize them to at least $32\times32$.
+    Then the images undergo random shifting by 1/8 of their dimension, and random horizontal flipping unless they are from a digits dataset (MNIST, USPS, SVHN).
+    Finally, we randomly jitter the color in the images for more image variety.
+    % For the high-resolution Imagenette, we efficiently perform $4\times$ downscale at storage and $4\times$ upscale at runtime.
+\end{foldable}
+
+\subsubsection{Optimization and scheduling} \label{sssec:app01-teacherstudents-optimization}
+\begin{foldable} % Optimization and scheduling
+    To train the Teacher for baseline, and the Students in our method, we use a stochastic gradient descent optimizer with momentum of 0.9, weight decay of $5\times10^{-4}$, and batch size of 100.
+    On datasets with small black-and-white images (MNIST, USPS, FMNIST), we use a fixed learning rate of $10^{-2}$ and train for 100 epochs.
+    On other datasets, we set the learning rate to $10^{-1}$ at the beginning and gradually decrease by two orders of magnitude with a scheduler to enable optimal convergence for 200 training epochs.
+\end{foldable}
+
+
+\subsection{Optimization of Image Priors} \label{ssec:app01-imagepriors}
+\subsubsection{Diverging filter} \label{sssec:app01-teacherstudents-optimization-divgfilter}
+\begin{foldable} % Diverging filter principles
+    We provide more details on the formulation of the diverging filter $f_{\text{divg}}$ (Eq.~\ref{eq:synthesis-diverging-filter}) proposed in the Synthesis phase (Sec.~\ref{ssec:03-framework-synthesis}).
+    To fulfill its role in contrasting opposite-type regions in a mask $m\in[0, 1]^{C\times H\times W}$, we expect $f_{\text{divg}}$ to satisfy the following properties:
+    \begin{enumerate}
+        \item We start by picking a brightness cutoff threshold $\beta$ to separate the negative ($x<\beta$) and postive regions ($x\ge\beta$) for any pixel $x\in m$.
+            The extrema and the threshold value must be fixed after filtering, \ie, $f_{\text{divg}}\left(\cdot; \beta\right)$ must go through $\left\{ (0,0), (\beta,\beta), (1,1)\right\}, \forall\beta$.
+        \item To preserve the order of intensity across the whole mask, it is necessary that $f_{\text{divg}}$ is an increasing function, \ie, $f_{\text{divg}}^{\prime}\left(x;\beta\right)>0,\forall x,\beta\in\left[0,1\right]$.
+        \item To avoid creating abrupt changes in intensity, \ie, $f_{\text{divg}}$ must be continuously differentiable on $[0,1], \forall\beta$.
+        \item To ensure the diverging property emerges at the threshold value $x=\beta$, we require that $f_{\text{divg}}$ has the sharpest increase there, \ie, $f_{\text{divg}}^{\prime}(\cdot;\beta)$ has a maximum at $x=\beta\Leftrightarrow f^{\prime\prime}(x=\beta;\beta)=0,f^{\prime}(x=\beta;\beta)>0$.
+    \end{enumerate}
+\end{foldable}
+
+\begin{figure}[h] % fig:diverging-filter
+    \centering
+    \includegraphics[width=0.55\textwidth]{./figures/diverging-filter.pdf}
+    \caption{
+        Our diverging filter as $y=f_{\text{divg}}\left(x;\beta\right)|_{x\in[0, 1]}$ in Eq.~\ref{eq:synthesis-diverging-filter} with different choices of $\beta\in\left[0,1\right]$.
+        Scattered points $\left\{\left(\beta,\beta\right)\right\}$ along the diagonal $y=x$ are also inflection points.
+    }
+    \label{fig:diverging-filter}
+\end{figure}
+
+\begin{foldable} % Diverging filter design
+    Accordingly, we design a piecewise function consisting of two continuously differentiable half-parabolas connected at the inflection point $\left(\beta,\beta\right)$.
+    One of them has a minimum at the $x=0$ boundary, and vice versa, the other half-parabola has a maximum at the opposite boundary $x=1$, \ie, $f_{\text{divg}}^{\prime}(0;\beta)=f_{\text{divg}}^{\prime}(1;\beta)=0 \forall \beta\in[0, 1]$.
+    Solving the two parabolas with the proposed set of constraints indeed gives the solution  we reported $f_{\text{divg}}$ in Eq.~\ref{eq:synthesis-diverging-filter}.
+    We plot $f_{\text{divg}}$ with a range of $\beta \in [0, 1]$ values in Fig.~\ref{fig:diverging-filter} to demonstrate its diverging property.
+    We believe that this filter design has unexplored potentials in image augmentation for robust learning of vision tasks.
+\end{foldable}
+
+
+
+\subsubsection{Loading unique embeddings during Contrast phase} \label{sssec:app01-teacherstudents-optimization-uniqueembeddings}
+\begin{foldable} % Problem: exploding gradients
+    In the Contrast phase, we apply the contrastive method proposed in \citet{fang2021contrastive} to make our data diverse.
+    However, we occasionally observed numerical inbstability and synthetic image corruption during contrastive optimization.
+    After investigation, we found that the issue stems from how embeddings are loaded for contrastive learning.
+    Originally, the embeddings of past inputs $x$ and their corresponding positive views $x^{+}$ are cached to and recalled from an index-free memory bank.
+    (The same occurred for negative samples, but it is not linked to the error.)
+    As a result, for small datasets, an embedding loaded from the memory bank might be near-duplicated with one extracted at runtime as, by chance, they may originate from the same image and differ by some trivial updates.
+    Optimization-wise, contrasting an image against itself is counter-intuitive, which explains the exploding gradients and corruption of synthetic images.
+\end{foldable}
+
+\begin{foldable} % Alternative fix
+    Therefore, we modify how images are loaded for contrastive optimization.
+    Instead of using an index-free memory bank, we store the embeddings of each synthetic images in our dataset by its unique index.
+    At contrastive learning runtime, we only load embeddings of images \textbf{not} in the current batch, successfully avoid duplication.
+    This modification fixes the numerical instability and synthetic image corruption on our ends.
+\end{foldable}
+
+
+\subsubsection{Instance-discriminator} \label{sssec:app01-teacherstudents-optimization-instancedisc}
+\begin{foldable} % Instance-discriminator
+    Following \citet{fang2021contrastive}, we use a fully connected instance-discriminator $R$ comprising of two libear layers.
+    For each input image $x$, $R$ projects the image embedding $h=S_0^{\mathcal{H}}(x)$ from the primer student backbone $S_0^{\mathcal{H}}$, through one hidden layer, to its own embedding space of 128 dimensions.
+    To update $R$ during the Contrast phase (Sec.~\ref{ssec:03-framework-contrast}), we let the contrastive loss $\mathcal{L}_{\text{CT}}$ in Eq.~\ref{eq:loss-contrastive} backpropagate to it parameters.
+    It is trained with an Adam optimizer \citep{kingma2014adam} with a learning rate of $10^{-3}$, and its ``betas'' coefficients of (0.5, 0.999).
+    As $R$ is shallow, this does not incur a significant computational overhead.
+\end{foldable}
+
+\subsubsection{Resources} \label{sssec:app01-teacherstudents-optimization-resources}
+\begin{foldable} % Resources
+    We perform each standard experiment on a single NVIDIA V100 GPU with 40GB VRAM, 4--16 CPUs, and 4--128 GB RAM, taking around 6--96 hours.
+    The required resources depend on the dataset complexity, model size, and synthetic image resolution.
+    In an increasing order, their training time rank as: simple datasets (negligible difference), CIFAR10, CIFAR100, Imagenette, and TinyImageNet.
+\end{foldable}
+
+
+
+\section{Alternative image optimization objectives} \label{sec:app02-experiments-multiobjective}
+\renewcommand{\thefigure}{B.\arabic{figure}}
+\renewcommand{\thetable}{B.\arabic{table}}
+\renewcommand{\theequation}{B.\arabic{equation}}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+\setcounter{equation}{0}
+
+
+\begin{foldable} % In-class similarity: One-hot loss
+    In the following section, we will examine student accuracy when adopting different optimization objectives for image prior optimization, and justify our choice of the contrastive approach for diversity. 
+    During the Contrast phase, we employ the contrastive loss $\mathcal{L}_{\text{CT}}$ in Eq.~\ref{eq:loss-contrastive} to make synthetic images more diverse.
+    Unlike the diversity objective in our framework, previous BBDFKD methods such as \citet{zhang2022ideal, yuan2024data} attempted to promote in-class similarity and class-balance.
+    Specifically, in-class similarity is optimized via the one-hot loss:
+    \begin{equation} \label{loss-onehot}
+        \mathcal{L}_{\text{OH}}=\mathcal{L_{\text{CE}}}\left(\hat{y}_{S-\text{Soft}},\text{argmax}(\hat{y}_{S-\text{Soft}})\right),
+    \end{equation}
+    which guides data generation to strengthen the effect of the most prominent class in each sample.
+    The one-hot loss is popular in data-free KD \citep{chen2019data}, but as stated in \citet{yuan2024data}, its adversarial nature might cause ``overfitting of synthetic data to the clone model'', resulting in mode collapse and insufficient diversity.
+\end{foldable}
+
+\begin{foldable} % Class-balance: Information entropy loss
+    The other objective, class-balance, is to ensure the samples are evenly distributed between all classes, enforced by the information entropy loss:
+    \begin{equation} \label{loss-infoentropy}
+        \mathcal{L}_{\text{IE}}=\sum_{k=0}^{K-1}p_{k}\log p_{k},\text{ with }p_{k}=\mathbb{E}_{x\sim \mathcal{D}}\left[\hat{y}_{S-\text{Soft}}^{\left(k\right)}\right],
+    \end{equation}
+    where $k$ denotes the $k$-th class probability.
+    In our framework, as we have actively balanced the dataset during sampling, class-balance has already been satisfied.
+\end{foldable}
+
+\begin{figure}[ht] % fig:abla-losses
+    \centering
+    \begin{minipage}{0.35\columnwidth}
+        \centering
+        \includegraphics[width=\columnwidth]{./figures/experiments-abla-losses-mnist-lenet5.pdf}
+        {\footnotesize \textbf{(a)} MNIST}
+    \end{minipage}
+    \hspace{0.05\textwidth}
+    \begin{minipage}{0.35\columnwidth}
+        \centering
+        \includegraphics[width=\columnwidth]{./figures/experiments-abla-losses-cifar10-resnet18.pdf}
+        {\footnotesize \textbf{(b)} CIFAR10}
+    \end{minipage}
+    \caption{Contribution to distillation accuracy (\%) of one-hot loss ($\mathcal{L}_{\text{OH}}$), information entropy loss ($\mathcal{L}_{\text{IE}}$), and contrastive loss ($\mathcal{L}_{\text{CT}}$), on MNIST and CIFAR10.}
+    \label{fig:abla-losses}
+\end{figure}
+
+\begin{foldable} % Objectives discussion
+    To measure how these objectives might affect KD performance, we ablate them using different losses to optimize the image priors dataset $\mathcal{D} = \{x | x \sim \mathcal{X}_\mathcal{P}\}$, on our standard MNIST and CIFAR10 experiments as the base cases.
+    In details, we ran all eight binary combinations of using/not using $\mathcal{L}_{\text{OH}}$, $\mathcal{L}_{\text{IE}}$, $\mathcal{L}_{\text{CT}}$ to optimize $\mathcal{D}$, and report in Fig.~\ref{fig:abla-losses}.
+    The contribution of each objective is derived by the mean difference in student accuracy between using/not using the corresponding loss, while standard error is aggregated on a per-combination basis.
+    We observe $\mathcal{L}_{\text{IE}}$ only has modest contribution, as class-balance has already been achieved during Synthesis.
+    Surprisedly, in-class similarity $\mathcal{L}_{\text{OH}}$ is actually adversarially destructive, harming KD performance by a significant amount of $-$2.65\%.
+    Meanwhile, contrastive optimization using $\mathcal{L}_{\text{CT}}$ fruitfully helped gain KD performance, notably by $+$0.12\% on MNIST and $+$3.14\%.
+    Thus, we focus solely on diversity and employ only the contrastive loss $\mathcal{L}_{\text{CT}}$ to optimize image priors.
+\end{foldable}
+
+\begin{foldable} % Outro
+    On a side note, \citet{zhang2022ideal, yuan2024data} employed $\mathcal{L}_{\text{OH}}$ and $\mathcal{L}_{\text{IE}}$ on the weights of a generator network, while we employ $\mathcal{L}_{\text{CT}}$ on the parameterized image priors $\mathcal{X}_{\mathcal{P}}$ and an instance-discriminator $R$.
+    We speculate that this difference also affects the comparision and requires further investigation.
+\end{foldable}
+
+
+
+\section{Extension to Iterative Framework} \label{sec:app03-extension}
+\renewcommand{\thefigure}{C.\arabic{figure}}
+\renewcommand{\thetable}{C.\arabic{table}}
+\renewcommand{\theequation}{C.\arabic{equation}}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+\setcounter{equation}{0}
+
+\begin{foldable}
+    An interesting extension of our framework is performing \textit{iterative Contrast-Distillation} to further boost student performance.
+    Recall that in the Contrast phase (Sec.~\ref{ssec:03-framework-contrast}), we employ an primer student $S_0$ to optimize the dataset $\mathcal{D}$, and train a new student $S$ in the next Distillation phase.
+    It naturally emerges that the stronger $S$ possesses even more robust embeddings and can be \textit{recycled for Contrast phase again}.
+    Iteratively, we may re-employ the latest student $S_g$ at the $g$\nobreakdash-th generation in the role of a new primer student to optimize $\mathcal{D}$ in the next Contrast phase, and query soft labels from it to train the new student $S_{g+1}$ in the next Distillation phase.
+    The objectives for $S_{g+1}$, extended from $\mathcal{L}_S$ (Eq.~\ref{eq:loss-kd-total}), is to match the teacher's label $T(x)$ with $\mathcal{L}_\text{Hard-KD}$, and to match previous student's logits $S_{g}^{\mathcal{Z}}(x)$ with $\mathcal{L}_\text{Soft-KD}$, on samples $x\sim\mathcal{D}$:
+    \begin{equation} \label{eq:loss-kd-extension}
+        \mathcal{L}_{S_g}
+        = \mathcal{L}_{\text{Hard-KD}}+\mathcal{L}_{\text{Soft-KD}}
+        = \mathbb{E}_{x\sim\mathcal{D}}\Big[\mathcal{L}_{\text{CE}}\left(\hat{y}_{S_{g+1}-\text{Soft}},\hat{y}_{T-\text{Hard}}\right) + \mathcal{L}_{\text{L1}}\left(S_{g+1}^{\mathcal{Z}}\left(x\right),S_{g}^{\mathcal{Z}}\left(x\right)\right)\Big].
+    \end{equation}
+\end{foldable}
+
+\begin{figure}[h] % fig:abla-ngenerations
+    \centering
+    \includegraphics[width=0.75\textwidth]{./figures/experiments-abla-ngenerations.pdf}
+    \caption{Distillation accuracy (\%) by generation $g$.}
+    \label{fig:abla-ngenerations}
+\end{figure}
+
+\begin{foldable}
+    From our standard experiments (Sec.~\ref{ssec:04-experiments-standard}, corresponds to $g = 1$), we iterate for more generations to reach $g = 4$ on simple datasets and $g = 2$ on complex datasets due to resource constraints.
+    As reported in Fig.~\ref{fig:abla-ngenerations}, even though KD performance converges quickly on simple dataset, it iteratively improves until the last generations with trivial fluctuations.
+    These results conclude that our iterative Contrast-Distillation strategy can robustly deliver increasingly better students with more generations, and that generalization is not hurt with longer training.
+    Nonetheless, computational cost increases \textit{linearly} but student accuracy does not scale as fast to justify the trade-off.
+    We look forward to making this extension even more efficient in future works.
+\end{foldable}
+
+
+
+\section{Explicit Results} \label{sec:app04-explicit}
+\renewcommand{\thefigure}{D.\arabic{figure}}
+\renewcommand{\thetable}{D.\arabic{table}}
+\renewcommand{\theequation}{D.\arabic{equation}}
+\setcounter{figure}{0}
+\setcounter{table}{0}
+\setcounter{equation}{0}
+
+
+In this section, we provide explicit numerical results for the figures presented in the main text and above sections of the Appendix for completeness and reproducibility.
+
+
+\subsection{Increasing synthetic dataset size} \label{ssec:app04-explicit-nsamples}
+\begin{foldable}
+    We provide explicit student accuracy and standard error for KD by number of samples, which has been visualized and discussed in Fig.~\ref{fig:abla-nsamples}, Sec.~\ref{sssec:04-experiments-ablation-nsamples}.
+    The results are grouped by the simple datasets in Table~\ref{tab:abla-nsamples-simple} and complex datasets in Table~\ref{tab:abla-nsamples-complex}.
+\end{foldable}
+
+\begin{table}[h] % tab:abla-compression
+    \caption{Distillation accuracy (\%) by number of sample $N$ on simple datasets.}
+    \centering
+    \begin{tabular}{c|c|c|c|c}
+        \hline
+            $N$
+            & \makecell{\textbf{MNIST}   \\ LeNet5}
+            & \makecell{\textbf{USPS}    \\ LeNet5}
+            & \makecell{\textbf{SVHN}    \\ AlexNet}
+            & \makecell{\textbf{FMNIST}  \\ LeNet5} \\
+        \hline
+        \phantom{0}10 K &          98.20$_{\pm .06}$ &          93.22$_{\pm .43}$ &          94.64$_{\pm .13}$ &                    76.14$_{\pm 2.48}$ \\
+        \phantom{0}20 K &          98.59$_{\pm .08}$ &          93.99$_{\pm .24}$ &          95.46$_{\pm .07}$ &                    79.49$_{\pm 1.38}$ \\
+        \phantom{0}30 K &          98.68$_{\pm .03}$ &          94.05$_{\pm .08}$ &          95.71$_{\pm .05}$ &          82.67$_{\pm \phantom{0}.45}$ \\
+        \phantom{0}50 K &          98.75$_{\pm .03}$ &          94.20$_{\pm .21}$ &          95.94$_{\pm .05}$ &          83.98$_{\pm \phantom{0}.65}$ \\
+        \phantom{0}70 K &          98.81$_{\pm .03}$ &          94.25$_{\pm .06}$ &          95.97$_{\pm .02}$ &          84.84$_{\pm \phantom{0}.69}$ \\
+                  100 K &          98.78$_{\pm .05}$ &          94.41$_{\pm .08}$ &          96.06$_{\pm .03}$ & \textbf{85.63}$_{\pm \phantom{0}.39}$ \\
+                  128 K & \textbf{98.90}$_{\pm .02}$ & \textbf{94.44}$_{\pm .09}$ & \textbf{96.13}$_{\pm .01}$ &          85.62$_{\pm \phantom{0}.06}$ \\
+        \hline
+        \multicolumn{5}{l}{Best results are in \textbf{bold}.} \\
+    \end{tabular}
+    \label{tab:abla-nsamples-simple}
+\end{table}
+
+\begin{table}[ht] % tab:abla-compression
+    \caption{Distillation accuracy (\%) by number of samples $N$ on complex datasets.}
+    \centering
+    \begin{tabular}{c|c|c|c|c}
+        \hline
+            $N$ & \textbf{CIFAR10} & \textbf{CIFAR100} & \textbf{TinyImageNet} & \textbf{Imagenette} \\
+        \hline
+        \phantom{0}10 K &                    63.54$_{\pm 2.64}$ &                    25.85$_{\pm 1.31}$ &          07.88$_{\pm .49}$ &                    50.82$_{\pm 1.65}$ \\
+        \phantom{0}20 K &          72.98$_{\pm \phantom{0}.50}$ &          37.48$_{\pm \phantom{0}.48}$ &          12.13$_{\pm .17}$ &                    57.43$_{\pm 1.51}$ \\
+        \phantom{0}30 K &          78.18$_{\pm \phantom{0}.60}$ &          42.82$_{\pm \phantom{0}.56}$ &          13.96$_{\pm .42}$ &                    58.98$_{\pm 1.19}$ \\
+        \phantom{0}50 K &          83.41$_{\pm \phantom{0}.46}$ &          48.45$_{\pm \phantom{0}.26}$ &          16.49$_{\pm .37}$ &          61.84$_{\pm \phantom{0}.77}$ \\
+        \phantom{0}70 K &          85.20$_{\pm \phantom{0}.35}$ &          50.75$_{\pm \phantom{0}.18}$ &          18.69$_{\pm .63}$ &          63.08$_{\pm \phantom{0}.96}$ \\
+                  100 K &          86.60$_{\pm \phantom{0}.29}$ &          52.85$_{\pm \phantom{0}.30}$ &          19.99$_{\pm .36}$ &          65.98$_{\pm \phantom{0}.78}$ \\
+                  128 K &          87.56$_{\pm \phantom{0}.11}$ &          53.69$_{\pm \phantom{0}.26}$ &          21.07$_{\pm .50}$ & \textbf{66.60}$_{\pm \phantom{0}.72}$ \\
+                  256 K & \textbf{89.24}$_{\pm \phantom{0}.15}$ & \textbf{56.84}$_{\pm \phantom{0}.54}$ &          24.46$_{\pm .26}$ &                                     - \\
+                  512 K &                                     - &                                     - & \textbf{28.06}$_{\pm .22}$ &                                     - \\
+        \hline
+        \multicolumn{5}{l}{Best results are in \textbf{bold}.} \\
+    \end{tabular}
+    \label{tab:abla-nsamples-complex}
+\end{table}
+
+\subsection{Students of compressed capacity} \label{ssec:app04-explicit-compression}
+We provide in Table~\ref{tab:abla-compression} explicit student accuracy and standard error for KD by compression ratio, which has been visualized and discussed in Fig.~\ref{fig:abla-compression}, Sec.~\ref{sssec:04-experiments-ablation-compress}.
+
+\begin{table}[ht] % tab:abla-compression
+    \caption{Distillation accuracy (\%) by compression ratio (CR).}
+    \centering
+    \begin{tabular}{c|c|c|c|c|c}
+        \hline
+            {\centering \textbf{CR}}
+            & \makecell{\textbf{MNIST}   \\ LeNet5}
+            & \makecell{\textbf{USPS}    \\ LeNet5}
+            & \makecell{\textbf{SVHN}    \\ AlexNet}
+            & \makecell{\textbf{FMNIST}  \\ LeNet5}
+            & \makecell{\textbf{CIFAR10} \\ ResNet18} \\
+        \hline
+                  100\% & 98.59$_{\pm \phantom{0}.08}$ & 94.20$_{\pm \phantom{0}.21}$ & 95.94$_{\pm \phantom{0}.05}$ & 83.98$_{\pm \phantom{0}.65}$ & 83.41$_{\pm \phantom{0}.46}$ \\
+        \phantom{0}25\% &           96.79$_{\pm 1.39}$ & 92.42$_{\pm \phantom{0}.08}$ & 95.41$_{\pm \phantom{0}.04}$ & 74.90$_{\pm \phantom{0}.37}$ & 79.23$_{\pm \phantom{0}.51}$ \\
+        \phantom{00}4\% &           85.83$_{\pm 1.86}$ & 90.70$_{\pm \phantom{0}.33}$ & 92.51$_{\pm \phantom{0}.07}$ &           52.55$_{\pm 3.79}$ & 64.48$_{\pm \phantom{0}.81}$ \\
+        \phantom{00}1\% &           47.72$_{\pm 7.44}$ &           52.43$_{\pm 1.47}$ &           72.00$_{\pm 2.89}$ &           36.85$_{\pm 8.66}$ &           47.39$_{\pm 3.30}$ \\
+        \hline
+    \end{tabular}
+    \label{tab:abla-compression}
+\end{table}
+        
+
+\subsection{Extension to Iterative Framework} \label{ssec:app03-extension-ngenerations}
+\begin{foldable}
+    We provide explicit student accuracy and standard error for KD by number of generations, which has been visualized and discussed in Fig.~\ref{fig:abla-ngenerations}, Sec.~\ref{ssec:app03-extension-ngenerations}.
+    We ran the experiments for all datasets, but limits to $g$ = 2 on complex dataset due to resource constraints, as shown in Table~\ref{tab:abla-ngenerations}.
+    We additionally remark that the student can get iteratively better until the last generations, with some trivial fluctuations.
+\end{foldable}
+
+\begin{table}[h] % tab:abla-generation
+    \caption{Distillation accuracy (\%) by generation $g$.}
+    \centering
+    \begin{tabular}{c|c|c|c|c|c|c|c|c}
+        \hline
+            $g$
+            & \makecell{{MNIST}   \\ LeNet5}
+            & \makecell{{USPS}    \\ LeNet5}
+            & \makecell{{SVHN}    \\ AlexNet}
+            & \makecell{{FMNIST}  \\ LeNet5}
+            & \makecell{{CIFAR10} \\ ResNet18}
+            & \makecell{{CIFAR100} \\ ResNet18}
+            & \makecell{{Tiny$^{(*)}$} \\ ResNet18}
+            & \makecell{{Nette$^{(**)}$} \\ ResNet18} \\
+        \hline
+        0 &          98.29$_{\pm .32}$ &          94.04$_{\pm .52}$ &          95.84$_{\pm .10}$ &                    82.38$_{\pm 1.09}$ &          78.17$_{\pm .64}$ &          48.36$_{\pm .19}$ &          22.66$_{\pm .36}$ &          57.67$_{\pm .74}$ \\
+        1 &          98.59$_{\pm .08}$ &          94.20$_{\pm .21}$ &          95.94$_{\pm .05}$ &          83.98$_{\pm \phantom{0}.65}$ &          83.41$_{\pm .46}$ &          52.85$_{\pm .30}$ &          28.03$_{\pm .22}$ &          61.84$_{\pm .77}$ \\
+        2 &          98.62$_{\pm .12}$ &          94.32$_{\pm .12}$ &          95.95$_{\pm .03}$ &          84.43$_{\pm \phantom{0}.66}$ &          84.50$_{\pm .16}$ & \textbf{53.97}$_{\pm .62}$ & \textbf{30.06}$_{\pm .22}$ & \textbf{62.78}$_{\pm .91}$ \\
+        3 &          98.61$_{\pm .08}$ &          94.42$_{\pm .25}$ & \textbf{95.97}$_{\pm .06}$ &          84.50$_{\pm \phantom{0}.46}$ &          85.18$_{\pm .42}$ & - & - & - \\
+        4 & \textbf{98.65}$_{\pm .04}$ & \textbf{94.54}$_{\pm .25}$ &          95.94$_{\pm .06}$ & \textbf{84.62}$_{\pm \phantom{0}.86}$ & \textbf{85.23}$_{\pm .39}$ & - & - & - \\
+        % 5 &          98.68$_{\pm .02}$ &            94.30$_{\pm .15}$ & \textbf{96.00}$_{\pm .07}$ &          84.44$_{\pm \phantom{0}.98}$ &          85.17$_{\pm .56}$ & - & - & - \\
+        % 6 &          98.63$_{\pm .05}$ &            94.40$_{\pm .19}$ &          95.96$_{\pm .06}$ &          84.76$_{\pm \phantom{0}.52}$ & \textbf{85.91}$_{\pm .65}$ & - & - & - \\
+        % 7 & \textbf{98.70}$_{\pm .06}$ &            94.60$_{\pm .10}$ &          95.92$_{\pm .07}$ & \textbf{85.28}$_{\pm \phantom{0}.32}$ &          85.77$_{\pm .61}$ & - & - & - \\
+        \hline
+        \multicolumn{9}{l}{Best results are in \textbf{bold}. $^{(*)}$TinyImageNet, $^{(**)}$Imagenette} \\
+    \end{tabular}
+    \label{tab:abla-ngenerations}
+\end{table}

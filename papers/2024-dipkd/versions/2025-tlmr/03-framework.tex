@@ -1,0 +1,255 @@
+\subsection{Problem setup} \label{ssec:03-framework-setup}
+\begin{foldable} % Problem statement
+    \textbf{Problem statement.}
+    Given solely a \textit{black-box} pre-trained teacher network $T$ that returns only top-1 hard labels (no internal features, logits, or gradients) and \textit{no real training data}, our goal is to train a student network $S$ to approximate $T$.
+\end{foldable}
+
+\begin{foldable} % Naive solution
+    Lacking a direct solution, we may tweak the standard KD framework \citep{hinton2015distilling} as a naive solution.
+    Without data, we may resort to using noise images, \eg, $x\sim\mathcal{X}_{\mathcal{U}}$, where $\mathcal{X}_{\mathcal{U}}=\mathcal{U}\left[0,1\right]^{C\times H\times W}$ and $C\times H\times W$ is the image dimension.
+    Moreover, we can only use a hard label $\hat{y}_{T-\text{Hard}}=T(x)\in\left\{ 1,\ldots,K\right\}$ to match the student's probabilistic outputs $\hat{y}_{S-\text{Soft}}=S\left(x\right)$ with the objective:
+    \begin{equation} \label{eq:loss-naive-kd}
+        \mathcal{L}_{\text{Naive-KD}}=\mathbb{E}_{x\sim\mathcal{X}_{\mathcal{U}}}\left[\mathcal{L}_{\text{CE}}\left(\hat{y}_{S-\text{Soft}},\hat{y}_{T-\text{Hard}}\right)\right],
+    \end{equation}
+    where $\mathcal{L}_{\text{CE}}$ is the cross-entropy loss.
+    While this approach can handle simple cases, it is apparent that it fails to use inter-class knowledge --- the pivotal advantage in KD.
+    Moreoever, we will show that noise images are semantically not diverse, and that diversity can drive KD performance through our proposed framework.
+\end{foldable}
+
+\begin{foldable} % Proposal
+    \textbf{Proposal.}
+    To improve image diversity in BBDFKD, we propose \textit{Diverse Image Priors Knowledge Distillation} (\textbf{\methodname}) of three phases: Synthesis, Contrast, and Distillation.
+    \begin{enumerate}
+        \item {
+            In the \textbf{Synthesis} phase, we design a pipeline to create \textit{image priors} $\mathcal{X}_\mathcal{P}$ --- synthetic images to capture diversity in hierarchical structures, nonlinearity, and meaningful semantics; which are often observed in natural scenes and objects.
+            We achieve this via three sub-components: hierarchical noise, nonlinear transformation, and semantic cutmixing.
+        }
+        \item {
+            Then, in the \textbf{Contrast} phase, we sample a dataset $\mathcal{D} \coloneq \{x|x\sim\mathcal{X}_\mathcal{P}\}$ and optimize them for diversity.
+            We use a contrastive-based objective to make each and every sample \textit{distinguishable}.
+        }
+        \item {
+            Finally, in the \textbf{Distillation} phase, we use $\mathcal{D}$ to distill the student $S$ from the teacher $T$.
+            Notably, we are able to extract logits from a primer student $S_0$ for soft knowledge to boost KD performance.
+            This is absent in previous BBDFKD methods.
+        }
+    \end{enumerate}
+\end{foldable}
+
+\begin{figure}[h] % fig:03-framework-teaser
+    \centering
+    \includegraphics[width=0.99\textwidth]{./figures/03-framework-teaser.pdf}
+    \caption{
+        Illustration of our method \textbf{\methodname} of three phases.
+        \textbf{(1) Synthesis:}
+        To create image priors $\mathcal{X}_{\mathcal{P}}$, we create a pipeline of three sub-components: hierarchical noise, nonlinear transformation, and semantic cutmixing.
+        Synthetic images $x\sim\mathcal{X}_{\mathcal{P}}$ have diverse and distinct patterns.
+        \textbf{(2) Contrast:}
+        We construct the dataset $\mathcal{D} \coloneq \left\{x | x\sim\mathcal{X}_{\mathcal{P}}\right\}$ to train an primer student $S_0$ as a feature extractor.
+        Then, we enforce an instance-discriminator $R$ to distinguish embeddings of images $x\sim\mathcal{D}$ to be similar to its positive view $x^{+}$, and dissimilar to its negative view $x^{-}\ne x$.
+        Thus, $\mathcal{D}$ is optimized to be even more diverse.
+        \textbf{(3) Distillation:}
+        We distill the student $S$ by matching with both hard labels from teacher $T$ via $\mathcal{L}_{\text{Hard-KD}}$ and soft labels from primer student $S_0$ via $\mathcal{L}_{\text{Soft-KD}}$, providing extra knowledge.
+    }
+    \label{fig:03-framework-teaser}
+\end{figure}
+
+
+
+\subsection{Synthesis: crafting diverse image priors} \label{ssec:03-framework-synthesis}
+\begin{foldable} % Motivation --> overview of 3 components
+    From a visual recognition point-of-view, there exists \textit{strong local structures} between neighbor pixels that compose \textit{global patterns} in natural scenes and objects \citep{lecun2002gradient}.
+    Moreover, natural objects usually consist of strong nonlinearity, and can capture complex semantics.
+    Based on these premises, we create image priors $\mathcal{X}_\mathcal{P}$ with our Synthesis pipeline of three sub-components: \textit{hierarchical noise}, \textit{nonlinear transformation}, and \textit{semantic cutmixing}.
+\end{foldable}
+
+
+\subsubsection{Hierarchical noise} \label{sssec:03-framework-synthesis-hiernoise}
+\begin{foldable} % Hierchical structure in nature
+    Hierarchy is an universal characteristic transcending natural scenes and objects.
+    For instance, akin to how a vehicle is characterized by its windows, mirrors, wheels, an animal is easily recognizable via its eyes, ears, limbs.
+    Based on this observation, we design a sampling technique that captures image patterns at both the local and global scales to mimic the \textit{hierarchical structures} of  visual signals.
+\end{foldable}
+
+\begin{foldable} % Sampling multi-scale noise images
+    For a pure pixel-wise noise image $x\sim\mathcal{X_{\mathcal{U}}} = \mathcal{U}\left[0,1\right]^{C\times H\times W}$, the patterns are majorly local and independent.
+    Whereas, a monochromatic image (\ie, single-color) has dominant global correlation.
+    Along this spectrum, there must exist a trade-off between the local-versus-global property.
+    Inspiredly, we design a sampler composing noise images at multiple scales.
+    Let us sample a collection of noise images with increasing dimensions until they sufficiently envelope $H\times W$:
+    \begin{equation} \label{eq:synthesis-hiernoise-multiscale}
+        \left\{ x_{d}|x_{d}\sim\mathcal{U}\left[0,1\right]^{C\times2^{d}\times2^{d}}\right\} _{d=0}^{d_{\text{max}}},
+    \end{equation}
+    where $d_{\text{max}}=\text{ceil}\left(\log_{2}\max\left(H,W\right)\right)$ is the sufficient scale.
+    Note that the set of scales is derived deterministically from the image dimension and does not require tuning.
+    For instance, we synthesize a $32 \times 32$ image from scales $\{2^0, 2^1, \ldots, 2^5\}$. 
+\end{foldable}
+
+\begin{foldable} % Combining multi-scale noise images
+    Next, we aim to compose this collection of local-to-global noise to a single image.
+    Thus, we proceed to sample coefficients $\displaystyle \left\{ \alpha_{d}|\alpha_{d}\sim\mathcal{N}\left(0,1\right) \right\}_{d=0}^{d_{\text{max}}}$ and put them through softmax to obtain each $\displaystyle \bar{\alpha}_{d}=\frac{\exp\left(\alpha_{d}\right)}{\sum_{d^\prime=0}^{d_\text{max}}\exp\left(\alpha_{d^\prime}\right)}$.
+    This ensures $\sum_{d=0}^{d_{\text{max}}}\bar{\alpha}_{d}=1$ and $\bar{\alpha}_{d}~\in~[0, 1]$ for a valid combination, which is our \textit{hierarchical noise} image:
+    \begin{equation} \label{eq:synthesis-hiernoise-combine}
+        x_{\text{hn}}=\sum_{d=0}^{d_{\text{max}}}\bar{\alpha}_{d}\cdot f_{\text{upscale}}\left(x_{d};2^{d_\text{max}}\right),
+    \end{equation}
+    where $f_{\text{upscale}}\left(\cdot;2^{d_{\text{max}}}\right)$ is an upscaling transformation so that noise images $\left\{ x_{d}\right\}$  share equal dimensions to allow additivity.
+\end{foldable}
+
+
+\subsubsection{Nonlinear transformation} \label{sssec:03-framework-synthesis-nonlintrans}
+\begin{foldable} % Nonlinear transformation
+    To enrich nonlinear patterns of synthetic images, we apply random rotation $f_{\text{rot}}$ of $\left[-45^{\circ},45^{\circ}\right]$, random elastic transform $f_{\text{elas}}$, and random cropping $f_{\text{crop}}$ to the specified size $H\times W$.
+    These operations are known to be nonlinear and effective in data augmentation \citep{simard2003best}, and in our case, boosting data diverity.
+    Accordingly, we create a \textit{nonlinear-transformed} image as:
+    \begin{equation} \label{eq:synthesis-nonlintrans}
+        x_{\text{nt}}=f_{\text{crop}}^{H\times W} \circ f_{\text{elas}} \circ f_{\text{rot}}^{\left[-45^{\circ},45^{\circ}\right]}\left(x_{\text{hn}}\right).
+    \end{equation}
+\end{foldable}
+
+
+\subsubsection{Semantic cutmixing} \label{sssec:03-framework-synthesis-semcutmix}
+\begin{foldable} % Motivation
+    Finally, the semantics of natural objects usually consist of distinct cohesive shapes as the `content', distinguishable to the background.
+    Inspired by CutMix \citep{yun2019cutmix}, we propose an improved masking technique to nonlinearly cutmix any two images together, creating diverse and semantically cohesive shapes.
+\end{foldable}
+
+\begin{foldable} % Design: diverging filter, mask, and cutmix
+    We simulate these patterns within a semantic mask $m$, initialized to $m_{0} \sim \mathcal{U}\left[0,1\right]^{1 \times H \times W}$.
+    Regarding where $m < \beta$ as negative regions and $m \ge \beta$ as positive regions, the key to creating structurally cohesive shapes is to connect same-type regions but contrast opposite-type ones.
+    While the former can be easily executed with a blurring filter $f_{\text{blur}}$, we design the diverging filter $f_{\text{divg}}$ for mask $m$ within the $\left[0,1\right]$ dynamic range as:
+    \begin{equation} \label{eq:synthesis-diverging-filter}
+        f_{\text{divg}}\left(m;0\le\beta\le1\right)=\begin{cases}
+            \frac{m^{2}}{\beta}                & , m \ge \beta \\
+            \frac{m^{2} - 2m + \beta}{\beta-1} & , m < \beta
+        \end{cases}.
+    \end{equation}
+    We provide detailed formulation of $f_{\text{divg}}$ in Appendix Sec.~\ref{sssec:app01-teacherstudents-optimization-divgfilter}.
+    By design, $f_{\text{divg}}$ is composed of two continuously differentiable half-parabolas: the left-side convex one on $[0,\beta)$, the right-side concave on $\left[\beta,1\right]$, connected at the inflection point $\left(\beta,\beta\right)$.
+    We fix $\beta$ = 0.5 for a balanced formation of positive/negative regions in the masks $\hat{m}$ to keep our method generalizable and interpretable. 
+\end{foldable}
+
+
+\begin{foldable}
+    To obtain the final mask $\hat{m}$, we iteratively pass mask $m_0$ through the two filters as $m_{i+1}=f_{\text{blur}} \circ f_{\text{divg}}\left(m_{i};\beta\right)$ for $M$ = 10 times.
+    We then employ $\hat{m}$ to pairwisely cutmix $\left\{ x_{\text{nt}}\right\}$ against themselves and random monochromatic (\ie, single-color) images $\mathcal{X}_{\text{mc}}$ to form our final \textit{image~priors} $\mathcal{X}_\mathcal{P} \coloneq \{x\}$, where:
+    \begin{equation} \label{eq:synthesis-semcutmix}
+        x=\text{CutMix}\left(x_{i},x_{j};\hat{m}\right),
+    \end{equation}
+    such that $x_{i},x_{j} \sim \left\{ x_{\text{nt}}\right\} \cup \mathcal{X}_{\text{\text{mc}}}$ and $x_{i} \ne x_{j}$.
+    In short, while the randomness in $m_{0}$ yields diverse initializations, the filters turn them in cohesive shapes in $\hat{m}$ for cutmixing.
+    We showcase how diversity in image priors is enriched throughout the pipeline in Fig.~\ref{fig:03-framework-viz-synthesis}, and will later examine their semantics in our analysis in Sec.~\ref{sssec:04-experiments-ablation-embeddings-generation}.
+\end{foldable}
+
+\begin{figure}[ht] % fig:03-framework-viz-synthesis
+    \centering
+    \includegraphics[width=0.99\textwidth]{./figures/03-framework-viz-synthesis.pdf}
+    \caption{
+        In the \textbf{\textit{Synthesis}} phase, we generate image priors $\mathcal{X}_{\mathcal{P}}$ with 3 sub-components:
+        \textbf{(1)} Hierchical noise: We sample $x_{\text{hn}}$ from multi-scale noise images to capture hierarchical structures;
+        \textbf{(2)} Nonlinear transform: We transform $x_{\text{hn}}$ to $x_{\text{nt}}$ with nonlinear filters to capture nonlinearity;
+        and \textbf{(3)} Semantic cutmixing: We apply cutmixing on $x_{\text{nt}}$ with a semantic mask $\hat{m}$ to construct the final images $x$, simulating diverse semantics.
+        Observably, image priors $\mathcal{X}_{\mathcal{P}}$ have superior diversity to noise images sampled from random Gaussian distribution $\mathcal{X}_{\mathcal{N}}$ and random uniform distribution $\mathcal{X}_{\mathcal{U}}$.
+    }
+    \label{fig:03-framework-viz-synthesis}
+\end{figure}
+
+
+\subsection{Contrast: improving diversity via contrastive learning} \label{ssec:03-framework-contrast}
+\begin{foldable} % Primer student S_0
+    We further improve the diversity of image priors $\mathcal{X}_{\mathcal{P}}$ through contrastive learning.
+    However, contrastive methods usually requires extracting intermediate features, which is not feasible from a black-box teacher.
+    Alternatively, we simply train a \textit{primer} student $S_{0}$ on an image priors dataset $\mathcal{D} = \left\{ x | x \sim \mathcal{X}_{\mathcal{P}} \right\}$.
+    We also attempt to make $\mathcal{D}$ class-balanced via rejection sampling, which is efficient as $\mathcal{X}_\mathcal{P}$ is diverse.
+    We train $S_{0}$ on $\mathcal{D}$ following the Hard-KD objective:
+    \begin{equation} \label{eq:loss-hard-kd}
+        \mathcal{L}_{\text{Hard-KD}}=\mathbb{E}_{x\sim\mathcal{D}}\left[\mathcal{L}_{\text{CE}}\left(\hat{y}_{S_0-\text{Soft}},\hat{y}_{T-\text{Hard}}\right)\right],
+    \end{equation}
+    where $\hat{y}_{S_0-\text{Soft}} = S_0(x)$ is the probability prediction of the primer student, and $\hat{y}_{T-\text{Hard}}=T\left(x\right)$ is the hard label queried from the teacher.
+    Equipped with a white-box $S_0$, we can explore its internal representations for contrastive learning.
+\end{foldable}
+
+\begin{foldable} % Embeddings & cosine similarity
+    Following \citet{fang2021contrastive}, diversity boils down to \textit{``how distinguishable are the samples from the dataset''}.
+    Interestingly, it can be explicitly formulated as an optimizable objective to mitigate the mode collapse and boost KD performance.
+    For this goal, we utilize the primer student's backbone $S_{0}^{\mathcal{H}}$ to extract image embeddings and append an extra \textit{instance-discriminator} $R$ to treat each embedding as a distinct class.
+    The network $R$ is a shallow MLP (two linear layers) to project the general-purpose embeddings to a contrastive-specific space.
+    We argue that even if $S_0$ might not have comparable performance to $T$, its backbone $S_{0}^{\mathcal{H}}$ can well capture the semantics, so $R$ distinguishes them effectively.
+    This is supported by the setup in popular contrastive learning frameworks \citep{chen2020simple,he2020momentum,zbontar2021barlow}: contrastive representation learning does not depend on a high-accuracy classifier backbone, but often train from randomly-initialized networks.
+    For any two images $(x_i, x_j)$, we chain them through $S_{0}^{\mathcal{H}}$ and $R$ to obtain their embeddings and quantify their cosine similarity as:
+    \begin{equation}
+        \text{Sim}\left(x_i, x_j\right)=
+            \frac{ \left\langle R \circ S_{0}^{\mathcal{H}}\left(x_i\right), R \circ S_{0}^{\mathcal{H}}\left(x_j\right)\right\rangle }
+            { \left\Vert R \circ S_{0}^{\mathcal{H}}\left(x_i\right) \right\Vert \cdot\left\Vert R \circ S_{0}^{\mathcal{H}}\left(x_j\right) \right\Vert }.
+    \end{equation}
+\end{foldable}
+
+\begin{foldable} % Contrastive loss
+    To enforce contrastive learning, from an image $x\sim\mathcal{D}$, we create positive views $x^{+}$ with random augmentation and sample different images $x^{-}\sim\mathcal{D}$ (where $x^{-} \neq x$) as negative views.
+    The contrastive loss is formulated to maximize the similarity between $(x, x^{+})$ and minimize that between $(x, x^{-})$:
+    \begin{equation} \label{eq:loss-contrastive}
+        \mathcal{L}_{\text{CT}} = \mathbb{E}_{x \sim \mathcal{D}} \left[ -\log \frac{ \exp\left( \text{Sim}(x, x^{+}) \right) }{ \sum_{x^{-} \ne x} \exp\left( \text{Sim}(x, x^{-})  \right) } \right].
+    \end{equation}
+    We parameterized $\mathcal{D}$ and let the gradients of $\mathcal{L}_{\text{CT}}$ flow back to update a batch of $x \in \mathcal{D}$ and the instance-discriminator $R$ at each time step.
+    As the better $R$ can learn to discriminate, the more distinguishable updates each $x \in \mathcal{D}$ can receive, and vice versa.
+    This reinforcement effectively improves the diversity of $\mathcal{D}$.
+\end{foldable}
+
+
+
+\subsection{Distillation: Training the student network} \label{ssec:03-framework-distillation}
+\begin{foldable}
+    After $\mathcal{D}$ has been optimized for diveristy, we use them to distill the student $S$.
+    We aim to encorporate both \textit{hard} and \textit{soft} knowledge, which is \textbf{fundamental} in KD \citep{hinton2015distilling}, to construct an \textit{optimal} distillation objective.
+    This is either \textit{limited} or \textit{entirely absent} in \citet{wang2021zero, zhang2022ideal, yuan2024data}.
+    Contrarily, having privilege access to the primer network $S_0$, we can jointly match our student's logits $S^{\mathcal{Z}}\left(x\right)$ with logits of the primer student $S_{0}^{\mathcal{Z}}\left(x\right)$ as soft labels, and with queries $\hat{y}_{T-\text{Hard}}$ from the teacher $T$ as hard labels:
+    \begin{equation} \label{eq:loss-kd-total}
+            \mathcal{L}_{S}
+            = \mathcal{L}_{\text{Hard-KD}}+\mathcal{L}_{\text{Soft-KD}}
+            = \mathbb{E}_{x\sim\mathcal{D}}\Big[\mathcal{L}_{\text{CE}}\left(\hat{y}_{S-\text{Soft}},\hat{y}_{T-\text{Hard}}\right) + \mathcal{L}_{\text{L1}}\left(S^{\mathcal{Z}}\left(x\right),S_{0}^{\mathcal{Z}}\left(x\right)\right)\Big],
+    \end{equation}
+    where $\mathcal{L}_{\text{L1}}$ is the L1 divergence loss that captures the privilege inter-class knowledge.
+    To conclude our framework, we summarize it as pseudocode in Alg.~\ref{alg:dipkd}.
+\end{foldable}
+
+\begin{center}
+\begin{minipage}{0.80\linewidth}
+\begin{algorithm}[H] % alg:dipkd
+    \SetKwInput{KwParam}{Parameters}
+    \SetKwComment{Comment}{}{}
+    
+    \caption{Proposed method \textbf{\methodname}}
+    \label{alg:dipkd}
+
+    \KwIn{a pre-trained teacher network $T$}
+    \KwParam{number of synthetic images $N$}
+    \KwOut{a student network $S$}
+
+    % --------------------------------------------------------------------------
+    \vspace{-0.5\baselineskip}
+    \Comment{\noindent\hrulefill}
+
+    \vspace{0.5\baselineskip}
+    \Comment{$\triangleright$ \textbf{\textit{Synthesis}}}
+    Construct hierarchical noise images $\left\{ x_\text{hn} \right\}$ via Eq.~\ref{eq:synthesis-hiernoise-multiscale},~\ref{eq:synthesis-hiernoise-combine} \\
+    Apply nonlinear transforms on $\left\{ x_\text{nt}\right\}$ to obtain $\left\{x_\text{hn} \right\}$ via Eq.~\ref{eq:synthesis-nonlintrans} \\
+    Apply semantic cutmixing on $\left\{x_\text{hn} \right\}$ to obtain $\mathcal{X}_\mathcal{P} \coloneq \{x\}$ via Eq.~\ref{eq:synthesis-diverging-filter},~\ref{eq:synthesis-semcutmix} \\
+    
+    \vspace{0.5\baselineskip}
+    \Comment{$\triangleright$ \textbf{\textit{Contrast}}}
+    Construct and parameterize dataset $\mathcal{D} = \left\{ x | x \sim \mathcal{X}_\mathcal{P} \right\}_{i=1}^N$ \\
+    Train primer student $S_0$ by querying $T$ on $\mathcal{D}$ to minimize $\mathcal{L}_\text{Hard-KD}$ via Eq.~\ref{eq:loss-hard-kd} \\
+    Initialize instance-discriminator $R$ \\
+    \While{($\mathcal{D}$ not converged)} {
+        Sample $x\sim\mathcal{D}$ and their positive $x^+$ and negative views $x^- \ne x$ \\
+        Update $x$ and $R$ to minimize $\mathcal{L}_\text{CT}$ via Eq.~\ref{eq:loss-contrastive}
+    }
+    \vspace{0.5\baselineskip}
+    \Comment{$\triangleright$ \textbf{\textit{Distillation}}}
+    Distill student $S$ by querying $T$ and $S_0$ on $\mathcal{D}$ to minimize via $\mathcal{L}_{S}$ Eq.~\ref{eq:loss-kd-total}
+
+
+    \vspace{0.5\baselineskip}
+    \Return{$S$}
+\end{algorithm}
+\end{minipage}
+\end{center}

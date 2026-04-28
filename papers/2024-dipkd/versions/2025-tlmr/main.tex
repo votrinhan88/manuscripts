@@ -1,0 +1,56 @@
+\documentclass[10pt]{article} % For LaTeX2e
+
+% Import preamble
+\input{./preamble.tex}
+
+% % Paper-specific settings
+\title{Diverse Image Priors \\ for Black-box Data-free Knowledge Distillation}
+\author{}
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\def\month{MM}  % Insert correct month for camera-ready version
+\def\year{YYYY} % Insert correct year for camera-ready version
+\def\openreview{\url{https://openreview.net/forum?id=XXXX}} % Insert correct link to OpenReview for camera-ready version
+
+
+\begin{document}
+
+
+\maketitle
+
+\begin{abstract} \label{sec:00-abstract}
+    \input{./00-abstract.tex}
+\end{abstract}
+
+\section{Introduction} \label{sec:01-introduction}
+\input{./01-introduction.tex}
+
+\section{Related Works} \label{sec:02-related}
+\input{./02-related.tex}
+
+\section{Proposed Framework} \label{sec:03-framework}
+\input{./03-framework.tex}
+
+\section{Experiments} \label{sec:04-experiments}
+\input{./04-experiments.tex}
+
+\section{Ethical considerations} \label{sec:05-ethical}
+\input{./05-ethical.tex}
+
+\section{Conclusion} \label{sec:06-conclusion}
+\input{./06-conclusion.tex}
+
+
+\bibliography{references}
+\bibliographystyle{tmlr}
+
+
+\appendix
+\newpage
+{\Large \centering \textbf{Appendix}\par} % or \LARGE
+\vspace{0.5\baselineskip}
+\input{./supp.tex}
+
+
+\end{document}

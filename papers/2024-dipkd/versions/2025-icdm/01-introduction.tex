@@ -1,0 +1,53 @@
+\begin{foldable} % Model compression --> Knowledge distillation
+    One inevitable challenge encompassing the advancement of artificial intelligence (AI) that often gets overlooked is the sheer size of AI models.
+    This obstacle limits their deployability in constrained environments, such as mobile or edge devices.
+    Fortunately, research on \textit{ model compression} addresses this problem through various techniques such as model pruning, quantization, or low-rank factorization~\cite{gou2021knowledge}.
+    Among these techniques, \textit{knowledge distillation} (KD)~\cite{hinton2015distilling} is well known for its efficiency and intuitive approach.
+\end{foldable}
+
+\begin{foldable} % Knowledge distillation
+    The intuition of KD bears much resemblance to that of human learning: transferring the knowledge from a complex expert network (\textit{teacher}) to a simple novice network (\textit{student}).
+    In conventional machine learning, the student learns to predict the ground-truth labels from a dataset, much like a human learner does self-studying given a collection of exercises and solutions.
+    The advantageous ingredient introduced by KD is the additional supervision by a skillful teacher with more informative hints, improving the student's generalization.
+    Thus, the student may reach comparable performance to the teacher despite having a lesser capacity.
+    This foundational work~\cite{hinton2015distilling} has inspired a populated line of KD research~\cite{romero2015fitnets, chen2017learning, park2019relational, meng2019conditional, nguyen2021knowledge}.
+\end{foldable}
+
+\begin{foldable} % Data-free KD
+    However, traditional KD methods often require the teacher's original training data.
+    Ideally, the knowledge domain covered by the original data should provide a perfect match to the teacher's expertise, facilitating a seamless knowledge transfer process.
+    Nonetheless, the source dataset is often protected by stringent regulations as they are tied to security, privacy, and proprietary concerns.
+    In fact, personal and health data, or data as intellectual properties all qualify for protection under~\cite{eu2016gdpr, us1996hipaa, eu1996databasedirective, us2016dsta} imposed by the EU and US governments.
+    These regulations effectively inhibit the use of traditional KD methods and pose the more challenging \textit{data-free} KD problem.
+\end{foldable}
+
+\begin{foldable} % Black-box data-free KD
+    Another fundamental requirement for the success of KD is the access to the teacher model, varying from \textit{white-box} (\ie, access to the intermediate features, parameters, activations, or gradients, \etc)~\cite{romero2015fitnets, yim2017gift, chen2019data} to \textit{black-box} (\ie, only the final logits or predictive probabilities)~\cite{wang2020neural, nguyen2022black, vo2024improving}.
+    Unfortunately, AI models are often shipped as a closed API, returning only the final post-processed outputs.
+    For instance, large language models from \cite{openai2022, anthropic2024} only return textual replies (instead of per-token scores), or certain evaluation servers, \eg, \cite{russakovsky2015imagenet}, only return the top-1 prediction.
+    Retrieving deeper insights via these interfaces is usually costly or even non-negotiable.
+    In conjunction, the \textit{black-box data-free KD} (BBDFKD) setting invalidate most KD methods and call for a fresh approach.
+\end{foldable}
+
+\begin{foldable} % Weakness of existing methods: ZSDB3
+    To the best of our knowledge, a handful of methods have attempted to tackle the BBDFKD problem using synthetic images for KD.
+    Within these methods, IDEAL~\cite{zhang2022ideal} and DFHL-RS~\cite{yuan2024data} leverage a generator network to generate synthetic images.
+    Differently, ZSDB3~\cite{wang2021zero} samples synthetic images from random uniform noise and then updates them as trainable parameters.
+    Critically, all three did not leverage \textit{diversity} for distillation.
+    IDEAL and DFHL-RS attempt to generate class-balanced and realistic images, but are at risk of mode collapse caused by generator overfitting.
+    Whereas in ZSDB3, the synthetic images have a suboptimal initialization strategy, where some classes could be unforgivingly unobtainable.
+\end{foldable}
+
+\begin{foldable} % Our method
+    \textbf{Our method.} We tackle the BBDFKD problem, \ie, distilling the student from a black-box teacher which only returns top-1 prediction and without access to any real data.
+    Focusing on data diversity, we realize our solution with three components: \textit{Synthesis} --- to craft a pipeline of image priors with diverse distinct patterns, \textit{Contrastion} --- to improve their diversity through contrastive learning, and \textit{Distillation} --- to train a high-performance student from these images.
+\end{foldable}
+
+\begin{foldable} % Contribution
+    \textbf{Contribution.} In summary, we would like to deliver our solution \textit{\textbf{D}iverse \textbf{I}mage \textbf{P}riors \textbf{K}nowledge \textbf{D}istillation} (\textbf{\methodname}) with the following contributions:
+    \begin{enumerate}
+        \item We propose \textit{image priors} --- synthetic images crafted with distinct and diverse natural semantics.
+        \item We further investigate contrastive learning as a fitting strategy to improve image diversity for KD.
+        \item We outperform previous BBDFKD methods on multiple benchmarks and conduct comprehensive ablation study.
+    \end{enumerate}
+\end{foldable}

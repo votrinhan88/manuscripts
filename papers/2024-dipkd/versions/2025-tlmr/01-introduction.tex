@@ -1,0 +1,62 @@
+\begin{foldable} % Model compression --> Knowledge distillation
+    An inevitable side effect of advancing artificial intelligence (AI) that often gets overlooked is the sheer size of AI models.
+    This obstacle limits their deployability in constrained environments, such as mobile or edge devices.
+    Fortunately, research on model compression addresses this problem through various techniques such as model pruning, quantization, or low-rank factorization.
+    Among these techniques, \textit{knowledge distillation} (KD), proposed by \citet{hinton2015distilling}, is well known for its efficiency and intuitive approach.
+\end{foldable}
+
+\begin{foldable} % Knowledge distillation
+    The intuition of KD closely resembles human learning: the knowledge is transferred from an expert network (\textit{teacher}) to a novice network (\textit{student}).
+    In traditional machine learning, the student learns to predict the ground-truth labels from a dataset, much like a human learner does self-studying given a collection of exercises and solutions.
+    KD advantageously supplements this learning process with the teacher's knowledge, which is more informative than the ground-truth labels.
+    Thus, the student can reach comparable performance to the teacher, even when it may have a lesser capacity.
+\end{foldable}
+
+\begin{foldable} % Data-free KD
+    However, KD methods often require the teacher's original training data for optimal knowledge transfer.
+    Vision datasets often exhibit broad semantic variation, complex environments, and substantial intra-class diversity.
+    This holds true even in privacy-sensitive domains or medical domains, due to the subject's condition, environments, or equipments.
+    Nonetheless, such source datasets are often protected by stringent regulations as they are tied to security, privacy, and proprietary concerns.
+    In fact, personal and health data, or data as intellectual properties all qualify for protection under the Database Directive (Directive 96/9/EC) and General Data Protection Regulation (GDPR) by \citet{eu1996databasedirective, eu2016gdpr} in the EU, and under the Health Insurance Portability and Accountability Act (HIPAA) and the Data Security and Transparency Act (DSTA) by \citet{us1996hipaa, us2016dsta} in the US.
+    These regulations effectively inhibit the use of traditional KD methods and pose the more challenging \textit{data-free KD} problem.
+\end{foldable}
+
+\begin{foldable} % Black-box data-free KD
+    Also crucial to KD is accessibility to the teacher model, \ie, what interfaces it exposes.
+    Model's accessibility vary from \textit{white-box} --- accessing the intermediate features, parameters, activations, or gradients \citep{romero2015fitnets, yim2017gift, chen2019data} to \textit{black-box} --- only the final logits or predictive probabilities \citep{wang2020neural, nguyen2022black, vo2024improving}.
+    Unfortunately, the teacher's accessibility is often restricted.
+    For instance, proprietary vision models, \eg, Vision AI \citep{google-visionai}, Rekognition \citep{aws-rekognition} and Azure Vision \citep{azure-vision}, return final object detection features instead of intermediate representations.
+    Similarly, certain evaluation servers, \eg, ImageNet by \citet{russakovsky2015imagenet}, only return the top-1 prediction, not class probabilities.
+    Retrieving deeper insights via these interfaces is usually costly or even impossible.
+    In conjunction, while \textit{black-box data-free KD} (BBDFKD) is a realistic problem, its contraints invalidates most KD methods and calls for a fresh approach.
+\end{foldable}
+
+\begin{foldable} % Weakness of existing methods: Diversity
+    Without training data, previous methods utilize synthetic images to tackle BBDFKD.
+    In ZSDB3 \citep{wang2021zero}, synthetic images are sampled from random uniform noise and then updated as trainable parameters.
+    However, they have a suboptimal initialization strategy, making some classes unforgivingly unobtainable.
+    Differently, IDEAL \citep{zhang2022ideal} and DFHL-RS \citep{yuan2024data} leverage a generator network for synthetic images.
+    Both attempted to generate class-balanced and realistic images, but were at risk of mode collapse caused by generator overfitting, as pointed out in \citet{yuan2024data}.
+    This lack of diversity in synthetic images is detrimental to KD performance, as it limits the knowledge domain the student can learn from.
+    In addition, the majority of these methods are restricted to using a single index instead of probabilities as label during KD, limiting the distillation signals.
+\end{foldable}
+
+\begin{foldable} % Our method
+    \textbf{Our method.} We propose \textit{Diverse Image Priors Knowledge Distillation} (\textbf{\methodname}) to tackle the BBDFKD problem, \ie, distilling the student from a black-box teacher which only returns top-1 prediction and without access to any real data.
+    We focus on \textit{diversity}, a pivotal factor to perform effective KD but was overlooked in previous methods.
+    For a rigorous definition, we refer to diversity as ``\textit{how broadly the samples distribute in the data space}''.
+    We induce diversity into our KD framework through three phases:
+        \textit{Synthesis}: to craft a pipeline of synthetic images with diverse patterns and semantics,
+        \textit{Contrast}: to optimize them to be even more distinct through contrastive learning,
+        and \textit{Distillation}: to train a high-performance student from these images with soft distillation.
+\end{foldable}
+
+\begin{foldable} % Contribution
+    \textbf{Contribution.} In summary, we highlight our contributions as follows:
+    \begin{enumerate}
+        \item We propose \textit{image priors}, synthetic images crafted with diversity in hierarchical structures, nonlinearity, and meaningful semantics.
+        \item We investigate contrastive learning as a fitting strategy to improve image diversity, where synthetic images are optimized to be distinguishable to each other.
+        \item We introduce a primer student to extract soft-probability as informative knowledge for KD, which is absent in previous BBDFKD methods.
+        \item Our analysis demonstrates our image priors are diverse in terms of both visuals and semantics, and show that they significantly contribute to our state-of-the-art KD performance.
+    \end{enumerate}
+\end{foldable}

@@ -1,0 +1,35 @@
+\subsection{Knowledge Distillation} \label{ssec:02-related-kd}
+\begin{foldable} % Knowledge distillation
+    The pioneering idea in knowledge transferring from one neural network to another, intuitively, was to train the student to mimic the teacher's outputs~\cite{bucila2006model}.
+    This idea was popularized in~\cite{hinton2015distilling} as \textit{knowledge distillation}, introducing the concept of \textit{`soft'} probabilistic outputs, which are more informative than the \textit{`hard'} class labels.
+    Soft probabilities provide the student with \textit{inter-class} relationships as hints for hidden knowledge, improving its performance.
+    Existing KD methods can be categorized based on the source knowledge~\cite{gou2021knowledge}: responses~\cite{ba2014deep, hinton2015distilling, nguyen2021knowledge, li2023curriculum}, features~\cite{romero2015fitnets, zagoruyko2016paying, passalis2018learning, liu2019knowledge}, and relations~\cite{yim2017gift, park2019relational, chen2020learning}.
+    Nonetheless, these methods are not well-designed for the realistic \textit{black-box data-free} scenario.
+\end{foldable}
+
+\subsection{Data-free Knowledge Distillation} \label{ssec:02-related-dfkd}
+\begin{foldable} % Data-free KD
+    The data availability hardship has inspired data-efficient KD approaches.
+    While few-shot KD methods~\cite{wang2020neural, nguyen2022black, vo2024improving} can waive data requirements to a minimum, a small portion of the source dataset is still required.
+    In practice, private datasets can be entirely closed, which will hinder these few-shot approaches.
+    Some other approaches opt for using \textit{proxy datasets} in the hope they are exchangeable with the unknown source dataset~\cite{chen2021learning, tang2023distribution}.
+    However, they often have a strong built-in bias that could mismatch with the teacher trained on a different dataset~\cite{torralba2011unbiased}.
+    These challenges motivate data-free approaches, which rely on either dissecting the teacher's internal structure or leveraging its gradients as guidance to harvest knowledge~\cite{chen2019data, fang2019datafree, fang2021contrastive, do2022momentum, tran2024nayer}.
+\end{foldable}
+
+\subsection{Black-box Data-free Knowledge Distillation} \label{ssec:02-related-bbdfkd}
+\begin{foldable} % ZSDB3
+    Still, when the teacher model is black-box and has top\nobreakdash-1 prediction only (\ie, with simple gradient-detaching and arg max operations), the effectiveness of the data-free methods is hindered.
+    The earliest to address BBDFKD is ZSDB3~\cite{wang2021zero}, which assumes: \textbf{(1)} the distance from an image sample to the decision boundary with other classes can represent its robustness, and \textbf{(2)} realistic images tend to be far away from these boundaries.
+    This method uses random pixel-wise uniform noises for initialization and optimization.
+    However, such high-dimensional boundaries can be too complex to capture with distance-based approaches, so the odds of obtaining class-balanced, well-covered image samples are extremely slim and scale exponentially worse with high-resolution images or numerous classes.
+    This may explain why ZSDB3 had only succeeded in small-size, ten-class datasets.
+\end{foldable}
+
+\begin{foldable} % IDEAL, DFHL-RS
+    Two subsequent works, IDEAL~\cite{zhang2022ideal} and DFHL-RS~\cite{yuan2024data}, utilize an extra generator network for more flexible data generation.
+    Both assume that as KD persists, the student's gradients could guide generator training.
+    The methods employ in-class similarity and class-balance objectives for the generator, which is popular in data-free KD~\cite{chen2019data}.
+    However, in black-box scenarios, while distilling an immature student is already challenging, its labels might not be reliable enough to guide generator training.
+    This setup has been observed to cause \textit{``overfitting of synthetic data''} to the student, resulting in mode collapse and insufficient diversity~\cite{yuan2024data}.
+\end{foldable}

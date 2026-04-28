@@ -1,0 +1,37 @@
+\subsection{Knowledge Distillation} \label{ssec:02-related-kd}
+\begin{foldable} % Knowledge distillation
+    The pioneering idea in knowledge transferring from one neural network to another, intuitively, was to train the student to mimic the teacher's outputs \citep{bucila2006model}.
+    This idea was popularized in \citet{hinton2015distilling} as \textit{knowledge distillation}, introducing the concept of \textit{`soft'} probabilistic outputs, which are more informative than the \textit{`hard'} class labels.
+    Soft probabilities provide the student with \textit{inter-class} relationships as hints for hidden knowledge, improving its performance.
+    This foundational work has inspired a populated line of KD research: \citet{romero2015fitnets, chen2017learning, park2019relational, meng2019conditional, nguyen2021knowledge}.
+    Nonetheless, these methods are not effective for practical scenarios when data or model accessibility is limited.
+\end{foldable}
+
+
+\subsection{Data-free Knowledge Distillation} \label{ssec:02-related-dfkd}
+\begin{foldable} % Data-free KD
+    The data availability hardship has inspired data-efficient KD approaches.
+    While few-shot KD methods such as \citet{wang2020neural, nguyen2022black, vo2024improving} can reduce data requirements to a minimum, a small portion of the source dataset is still required.
+    In practice, private datasets can be entirely closed, which will hinder these few-shot approaches.
+    Some other approaches opt for using \textit{proxy datasets} in the hope they are exchangeable with the unknown source dataset \citep{chen2021learning, tang2023distribution, nguyen2023label}.
+    However, they often have a strong built-in bias that could mismatch with the teacher trained on a different dataset, as noted in \citet{torralba2011unbiased}.
+    When data access is prohibited, data-free KD approaches often rely on dissecting the teacher's internal structure or leveraging its gradients as guidance to harvest knowledge \citep{chen2019data, fang2019datafree, fang2021contrastive, do2022momentum, tran2024nayer}.
+\end{foldable}
+
+
+\subsection{Black-box Data-free Knowledge Distillation} \label{ssec:02-related-bbdfkd}
+\begin{foldable} % ZSDB3
+    Still, when the teacher model is black-box and has top\nobreakdash-1 prediction only (\ie, with simple gradient-detaching and argmax operations), the data-free methods are challenged.
+    The earliest to address BBDFKD is ZSDB3 by \citet{wang2021zero}, which assumes: \textbf{(1)} the distance from an image sample to the decision boundary with other classes can represent its robustness, and \textbf{(2)} realistic images tend to be far away from these boundaries.
+    This method uses random pixel-wise uniform noises for initialization and optimization.
+    However, such high-dimensional boundaries can be over-complex for distance-based approaches, so the odds of obtaining diverse image samples are extremely slim and scale exponentially worse with high-resolution images or numerous classes.
+    ZSDB3 was only successful in small-size, ten-class datasets.
+\end{foldable}
+
+\begin{foldable} % IDEAL, DFHL-RS
+    Two subsequent works, IDEAL by \citet{zhang2022ideal} and DFHL-RS by \citet{yuan2024data}, utilize an extra generator network for more flexible data generation.
+    Both assume that as the student improves during KD, its gradients could guide generator training.
+    The methods employ in-class similarity and class-balance objectives for the generator, which is popular in data-free KD \citep{chen2019data}.
+    However, in black-box scenarios, while distilling an immature student is already challenging, its labels might not be reliable enough to guide generator training.
+    This setup has been observed to cause \textit{``overfitting of synthetic data''} to the student, resulting in possible mode collapse and insufficient diversity \citep{yuan2024data}.
+\end{foldable}

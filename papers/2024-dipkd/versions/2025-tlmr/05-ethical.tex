@@ -1,0 +1,28 @@
+\begin{foldable}
+    Our study explores \textit{black-box data-free knowledge distillation}, a setting where a student model learns from a teacher's outputs without access to its internal parameters or original training data.
+    While not apparent, we would like to raise certain ethical and societal concerns related to model extraction, information leakage, and bias propagation.
+\end{foldable}
+
+\begin{foldable}
+    Because the student learns entirely from the teacher's responses, repeated querying could approximate the teacher's decision boundaries, potentially enabling unauthorized reconstruction of proprietary or commercial models \citep{tramer2016stealing,orekondy2019knockoff,jagielski2020high}.
+    Large-scale replication of closed models could discourage openness in AI research and reduce incentives for model providers to offer public APIs.
+    This problem could be mitigated by limiting the queries to the teacher, and through model watermarking or output perturbation that make functional copying more detectable or less precise \citep{jia2021entangled,wang2024defense}.
+\end{foldable}
+
+\begin{foldable}
+    Besides, even though no real data are used, teacher models may implicitly memorize sensitive information that can be exposed through their responses \citep{carlini2021extracting}.
+    In extreme cases, this could lead to indirect leakage of personal or confidential data.
+    Such leakage risks eroding public trust in machine learning systems and may breach data protection norms if human-derived models are involved.
+    As a recommendation, using privacy-preserving training techniques, such as differential privacy \citep{flemings2024differentially}, and conducting ethical audits of teacher outputs can reduce the likelihood of revealing sensitive patterns.
+\end{foldable}
+
+\begin{foldable}
+    In data-free KD, the student may be trained using only the teacher's labels, thus it can directly inherit and sometimes amplify distillation-induced biases in the teacher's decision boundaries \citep{hooker2020characterising,ahn2022knowledge}.
+    Those amplified disparities can disproportionately harm marginalized groups when distilled models are deployed in downstream settings \citep{buolamwini2018gender}.
+    Mitigation strategies include using fairness-aware distillation and audit methods \citep{chai2022fairness,masroor2024fair}.
+\end{foldable}
+
+\begin{foldable}
+    Our aim is to enable ethical and resource-efficient research on knowledge distillation, not to facilitate extraction or imitation of closed systems.
+    We therefore restrict our experiments to openly licensed teacher models and open-source our works to encourage transparent, auditable research practices.
+\end{foldable}

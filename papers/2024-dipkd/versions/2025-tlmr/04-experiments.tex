@@ -1,0 +1,465 @@
+\begin{foldable} % Overview
+    To demonstrate the effectiveness of our method \methodname, we evaluated our method on extensive BBDFKD benchmarks.
+    Furthermore, we conduct a wide range of ablation studies and analysis to reveal the underlying mechanics of our framework, and validate it under practical scenarios.
+    We also provide training details, complementary studies, and extended works in the Appendix.
+\end{foldable}
+
+\subsection{Experimental setup} \label{ssec:04-experiments-setup}
+\begin{foldable} % Datasets, architectures, settings
+    We evaluate our method across eight benchmark datasets at various difficulty: MNIST \citep{lecun2002gradient}, USPS \citep{hull1994database}, SVHN \citep{netzer2011reading}, FMNIST \citep{xiao2017fashion}, CIFAR10, CIFAR100 \citep{krizhevsky2009learning}, Tiny-ImageNet \citep{le2015tiny} (abbreviated: TinyImageNet), Imagenette \citep{howard2020imagenette}.
+    Three network architectures are considered for the teacher and student, namely LeNet5 \citep{lecun2002gradient}, AlexNet \citep{krizhevsky2012imagenet}, and ResNet \citep{he2016deep}.
+    These datasets and architectures are the de facto evaluation in BBDFKD methods \citep{wang2021zero, zhang2022ideal, yuan2024data}.
+    Our proposed hyperparameters ($\beta$, $M$) are kept consistent across all experiments, and are not tuned to any datasets, adhering to the data-free constraint.
+    For detailed training setups, we kindly refer readers to Appendix Sec.~\ref{sec:app01-training}.
+\end{foldable}
+
+
+\subsection{Baselines} \label{ssec:04-experiments-baselines}
+\begin{foldable} % Baselines
+    We compare our method {\methodname} with the baselines:
+    \begin{itemize}
+        \item Naive-KD: The student is trained on uniform noise $x\sim\mathcal{X_{\mathcal{U}}}$, where $\mathcal{X}_{\mathcal{U}}=\mathcal{U}\left[0,1\right]^{C\times H\times W}$ and the teacher's hard labels $\hat{y}_{T-\text{Hard}}=T\left(x\right)\in\left\{ 1,\ldots,K\right\}$.
+        \item BBDFKD methods: We compare ours with three state-of-the-art methods: ZSDB3 \citep{wang2021zero}, IDEAL \citep{zhang2022ideal}, and DFHL-RS \citep{yuan2024data}.
+    \end{itemize}
+    For a fair comparisons, we used the same teacher-student network architectures and synthetic images budget for all methods.
+    We report the \textit{mean} $\pm$ \textit{standard error} of distillation accuracy, which is student's accuracy on the hold-out test set, across five runs.
+    The accuracy of baseline BBDFKD methods are reproduced with their official implementations.\footnote{Official implementations of baseline methods: (1) ZSDB3 at \url{https://github.com/zwang84/zsdb3kd}; (2) IDEAL at \url{https://github.com/SonyResearch/IDEAL}; (3) DFHL-RS at \url{https://github.com/LetheSec/DFHL-RS-Attack}.}
+    We ensured that all baseline implementations were tuned ethically and fairly, following the authors' recommended settings.
+\end{foldable}
+
+
+\subsection{Standard experiments} \label{ssec:04-experiments-standard}
+\begin{foldable} % Overview
+    We categorize the datasets into \textit{simple} and \textit{complex} datasets based on their difficulty.
+    Four simple datasets MNIST, USPS, SVHN, FMNIST all have 10 classes of simple objects, at a $32\times32$ or smaller resolution.
+    The complex datasets have more complicated objects or more classes: CIFAR10 and CIFAR100 (10 and 100 classes, $32\times32$), TinyImageNet (200 classes, $64\times64$), and Imagenette (10 classes, but high-resolution).
+    More details on the dataset can be found in Appendix Sec.~\ref{ssec:app01-training-datasets}.
+\end{foldable}
+
+
+\begin{foldable}
+    \textbf{Simple datasets.}
+    We report knowledge distillation (KD) results on simple datasets in Table~\ref{tab:standard-simple}.
+    Across all cases, BBDFKD baselines consistently outperform Naive-KD, which only probes the teacher with noisy pixels.
+    Notably, we observe a consistent accuracy margin between our method {\methodname} and other BBDFKD baselines.
+    This demonstrates the effectiveness of {\methodname} to achieve superior distillation performance.
+\end{foldable}
+
+\begin{table}[h]
+    \caption{Distillation accuracy (\%) on simple datasets.}
+    \centering
+    \begin{tabular}{c|l|l|l|l}
+        \hline \textbf{Baseline}
+            & \makecell{\textbf{MNIST}  \\ LeNet5  \\ $N$ = 20 K}
+            & \makecell{\textbf{USPS}   \\ LeNet5  \\ $N$ = 50 K}
+            & \makecell{\textbf{SVHN}   \\ AlexNet \\ $N$ = 50 K}
+            & \makecell{\textbf{FMNIST} \\ LeNet5  \\ $N$ = 50 K} \\
+        \hline Teacher       &                       99.28 &                       95.47 &                       96.16 &                       90.90 \\
+        \hline Naive-KD      &          96.54$_{\pm 0.60}$ &          42.05$_{\pm 0.08}$ &          83.35$_{\pm 0.57}$ &          55.11$_{\pm 1.23}$ \\
+        ZSDB3                &          96.66$_{\pm 0.39}$ &          65.50$_{\pm 0.16}$ &          85.38$_{\pm 1.69}$ &          71.60$_{\pm 2.35}$ \\
+        IDEAL                &          96.96$_{\pm 0.34}$ &          92.66$_{\pm 0.57}$ &          87.86$_{\pm 0.93}$ &          82.84$_{\pm 1.22}$ \\
+        DFHL-RS              &          98.53$_{\pm 0.10}$ &          93.97$_{\pm 0.60}$ &          95.41$_{\pm 0.13}$ &          83.89$_{\pm 1.35}$ \\
+        \textbf{\methodname} & \textbf{98.59}$_{\pm 0.08}$ & \textbf{94.20}$_{\pm 0.21}$ & \textbf{95.94}$_{\pm 0.05}$ & \textbf{83.98}$_{\pm 0.65}$ \\
+        \hline
+        \multicolumn{5}{l}{$N$: synthetic dataset size; Subscript $_{\pm \ldots}$ denotes the standard error;} \\
+        \multicolumn{5}{l}{Best results are in \textbf{bold}.} \\
+    \end{tabular}
+    \label{tab:standard-simple}
+\end{table}
+
+\begin{foldable}
+    \textbf{Complex datasets.}
+    For complex datasets, we summarized distillation performance in Table~\ref{tab:standard-complex}.
+    We observe the relative gap between the baselines to be wider compared to that on simple datasets in Table~\ref{tab:standard-simple}, indicating that these datasets are indeed more difficult to distill.
+    In class-abundant scenarios such as CIFAR100 and TinyImageNet, Naive-KD and ZSDB3 drop to near random-guessing levels, due to the limited diversity in its training data (both used pixel-based noise images).
+    The remaining BBDFKD methods are more robust on these datasets, especially DFHL-RS and our method DIP-KD.
+    However, we notice a significant margin of more than 20\% between our method and DFHL-RS, the second-best baseline, on the high-resolution Imagenette.
+    In summary, {\methodname} consistently outperforms on 7/8 baselines with state-of-the-art results, and remains robust under class-abundant or high-resolution settings.
+    These results imply our method {\methodname} has great potential in practical, real-world black-box data-free scenarios.
+\end{foldable}
+
+\begin{table}[ht]
+    \caption{Distillation accuracy (\%) on complex datasets.}
+    \centering
+    \begin{tabular}{c|l|l|l|l}
+        \hline \textbf{Baseline}
+            & \makecell{\textbf{CIFAR10}      \\ ResNet18 \\ $N$ = 50K}
+            & \makecell{\textbf{CIFAR100}     \\ ResNet18 \\ $N$ = 100K}
+            & \makecell{\textbf{TinyImageNet} \\ ResNet18 \\ $N$ = 512K}
+            & \makecell{\textbf{Imagenette}   \\ ResNet18 \\ $N$ = 50K} \\
+        \hline Teacher       &                       95.21 &                        78.36 &                        66.08 &                       91.29 \\
+        \hline Naive-KD      &          13.99$_{\pm 0.23}$ & \phantom{0}2.68$_{\pm 0.13}$ & \phantom{0}0.75$_{\pm 0.07}$ &          33.21$_{\pm 0.39}$ \\
+        ZSDB3                &          56.74$_{\pm 1.98}$ & \phantom{0}9.19$_{\pm 0.39}$ & \phantom{0}3.29$_{\pm 0.16}$ &          33.43$_{\pm 0.85}$ \\
+        IDEAL                &          67.58$_{\pm 1.29}$ &           33.64$_{\pm 0.91}$ &           23.76$_{\pm 1.03}$ &          36.90$_{\pm 0.38}$ \\
+        DFHL-RS              &          76.50$_{\pm 0.84}$ &           51.97$_{\pm 0.11}$ &  \textbf{30.52}$_{\pm 1.43}$ &          40.53$_{\pm 2.36}$ \\
+        \textbf{\methodname} & \textbf{83.41}$_{\pm 0.46}$ &  \textbf{52.85}$_{\pm 0.30}$ &           28.03$_{\pm 0.22}$ & \textbf{61.84}$_{\pm 0.77}$ \\
+        \hline
+        \multicolumn{5}{l}{$N$: synthetic dataset size; Subscript $_{\pm \ldots}$ denotes the standard error;} \\
+        \multicolumn{5}{l}{Best results are in \textbf{bold}.} \\
+    \end{tabular}
+    \label{tab:standard-complex}
+\end{table}
+
+
+\subsection{Ablation studies} \label{ssec:04-experiments-ablation}
+\begin{foldable}
+    In this section, we provide deeper insights into our framework by dissecting the components of our framework, and then put it to practical settings.
+    Formerly, we perform an analysis on individual component's contribution, explore the semantics and visualization of our image priors, and examine our method's sensitivity to hyperparameters.
+    Then, we extend our evaluation to real-world scenarios such as KD with proxy data, with cross-architecture settings, or under aggressive model compression.
+    We also refer enthusiastic readers to visit Appendix Sec.~\ref{sec:app02-experiments-multiobjective} for complementary studies on alternative optimization objectives, and Appendix Sec.~\ref{sec:app03-extension} for an iterative extension of our method.
+\end{foldable}
+
+\subsubsection{Contribution of components} \label{sssec:04-experiments-ablation-components}
+\begin{table}[ht]
+    \caption{Distillation accuracy (\%) by inclusion of components.}
+    \centering
+    \begin{tabular}{l|l|l}
+        \hline \makecell{\textbf{Method}} & \makecell{\textbf{MNIST}} & \makecell{\textbf{CIFAR10}} \\
+        \hline Naive-KD (noise data $x\sim\mathcal{X}_{\mathcal{U}}$, hard labels)
+            & \phantom{$+$ }96.02$_{\pm .60}$ & \phantom{$+$ }13.99$_{\pm .23}$ \\
+        $+$ \textbf{Synthesis:}
+            & $+$ \phantom{0}2.27                    & $+$ 64.18 \\
+        \quad $^{\blacktriangle}$Hierarchical noise: $\mathcal{D} \coloneq \{x_\text{hn}\}$
+            & \phantom{$+$ 0}1.79$^{\blacktriangle}$ & \phantom{$+$} 59.26$^{\blacktriangle}$ \\
+        \quad $^{\blacktriangle}$Nonlinear transform: $\mathcal{D} \coloneq \{x_\text{nt}\}$
+            & \phantom{$+$ 0}0.18$^{\blacktriangle}$ & \phantom{$+$ 0}2.38$^{\blacktriangle}$ \\
+        \quad $^{\blacktriangle}$Semantic cutmixing: $\mathcal{D} \coloneq \{x | x \sim \mathcal{X}_\mathcal{P}\}$
+            & \phantom{$+$ 0}0.30$^{\blacktriangle}$ & \phantom{$+$ 0}2.54$^{\blacktriangle}$ \\
+        $+$ \textbf{Contrast:} Update $\mathcal{D}$ to minimize $\mathcal{L}_\text{CT}$ via Eq.~\ref{eq:loss-contrastive}
+            & $+$ \phantom{0}0.16                    & $+$ \phantom{0}3.14 \\
+        $+$ \textbf{Distillation:} Add Soft-KD to $\mathcal{L}_S$ in Eq.~\ref{eq:loss-kd-total}
+            & $+$ \phantom{0}0.14                    & $+$ \phantom{0}2.10 \\
+        \hline
+        Complete \textbf{\methodname}
+            & \phantom{$+$ }98.59$_{\pm .08}$        & \phantom{$+$ }83.41$_{\pm .46}$ \\
+        \hline
+        \multicolumn{3}{l}{$\blacktriangle$ denotes individual contribution of each Synthesis sub-components.} \\
+        \multicolumn{3}{l}{Subscript $_{\pm \ldots}$ denotes the standard error at the base and complete case.} \\
+    \end{tabular}
+    \label{tab:abla-components}
+\end{table}
+
+\begin{foldable}
+    We investigate each component of our framework {\methodname} on MNIST and CIFAR10 from the standard experiment, as representative for simple and complex benchmarks.
+    Starting from the baseline Naive-KD, we sequentially add each component and report the student accuracy in Table~\ref{tab:abla-components}.
+    Firstly, Synthesis contributes the most to student accuracy ($+$2.27\% on MNIST, $+$64.18\% on CIFAR10), where the hierarchical noise sub-component has the most impact.
+    This is equivalent to the performance of the primer student $S_0$ trained on $\mathcal{X}_\mathcal{P}$, of more than 98\% and 78\% on MNIST and CIFAR10, which is already higher than the second-best baseline DFHL-RS in the standard experiments (Sec. \ref{ssec:04-experiments-standard}).
+
+    High-performance primer students allows us to conduct contrastive optimization and perform soft KD effectively.
+    For instance, on CIFAR10, we achieve $+$3.14\% for Contrast and $+$2.10\% for Distillation.
+    These results confirms that not only our Synthesis pipeline plays a vital role in generating diverse data, but also our novel use of the primer student in the Contrast and Distillation phases significantly boosts KD performance beyond prior arts.
+    % Noticeably, previous techniques \citep{zhang2022ideal, yuan2024data} employ in-class similarity and class-balance objectives, however, they could cause overfitting, reducing diversity and KD performance \citep{yuan2024data}.
+    % We also experimented with these objectives in Appendix Sec.~\ref{ssec:app02-experiments-multiobjective} but did not have any fruitful results, confirming their ineffectiveness.
+\end{foldable}
+
+
+
+\subsubsection{Embeddings analysis --- Generation} \label{sssec:04-experiments-ablation-embeddings-generation}
+\begin{foldable}
+    To ensure that our image priors are diverse and semantically meaningful, we sample random synthetic images and extract their embeddings from the backbone of the ResNet18 teacher network pre-trained on CIFAR10.\footnote{This is the ResNet18 teacher of 95.21\% accuracy on CIFAR10, being reused as a held-out ``oracle''.}
+    Its intermediate features have a dimension of 512, where we further embed with UMAP \citep{mcinnes2018umap} with default parameters to two-dimensional for visualization.
+    We explore four complex datasets CIFAR10, CIFAR100, TinyImageNet, and Imagenette, which contain rich diversity and semantics.
+    We declare that the use of real data and the teacher's backbone in this ablation study is solely for evaluation purpose, and is not involved in our framework.
+    We also include uniform noise $\mathcal{X}_{\mathcal{U}}$, Gaussian noise $\mathcal{X}_{\mathcal{N}}$, and our image priors $\mathcal{X}_{\mathcal{P}}$.
+    We visualize these embeddings in Fig.~\ref{fig:embeddings-universal} for a qualitative study.
+\end{foldable}
+
+\begin{figure}[h] % fig:embeddings-universal
+    \centering
+    \includegraphics[width=0.82\textwidth]{./figures/04-experiments-vizembed-2d-objects.png}
+    \caption{Feature embeddings of complex datasets, noise ($\mathcal{X}_{\mathcal{U}}$, $\mathcal{X}_{\mathcal{N}}$), and image priors $\mathcal{X}_{\mathcal{P}}$.}
+    \label{fig:embeddings-universal}
+\end{figure}
+
+\begin{foldable}
+    Apparently, $\mathcal{X}_{\mathcal{U}}$ and $\mathcal{X}_{\mathcal{N}}$ form a compact, separate cluster far away from the regions of real images, suggesting that their semantics are limited and dissimilar to natural objects.
+    In contrast, $\mathcal{X}_{\mathcal{P}}$ widely spreads among the mutual regions of real images, hinting that they share similar semantics as expected.
+    For quantitative analysis, we evaluate four distribution metrics for generative models from \citet{naeem2020reliable}:
+    \begin{itemize}
+        \item \textit{Precision}: the fraction of synthetic samples that is in the neighborhood of at least one real sample.
+            High precision indicates synthetic data are captured within the support of real data, but may be \textit{biased} by real outlier samples.
+        \item \textit{Recall}: the fraction of real samples that is in the neighborhood of at least one synthetic sample.
+            High recall indicates synthetic data can capture the support of real data, but may be \textit{biased} by an overestimated synthetic manifold.
+        \item \textit{Density}: the average normalized count of synthetic samples in the neighborhood of each real sample.
+            High density indicates \textit{fidelity} like precision but is less \textit{biased}, and may be greater than 1 when synthetic data concentrates around real modes.
+        \item \textit{Coverage}: the fraction of real samples whose neighbourhoods contain at least one fake sample.
+            High coverage indicates \textit{diversity} like recall but is less \textit{biased}.
+    \end{itemize}
+\end{foldable}
+
+\begin{table}[ht]
+    \caption{Distribution metrics (\%) on complex datasets.}
+    \label{tab:abla-embeddings-coverage-objects}
+    \centering
+    \begin{tabular}{c|c|c|c|c|c}
+        \hline  \textbf{Metric} & \textbf{Source} & \textbf{CIFAR10} & \textbf{CIFAR100} & \textbf{TinyImageNet} & \textbf{Imagenette} \\
+        \hline
+                           & $\mathcal{X}_\mathcal{U}$ & \phantom{0}20.00 &           100.65 &           108.65 &           101.20 \\
+        \textbf{Density}   & $\mathcal{X}_\mathcal{N}$ & \phantom{0}20.00 &           107.98 & \phantom{0}90.87 &           103.64 \\
+                           & $\mathcal{X}_\mathcal{P}$ & \phantom{0}49.14 & \phantom{0}96.20 & \phantom{0}96.00 & \phantom{0}92.14 \\
+        \hline
+                           & $\mathcal{X}_\mathcal{U}$ & \phantom{000}.00 & \phantom{000}.10 & \phantom{000}.06 & \phantom{000}.05 \\
+        \textbf{Coverage}  & $\mathcal{X}_\mathcal{N}$ & \phantom{000}.00 & \phantom{000}.10 & \phantom{000}.06 & \phantom{000}.05 \\
+                           & $\mathcal{X}_\mathcal{P}$ & \phantom{00}7.33 & \phantom{0}60.79 & \phantom{0}63.88 & \phantom{0}78.48 \\
+        \hline
+                           & $\mathcal{X}_\mathcal{U}$ &           100.00 &           100.10 &           100.00 &           100.00 \\
+        \textbf{Precision} & $\mathcal{X}_\mathcal{N}$ &           100.00 &           100.10 &           100.00 &           100.00 \\
+                           & $\mathcal{X}_\mathcal{P}$ & \phantom{0}80.83 & \phantom{0}97.76 & \phantom{0}99.29 & \phantom{0}99.10 \\
+        \hline
+                           & $\mathcal{X}_\mathcal{U}$ & \phantom{000}.00 & \phantom{000}.09 & \phantom{000}.06 & \phantom{000}.04 \\
+        \textbf{Recall}    & $\mathcal{X}_\mathcal{N}$ & \phantom{000}.00 & \phantom{000}.10 & \phantom{000}.06 & \phantom{000}.05 \\
+                           & $\mathcal{X}_\mathcal{P}$ & \phantom{0}66.92 & \phantom{0}96.75 & \phantom{0}96.86 & \phantom{0}95.07 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{foldable}
+    The statistics in Table~\ref{tab:abla-embeddings-coverage-objects} shows that our image priors $\mathcal{X}_\mathcal{P}$ achieved significantly higher density, coverage, and recall at a small trade-off in precision, compared to noise sources $\mathcal{X}_{\mathcal{U}}$ and $\mathcal{X}_{\mathcal{N}}$.
+    Theses results further confirm $\mathcal{X}_\mathcal{P}$ have superior fidelity and diversity, and explains why $\mathcal{X}_{\mathcal{P}}$ excels in BBDFKD.
+\end{foldable}
+
+\subsubsection{Embeddings analysis --- Contrast} \label{sssec:04-experiments-ablation-embeddings-contrast}
+\begin{foldable}
+    To highlight the effect of the Contrast phase on increasing diversity of image priors, we visualize the embeddings of 50K images before and after the Contrast phase in Fig.~\ref{fig:embeddings-cifar10}.
+    Embeddings are extracted similarly as previously described, using the same ResNet18 backbone pre-trained on CIFAR10.
+    As an oracle (has been trained on real CIFAR10 images), the backbone can proficiently recognize the semantics and embed real images into ten distinctive clusters (colored gray).
+    Image priors $\mathcal{X}_\mathcal{P}$ before Contrast (green) already scatter around these clusters, indicating they have captured diverse semantics.
+    After Contrast, the contrastive objective further improves the coverage and expands $\mathcal{X}_\mathcal{P}$ to neighbor regions as well (orange).
+    This is beneficial to KD, as the post-contrast data distribution is both more diverse and help capture more knowledge from the teacher.
+\end{foldable}
+
+\begin{figure}[h] % fig:embeddings-universal
+    \centering
+    \includegraphics[width=0.82\textwidth]{./figures/04-experiments-vizembed-2d-cifar10-resnet18.png}
+    \caption{Feature embeddings of image priors $\mathcal{X}_\mathcal{P}$ on CIFAR10 before and after the Contrast step, with real data and noise sources.}
+    \label{fig:embeddings-cifar10}
+\end{figure}
+
+\begin{foldable}
+    Upon closer inspection of randomly-picked image priors (Fig.~\ref{fig:abla-contrast-images}), we observe that the contrastive optimization has overlaid the image priors with faint but self-distinguished patterns after Contrast.
+    In most images, the residual can be seen to reinforce the existing patterns.
+    This is expected, as the contrastive loss encourages each image prior to be more distinguishable from others, thus promoting diversity.
+    We hypothesize that these subtle patterns are sufficient for the teacher and the primer student to recognize different semantics, thus improving KD performance.
+\end{foldable}
+
+\begin{figure}[ht] % fig:abla-contrast-images
+    \begin{minipage}{\columnwidth}
+        \centering
+        \includegraphics{./figures/experiments-abla-contrast-cifar10-resnet18-before.png} \\
+        {\footnotesize \textbf{(a)} Before Contrast}
+        \vspace{1.5\baselineskip}
+    \end{minipage}
+    \begin{minipage}{\columnwidth}
+        \centering
+        \includegraphics{./figures/experiments-abla-contrast-cifar10-resnet18-after.png} \\
+        {\footnotesize \textbf{(b)} After Contrast}
+    \end{minipage}
+    \caption{Contrastive optimization to image priors $\mathcal{X}_\mathcal{P}$ during the Contrast phase.}
+    \label{fig:abla-contrast-images}
+\end{figure}
+
+\begin{foldable}
+    Using the same distribution metrics as the previous embedding analysis, we quantitatively evaluate the effect of the Contrast phase on CIFAR10 synthetic data in Table~\ref{tab:abla-embeddings-coverage-cifar10}.
+    We observe a significant increase in density, coverage, and recall, with a trivial trade-off in density.
+    Overall, these results show that the Contrast phase improve image diversity semantically, visually, and empirically.
+\end{foldable}
+
+\begin{table}[h]
+    \caption{Distribution metrics (\%) during the Contrast phase.}
+    \label{tab:abla-embeddings-coverage-cifar10}
+    \centering
+    \begin{tabular}{l|c|c|c|c}
+        \hline  & \textbf{Density} & \textbf{Coverage} & \textbf{Precision} & \textbf{Recall} \\
+        \hline
+        Before Contrast  & 70.46 & \phantom{0}6.13 & 91.69 & 82.18 \\
+        After Contrast   & 66.93 &           14.66 & 91.68 & 94.00 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+
+\subsubsection{Increasing synthetic dataset size} \label{sssec:04-experiments-ablation-nsamples}
+\begin{foldable}
+    While it is unsurprising that we achieved better KD performance when using more a larger number of image priors $N$ (Fig.~\ref{fig:abla-nsamples}), more important discussions are: which is the optimal cut-off point, and how it corresponds to the relative difficulty of each dataset.
+    We observe that for the digits datasets (MNIST, UPSP, SVHN), the student fits easily even with minimal data ($N$ = 10K), whereas it struggles a bit more on FMNIST and CIFAR10.
+    For CIFAR100, TinyImageNet, and Imagenette, the student still stably improves even after we have reached $N$ = 100K or more, suggesting that increasing $N$ is a viable option for large-scale problems.
+\end{foldable}
+
+\begin{figure}[h] % fig:abla-nsamples
+    \centering
+    \includegraphics[width=0.85\textwidth]{./figures/experiments-abla-nsamples.pdf}
+    \caption{Distillation accuracy (\%) by number of image priors $N$.}
+    \label{fig:abla-nsamples}
+\end{figure}
+
+
+\subsubsection{Distilling with proxy data} \label{sssec:04-experiments-ablation-naiveapproaches}
+\begin{foldable} % Other naive approaches
+    Thanks to the digits datasets (MNIST, UPSP, SVHN) having shared classes (digits 0--9), we also explore using out-of-domain datasets as proxy data as another naive approach.
+    We evaluate students trained with different combinations of input images (real training sets, noises, and our image priors) and labels (ground truth from real training sets, or pseudo-labels given by the teacher).
+    We use 50K images for each synthetic source, and the full training set for each real dataset.
+    For fair comparisons, we only include the \textit{Synthesis} component (\ie, accuracy of primer student $S_{0}$) for our method, and reuse the teachers from standard experiments.
+    We also emphasize that using real training sets containing shared classes is \textit{unfair} to our data-free premise, which starts with strictly no data.
+\end{foldable}
+    
+\begin{table}[h] % tab:abla-naive-approaches
+    \caption{Distillation accuracy (\%) with proxy data.}
+    \centering
+    \begin{tabular}{c|c|c|c|c}
+        \hline \multicolumn{2}{c|}{\textbf{Training data}} & \multicolumn{3}{c}{\textbf{Evaluation}} \\
+        \hline \textbf{Inputs} & \textbf{Labels}          & \makecell{\textbf{MNIST} \\ LeNet5} & \makecell{\textbf{USPS} \\ LeNet5} & \makecell{\textbf{SVHN} \\ AlexNet} \\
+        \hline \multirow{2}{*}{MNIST}    & ground-truth & \textbf{99.25}$_{\pm  \phantom{0}.06}$ &          91.88$_{\pm           1.56}$ &          20.77$_{\pm \phantom{0}.29}$ \\
+                                         & pseudo       & \textbf{99.06}$_{\pm  \phantom{0}.05}$ &          93.94$_{\pm \phantom{0}.30}$ &          41.18$_{\pm           3.27}$ \\
+        \hline \multirow{2}{*}{USPS}     & ground-truth &          77.92$_{\pm            2.72}$ & \textbf{95.90}$_{\pm \phantom{0}.48}$ &          19.36$_{\pm \phantom{0}.62}$ \\
+                                         & pseudo       &          96.78$_{\pm  \phantom{0}.42}$ & \textbf{94.97}$_{\pm \phantom{0}.15}$ &          57.52$_{\pm           1.81}$ \\
+        \hline \multirow{2}{*}{SVHN}     & ground-truth &          64.10$_{\pm            1.29}$ &          62.12$_{\pm           1.68}$ & \textbf{95.97}$_{\pm \phantom{0}.08}$ \\
+                                         & pseudo       &          98.59$_{\pm  \phantom{0}.18}$ &          93.95$_{\pm \phantom{0}.37}$ & \textbf{96.48}$_{\pm \phantom{0}.04}$ \\
+        \hline $\mathcal{X}_\mathcal{N}$ &              &          88.05$_{\pm  \phantom{0}.76}$ &          27.29$_{\pm \phantom{0}.10}$ &          84.42$_{\pm \phantom{0}.48}$ \\
+               $\mathcal{X}_\mathcal{U}$ & pseudo       &          96.54$_{\pm  \phantom{0}.60}$ &          42.05$_{\pm \phantom{0}.08}$ &          83.35$_{\pm \phantom{0}.57}$ \\
+               $\mathcal{X}_\mathcal{P}$ &              & \textbf{98.62}$_{\pm  \phantom{0}.17}$ & \textbf{94.14}$_{\pm \phantom{0}.52}$ & \textbf{95.84}$_{\pm \phantom{0}.10}$ \\
+        \hline
+        \multicolumn{5}{l}{Subscript $_{\pm \ldots}$ denotes the standard error.} \\
+        \multicolumn{5}{l}{The top-3 results from each target evaluation (column) are in \textbf{bold}.} \\
+    \end{tabular}
+    \label{tab:abla-naive-approaches}
+\end{table}
+
+\begin{foldable} % Discussion on tab:abla-naive-approaches
+    We adopt the perspective of domain adaptation theory in \citet{ben2010theory} to discuss our results summarized in Table~\ref{tab:abla-naive-approaches}.
+    \begin{itemize}
+        \item First, when the teacher's original training set is available---representing an in-domain scenario---the student model achieves the highest performance.
+            This outcome is expected, as having access to an identical curriculum allows the student to mimic the teacher most effectively.
+        \item Second, performing knowledge distillation in an adaptation-like manner (\eg, from MNIST to USPS) by querying the teacher on proxy datasets provides only a modest improvement over using drop-in labels.
+            Despite the availability of high-quality images, this approach \textbf{fails} to achieve satisfactory performance.
+            We hypothesize that this limitation is caused by the domain gap between the teacher's knowledge and the foreign data.
+            Hence, employing public datasets as direct proxies may, in fact, degrade KD performance.
+        \item Finally, rather than \textit{exploitation} over an \textit{uncertain} domain, it is more advantageous to prioritize \textit{exploration} over a \textit{diverse} domain, especially in the BBDFKD setting.
+            Our image priors $\mathcal{X}_\mathcal{P}$ consistently outperform other synthetic sources ($\mathcal{X}_\mathcal{N}$, $\mathcal{X}_\mathcal{U}$) and proxy datasets across all evaluations.
+            Evidently, our results with image priors $\mathcal{X}_\mathcal{P}$ (bottom row) approximates the in-domain settings with less than a 1\% difference.
+            This shows that the diversity and broad coverage of our image priors are more beneficial than naively using real data of unsure domain.
+    \end{itemize}
+    Collectively, these insights indicate our image priors exhibits a \textit{universal} diversity and broad applicablity.
+\end{foldable}
+
+
+
+\subsubsection{Cross-architecture KD} \label{sssec:04-experiments-ablation-crossarch}
+\begin{foldable}
+    An under-investigated setting in BBDFKD methods is distilling from the teacher to students of heterogeneous architecture.
+    To fully discriminate the knowledge gap, we evaluate three architectures with large capacity difference: LeNet5, AlexNet, and ResNet18; on three benchmarks with intermediate difficulty: FMNIST, SVHN, and CIFAR10.
+    We reuse the same teacher networks from the standard experiments and report the KD results in Table~\ref{tab:abla-crossarch}. 
+    On the diagonal, we observe that the student performs best when it has a homogeneous architecture to the teacher.
+    Otherwise, accuracy scales with capacity, and a medium-size student can still often give moderate results.
+    Thus, {\methodname} is proven to be applicable even when the teacher and student may have different architectures.
+\end{foldable}
+
+\begin{table}[h]
+    \caption{Distillation accuracy (\%) of cross-architecture KD.}
+    \centering
+    \begin{tabular}{c|l|l|l}
+        \hline
+            \makecell{\textbf{Network}}
+            & \makecell{\textbf{FMNIST}  \\ LeNet5}
+            & \makecell{\textbf{SVHN}    \\ AlexNet}
+            & \makecell{\textbf{CIFAR10} \\ ResNet18} \\
+        \hline
+        Teacher  &                        90.90 &                           96.16 &                        95.21 \\
+        \hline
+        LeNet5   & \textbf{83.98}$_{\pm 0.65}$ &          64.44$_{\pm 1.83}$ &          32.01$_{\pm 3.18}$ \\
+        AlexNet  &          78.98$_{\pm 0.92}$ & \textbf{95.94}$_{\pm 0.05}$ &          61.30$_{\pm 0.69}$ \\
+        ResNet18 &          81.69$_{\pm 1.58}$ &          95.91$_{\pm 0.04}$ & \textbf{83.41}$_{\pm 0.46}$ \\
+        \hline
+        \multicolumn{4}{l}{Subscript $_{\pm \ldots}$ denotes the standard error.} \\
+        \multicolumn{4}{l}{Best results are in \textbf{bold}.} \\
+    \end{tabular}
+    \label{tab:abla-crossarch}
+\end{table}
+
+
+\subsubsection{Students of compressed capacity} \label{sssec:04-experiments-ablation-compress}
+
+\begin{foldable}
+    While we used same-size teacher-student networks in the standard experiment for fair comparision, we are also interested in the case when the student gets aggressively compressed, which has yet to be investigated in previous methods.
+    Specifically, we train on student networks of approximately 25\%, 4\%, and 1\% compression ratio (CR) by reducing the number of channels in linear and convolutional layers by 2$\times$, 5$\times$, 10$\times$, respectively (Table~\ref{tab:abla-compression-parameters}).
+    We distill these compressed students using our method, while keeping all other settings the same as in the standard experiments.
+\end{foldable}
+
+\begin{table}[h]
+    \caption{Parameters count by compression ratio (CR).}
+    \label{tab:abla-compression-parameters}
+    \centering
+    \begin{tabular}{c|c|c|c}
+        \hline  \textbf{CR} & \textbf{LeNet5}   & \textbf{AlexNet}     & \textbf{ResNet18} \\
+        \hline        100\% &           61.71 K &           1,659.18 K &           11.17 M \\
+            \phantom{0}50\% &           15.74 K & \phantom{0,}417.43 K & \phantom{0}2.90 M \\
+            \phantom{0}20\% & \phantom{0}2.53 K & \phantom{0,0}68.49 K & \phantom{0}0.45 M \\
+            \phantom{0}10\% & \phantom{0}0.88 K & \phantom{0,0}17.70 K & \phantom{0}0.11 M \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\begin{foldable}
+    We report the KD results in Fig.~\ref{fig:abla-compression} and observe that our method is empirically robust to moderate compression.
+    Even at 25\% CR, the students are mostly unaffected across all datasets, and only suffer a tolerable decline in accuracy around 4\% CR.
+    Only at the extreme 1\% CR, the students starts to decline significantly.
+    This encouraging result shows that {\methodname} is effective in distilling a cumbersome teacher into lightweight students, which is particularly useful for \textit{resource-constrained} settings, such as mobile or edge devices. 
+\end{foldable}
+
+\begin{figure}[h] % fig:abla-compression
+    \centering
+    \includegraphics[width=0.80\textwidth]{./figures/experiments-abla-compression.pdf}
+    \caption{Distillation accuracy (\%) by compression ratio (CR).}
+    \label{fig:abla-compression}
+\end{figure}
+
+
+\subsubsection{Number of filter iterations in Synthesis} \label{sssec:04-experiments-ablation-filter}
+\begin{foldable}
+    As described in Semantic Cutmixing (Sec. \ref{sssec:03-framework-synthesis-semcutmix}), we generate the semantic mask $\hat{m}$ by iteratively passing an initial noisy mask $m_0 \sim \mathcal{X}_\mathcal{U}$ through the filters $f_{\text{blur}} \circ f_{\text{divg}}$ for $M$ = 10 times.
+    Following the data-free constraint, we do not tune the number of filter iterations $M$ on any real data, but rather set it based on the visual quality of $\hat{m}$.
+    To investigate its effect, we vary $M$ on a wider spectrum and report the results below.
+\end{foldable}
+
+\begin{foldable}
+    In particular, we visualize in Fig.~\ref{fig:abla-num_filter_iterations} the gradual formation of cohesive shapes in semantic masks $\hat{m}$ as $M$ increases.
+    Each pass through the filters transform noisy regions into clearer ``blobs'', resulting in diverse cohesive shapes.
+    At low $M$ < 5, mask $\hat{m} \approx m_{0}$ is still mostly salt-and-pepper, too fine-grained to capture any cohesive shapes.
+    Meanwhile, at high $M$ > 20, the shapes are reduced to simple blobs with less diversity.
+    In practice, the desired data distribution is unknown and may span various domains (e.g., digits, fashion items, animals, objects), so we expect $\hat{m}$ to be general-purpose and robust across domains.
+    We observe a balance between diversity and complexity around $M$ = 10, and thus use this value for all our experiments.
+\end{foldable}
+
+\begin{figure}[h] % fig:abla-compression
+    \centering
+    \includegraphics[width=0.74\textwidth]{./figures/experiments-abla-num_filter_iterations.pdf}
+    \caption{Formation of semantic mask $\hat{m}$ at different number of filter iterations $M \in [0, 50]$.}
+    \label{fig:abla-num_filter_iterations}
+\end{figure}
+
+\begin{foldable}
+    We additionally experiment on how KD performance varies with $M \in [5, 20]$ in Table \ref{tab:abla-num_filter_iterations}. As we choose $M$ by generalizability, it is possible that the exact best value of $M$ may differ for each dataset. In our case, our default value $M$ = 10 gives us the best overall results, while other values also give robust performance, higher than that of the second-best baseline. We recommend in case where additional priors are available (e.g., access to the domain or dataset), one may opt to tune $M$ to improve an extra 1-2\% accuracy margin.
+\end{foldable}
+
+\begin{table}[h]
+    \caption{Distillation accuracy (\%) by number of filter iterations $M$.}
+    \label{tab:abla-num_filter_iterations}
+    \centering
+    \begin{tabular}{c|c|c|c|c}
+        \hline
+            \textbf{Method}
+            & $M$
+            & \makecell{\textbf{MNIST}   \\ LeNet5  \\ $N$ = 20 K}
+            & \makecell{\textbf{FMNIST}  \\ LeNet5  \\ $N$ = 50 K}
+            & \makecell{\textbf{CIFAR10} \\ ResNet18 \\ $N$ = 50K} \\
+        \hline
+        \multirow{5}{*}{DIP-KD} & \phantom{0}5   & 98.55$_{\pm 0.11}$ & 83.57$_{\pm 0.13}$ & 81.36$_{\pm 0.43}$ \\
+                                & \phantom{0}7   & 98.59$_{\pm 0.11}$ & 83.75$_{\pm 0.78}$ & 82.29$_{\pm 0.29}$ \\
+                                & \phantom{*}10* & 98.59$_{\pm 0.08}$ & 83.98$_{\pm 0.65}$ & 83.41$_{\pm 0.46}$ \\
+                                & 14             & 98.71$_{\pm 0.04}$ & 83.80$_{\pm 0.30}$ & 82.68$_{\pm 0.18}$ \\
+                                & 20             & 98.71$_{\pm 0.09}$ & 83.00$_{\pm 0.41}$ & 82.31$_{\pm 0.72}$ \\
+        \hline
+        DFHL-RS (second-best)   & -              & 98.53$_{\pm 0.10}$ & 83.89$_{\pm 1.35}$ & 76.50$_{\pm 0.84}$ \\
+        \hline
+        \multicolumn{4}{l}{* denotes our default case using $M$ = 10.} \\
+    \end{tabular}
+\end{table}
