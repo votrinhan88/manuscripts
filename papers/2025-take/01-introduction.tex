@@ -6,15 +6,15 @@
 \end{foldable}
 
 \begin{foldable} % DD --> Text DD
-  Dataset distillation (DD), first proposed by~\cite{wang2018dataset}, replaces a large corpus $\mathcal{D}$ with a smaller surrogate $\tilde{\mathcal{D}} \ll \mathcal{D}$ such that a model trained on $\tilde{\mathcal{D}}$ performs comparably to one trained on $\mathcal{D}$.
+  Dataset distillation (DD), first proposed by~\cite{wang2018dataset}, replaces a large dataset $\mathcal{D}$ with a smaller surrogate $\tilde{\mathcal{D}} \ll \mathcal{D}$ such that a model trained on $\tilde{\mathcal{D}}$ performs comparably to one trained on $\mathcal{D}$.
   Put another way: what is the smallest textbook that teaches the same exam?
   This places DD squarely within data-centric AI, complementing model compression by operating on the data rather than the model itself.
-  Early DD methods work in image space, optimizing synthetic pixels via gradient or trajectory matching~\cite{zhao2020dataset,cazenavette2022dataset}.
+  Early DD methods work in image space, optimizing synthetic pixels via meta-learning, gradient or trajectory matching~\cite{wang2018dataset,zhao2020dataset,cazenavette2022dataset}.
   Text breaks these assumptions: non-differentiable token decoding blocks gradient-based synthesis, and embedding spaces are tightly coupled to specific architectures.
   Adapting DD to text has therefore required fundamentally different strategies.
 \end{foldable}
 
-\begin{foldable} % Baseline text DD methods -- gap --> desiderata --> method
+\begin{foldable} % Baseline text DD methods --> gap --> desiderata
   Existing text DD methods~\cite{sucholutsky2021soft,li2021data,maekawa2023dataset,maekawa2024dilm,tao2024textual} fall short in at least one of the following: at extreme compression, uniform weighting exhausts the budget on uninformative samples; their objectives lack task alignment or global optimization; and their outputs are embeddings, neither auditable nor transferable.
   We survey this landscape in \S\ref{sec:02-related-textdd} and show that no prior method simultaneously addresses all of the above.
   These gaps motivate three desiderata for TAKE:{
@@ -25,9 +25,9 @@
 \end{foldable}
 
 \begin{foldable} % Our method TAKE and contributions
-  We propose \textbf{TAKE} (Trajectory-Aware Knowledge Estimation), the first text DD method to satisfy all three desiderata.
+  We propose \textbf{Trajectory-Aware Knowledge Estimation} (\textbf{TAKE}), the first text DD method to satisfy all three desiderata.
   We address the first via influence functions~\cite{koh2017understanding}, which quantify each sample's counterfactual effect on the downstream loss and provide a theoretically grounded, task-aligned weighting scheme (\S\ref{sec:03-theory}).
-  However, scoring at a single checkpoint introduces the \textit{hard-sample bias} (HSB): at convergence, noisy samples dominate influence scores while clean and moderate samples --- the most valuable for a robust distilled dataset --- are suppressed.
+  However, scoring at a single checkpoint introduces the \textit{hard-sample bias} (HSB): at convergence, noisy samples dominate influence scores while clean and moderate samples, the most valuable for a robust distilled dataset, are suppressed.
   TAKE corrects this by integrating influence scores along the full training trajectory into a per-sample knowledge score that captures clean and moderate samples while down-weighting noisy ones.
   Then, TAKE fine-tunes an LLM to generate a pool of human-readable candidate instances.
   The knowledge scores and synthetic candidates jointly feed a discrete Optimal Transport (OT) objective that globally selects the distilled corpus.

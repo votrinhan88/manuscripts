@@ -45,15 +45,16 @@
 
 \subsection{Influence Functions and the Hard-Sample Bias} \label{sec:02-related-influence}
 \begin{foldable} % Influence functions & trajectory-based methods
-  Influence functions~(IFs)~\cite{cook1982residuals,koh2017understanding} quantify the leave-one-out effect of a training point via $\mathcal{I}(z) = \nabla^\top H_\theta^{-1} \nabla$, but depend on a single checkpoint and require expensive second-order computation.
-  Trajectory-based methods, TracIn~\cite{pruthi2020estimating}, TRAK~\cite{park2023trak}, and DataInf~\cite{kwon2023datainf}, extend attribution across checkpoints but are \emph{test-conditioned}: each method requires a fixed test query and is therefore unsuitable for corpus-level scoring.
-  TAKE sidesteps both limitations by aggregating influence scores across the full training trajectory with no test query, yielding a corpus-level knowledge score $\kappa_n$.
+  Influence functions (IF)~\cite{cook1982residuals,koh2017understanding} quantify the leave-one-out effect of a training point via $\mathcal{I}(z) = \nabla^\top H_\theta^{-1} \nabla$, but depend on a single checkpoint and require expensive second-order computation.
+  Trajectory-based methods~\cite{pruthi2020estimating,park2023trak,kwon2023datainf} extend attribution across checkpoints but are \emph{test-conditioned}: designed to attribute a fixed test prediction.
+  The self-influence approximation adapts them to corpus-level scoring by using each training point as its own query.
+  However, self-influence is evaluated only once at the final parameters, introducing a systematic bias that corrupts the corpus-level scores.
 \end{foldable}
 
 \begin{foldable} % Hard-sample bias
-  Scoring at a single checkpoint introduces what we call the \emph{hard-sample bias} (HSB): at convergence, clean samples have near-zero gradient by definition, so noisy or hard samples dominate influence scores.
+  We refer to this as the \emph{hard-sample bias} (HSB): at convergence, clean samples have near-zero gradient by definition, so noisy or hard samples dominate influence scores.
   This failure mode is well-documented in adjacent work: \cite{arpit2017closer} show that networks fit clean patterns before noisy ones; dataset cartography~\cite{swayamdipta2020dataset} confirms that single-checkpoint statistics conflate difficulty with noise; and Co-teaching~\cite{han2018co} documents systematic overselection of noisy samples in gradient-based curricula.
-  In standard training, HSB can often be mitigated via regularization; in the extreme low-data regime of DD, however, it amplifies: biased selection suppresses the moderate and boundary samples whose inclusion is essential for model robustness.
+  In standard training, HSB can often be mitigated via regularization; in the extreme low-data regime of DD, however, it amplifies: biased selection suppresses the \emph{informative} samples essential for model robustness.
   To our knowledge, no prior text DD method has identified or corrected for it.
 \end{foldable}
 

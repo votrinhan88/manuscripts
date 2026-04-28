@@ -56,10 +56,10 @@
 \begin{foldable} % Proposition 1: HSB
     The first failure is a bias in the weights themselves.
     \begin{proposition}[Hard-Sample Bias] \label{prop:hsb}
-        Let $\mathcal{D}_\text{clean},\, \mathcal{D}_\text{noisy}$ partition $\mathcal{D}$.
-        Assume: \emph{(i)} $\|\nabla_\theta \ell(z; \hat{\theta})\| \leq \epsilon$ for $z \in \mathcal{D}_\text{clean}$;
-        \emph{(ii)} $\|\nabla_\theta \ell(z; \hat{\theta})\| \geq \delta \gg \epsilon$ for $z \in \mathcal{D}_\text{noisy}$.
-        Let $\mathrm{cond}(H) = \lambda_{\max}(H) / \lambda_{\min}(H)$ be the condition number of $H$.
+        Let $\mathcal{D}_\text{clean},\, \mathcal{D}_\text{noisy}$ partition $\mathcal{D}$, under the assumptions:
+        \emph{(i)}~$\|\nabla_\theta \ell(z; \hat{\theta})\| \leq \epsilon$ for $z \in \mathcal{D}_\text{clean}$, i.e., clean samples have near-zero gradient at convergence;
+        \emph{(ii)} $\|\nabla_\theta \ell(z; \hat{\theta})\| \geq \delta \gg \epsilon$ for $z \in \mathcal{D}_\text{noisy}$, i.e., noisy samples retain large residual gradients.
+        Let $\mathrm{cond}(H) = \lambda_{\max}(H) / \lambda_{\min}(H)$ denotes the condition number of the Hessian $H$.
         Then:
         \begin{equation}
             \Delta_\textup{HSB} := \mathbb{E}_{z \sim \mathcal{D}_\textup{noisy}}[\mathcal{I}_\textup{self}(z;\hat{\theta})]

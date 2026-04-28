@@ -1,40 +1,8 @@
-\documentclass[runningheads]{llncs}
-\usepackage[T1]{fontenc}
-\usepackage{graphicx}
-\usepackage{booktabs}
-% N.B.: do not change anything above this line. If you require additional packages, please load them directly after this line.
-
-% Additional packages
-\usepackage{amsmath,amssymb,amsfonts}
-\usepackage{cite}
-\usepackage{hyperref}
-\usepackage{makecell}
-\usepackage{multirow}
-\usepackage{xcolor}
-
-\spnewtheorem{assumption}{Assumption}{\itshape}{\rmfamily}
-\newcommand*{\ie}{i.e.}
-\newcommand*{\eg}{e.g.}
-\newcommand*{\etc}{etc.}
-
-\begin{document}
-
-\title{TAKE: Trajectory-Aware Knowledge Estimation for Text Dataset Distillation --- Supplementary Material}
-\titlerunning{TAKE: Supplementary Material}
-\author{Author information scrubbed for double-blind reviewing}
-\maketitle
-
-\appendix
-
-% ============================================================
 \section{Proofs}
 \label{app:proofs}
-% ============================================================
 
-% ------------------------------------------------------------
 \subsection{Proof of Proposition~1 (Hard-Sample Bias)}
 \label{app:proof-hsb}
-% ------------------------------------------------------------
 
 \textbf{Setup.}
 Let $\mathcal{I}_\text{self}(z) = \nabla^\top H_{\hat\theta}^{-1} \nabla$, where $\nabla \equiv \nabla_\theta \ell(z;\hat\theta)$ and $H_{\hat\theta}$ is the empirical Hessian, assumed symmetric positive definite (SPD) with $\lambda_{\min}(H_{\hat\theta}) > 0$ (this holds whenever the model is not at a degenerate critical point).
@@ -309,8 +277,3 @@ The kernel decay is set to $\lambda^* = T / T_m$, concentrating mass on the pre-
 For the Sinkhorn solver we use $\varepsilon = 0.05$ with 200 iterations, which produces soft plans with sufficient diversity and converges for all tested pool sizes.
 The synthetic pool size is fixed at $|\mathcal{D}_\text{synth}| = 5{,}000$, chosen based on empirical saturation across all tested domains.
 The language model generator is Gemma-3-270M, which is small, fast, and sufficient for in-domain fluency at this pool size.
-
-\bibliographystyle{splncs04}
-\bibliography{references}
-
-\end{document}
