@@ -1,0 +1,64 @@
+\subsection{Text Dataset Distillation} \label{sec:02-related-textdd}
+\begin{foldable} % DD --> Three criteria for complete text DD
+    DD methods~\cite{wang2018dataset,zhao2020dataset,cazenavette2022dataset,kim2022dataset,wang2022cafe} were originally designed for images, where data is differentiable and continuous.
+    Text breaks these assumptions: token decoding is non-differentiable, outputs must be semantically coherent, and embedding spaces are tightly coupled to specific architectures.
+    Coreset methods~\cite{welling2009herding,sener2018active} address a related but structurally different problem --- they select informative records from the original dataset, which raises privacy concerns.
+    Against this backdrop, we identify three properties that any complete text DD method should have: (1)~a \emph{knowledge-informed criterion} that weights samples by their contribution to the downstream objective; (2)~a \emph{principled dataset-level objective} that optimises distributional coverage globally rather than ranking samples independently; and (3)~\emph{human-readable output} that is directly inspectable and reusable without specialised decoding.
+\end{foldable}
+
+\begin{table}[t] % Table: Comparison of text DD methods.
+    \centering
+    \caption{Comparison of text DD methods.}
+    \label{tab:landscape-textdd-methods}
+    \begin{tabular}{l c l c}
+        \toprule
+        \textbf{Method}                 & \quad Knowledge-informed \quad \quad & \multicolumn{1}{c}{Dataset-level objective \quad \quad} & Readable     \\
+        \midrule
+        SLDD~\cite{sucholutsky2021soft} & $-$                                  & $-$ meta-learning                                       & $\triangle$  \\
+        DDTC~\cite{li2021data}          & $-$                                  & $\triangle$ meta-learning                               & $-$          \\
+        DDAL~\cite{maekawa2023dataset}  & $-$                                  & $-$ gradient matching                                   & $-$          \\
+        DiLM~\cite{maekawa2024dilm}     & $-$                                  & $-$ gradient matching                                   & $\checkmark$ \\
+        DaLLME~\cite{tao2024textual}    & $-$                                  & $-$ geometric                                           & $\checkmark$ \\
+        \textbf{TAKE} (ours)            & $\checkmark$                         & $\checkmark$ discrete OT                                & $\checkmark$ \\
+        \bottomrule
+        \multicolumn{4}{l}{$-$: absent, $\triangle$: partial, $\checkmark$: present}
+    \end{tabular}
+\end{table}
+
+\begin{foldable} % TAKE is first to clear all three criteria
+    Table~\ref{tab:landscape-textdd-methods} summarises the landscape.
+    The three embedding-space methods~\cite{sucholutsky2021soft,li2021data,maekawa2023dataset} are architecture-locked, effectively failing~(3)~readability.
+    The two recent readable methods both lack a dataset-level objective aligned with DD: DiLM~\cite{maekawa2024dilm} uses gradient matching followed by k-centre selection, while DaLLME~\cite{tao2024textual} clusters sentence embeddings via k-means --- neither has a formal connection to the downstream task.
+    TAKE is the first text DD method to satisfy all three properties: trajectory-aware knowledge scores $\kappa_n$ address~(1), discrete OT addresses~(2), and LLM-generated synthetic text addresses~(3).
+\end{foldable}
+
+
+\subsection{Influence Functions and the Hard-Sample Bias} \label{sec:02-related-influence}
+\begin{foldable} % Influence functions & trajectory-based methods
+    Influence functions~(IFs)~\cite{cook1982residuals,koh2017understanding} quantify the leave-one-out effect of a training point via $\mathcal{I}(z) = \nabla^\top H_\theta^{-1} \nabla$, but depend on a single checkpoint and require expensive second-order computation.
+    Trajectory-based methods --- TracIn~\cite{pruthi2020estimating}, TRAK~\cite{park2023trak}, DataInf~\cite{kwon2023datainf} --- extend attribution across checkpoints but are \emph{test-conditioned}: each method requires a fixed test query and is therefore unsuitable for corpus-level scoring.
+    TAKE sidesteps both limitations by computing gradient \emph{norms} across the full trajectory with no test query, yielding a corpus-level, task-agnostic score $\kappa_n$.
+\end{foldable}
+
+\begin{foldable} % Hard-sample bias
+    Scoring at a single checkpoint introduces what we call the \emph{hard-sample bias} (HSB): at convergence, clean samples have near-zero gradient by definition, so noisy or hard samples dominate influence scores.
+    This failure mode is well-documented in adjacent work: \cite{arpit2017closer} show that networks fit clean patterns before noisy ones; dataset cartography~\cite{swayamdipta2020dataset} confirms that single-checkpoint statistics conflate difficulty with noise; and Co-teaching~\cite{han2018co} documents systematic overselection of noisy samples in gradient-based curricula.
+    In standard training, HSB can often be mitigated via regularisation; in the extreme low-data regime of DD, however, it amplifies --- biased selection suppresses the moderate and boundary samples whose inclusion is essential for model robustness.
+    To our knowledge, no prior text DD method has identified or corrected for it.
+\end{foldable}
+
+
+\subsection{Optimal Transport for Distribution Matching} \label{sec:02-related-ot}
+\begin{foldable} % Distribution matching as a DD surrogate
+    Distribution matching has been proposed as a tractable DD surrogate~\cite{zhao2023dataset}: if the distilled and training sets induce equal expected gradients along the optimisation trajectory, the trained models converge to comparable parameters --- a sufficient condition, not an equivalence (the formal gap bound appears in Appendix~A.3).
+    Common divergences have practical shortcomings at the extreme budgets relevant here.
+    MMD lacks sample-level assignment structure, requiring auxiliary scoring heuristics that reintroduce the gap that property~(2) is meant to close.
+    KL and JS divergences require density estimation, which is unreliable at budgets of $\approx\!100$ samples.
+\end{foldable}
+
+\begin{foldable} % Discrete OT
+    OT in the Monge-Kantorovich sense avoids both pitfalls: it operates natively on discrete measures, respects the metric geometry of the embedding space, and produces an explicit transport plan that directly assigns training samples to prototypes --- no auxiliary heuristic needed.
+    Entropic regularisation via Sinkhorn-Knopp~\cite{cuturi2013sinkhorn} makes this tractable at corpus scale.
+    OT has been widely applied in NLP and machine learning~\cite{kusner2015word,tolstikhin2018wasserstein,courty2016optimal,arjovsky2017wasserstein}, but never to text DD, and never combined with a knowledge-reweighted source distribution in any DD setting.
+    TAKE fills both gaps: $\kappa_n$ defines a non-uniform source measure, and the discrete entropic OT plan selects prototypes covering the knowledge-weighted training distribution without any auxiliary selection step.
+\end{foldable}

@@ -1,0 +1,8 @@
+Large-scale text corpora have become a quiet bottleneck in modern NLP, not just in storage, but in the accumulated cost of training, fine-tuning, and continual learning.
+We propose a text dataset distillation framework that reduces corpora to as little as 0.1\% of their original size while preserving downstream task fidelity.
+We approach distillation through the lens of influence functions, which quantify each sample's contribution to the downstream objective, a natural and principled basis for selection.
+We introduce Trajectory-Aware Knowledge Estimation (TAKE), which convolves the knowledge-based influence along the training trajectory into a single per-sample knowledge score; capturing easy, moderate, and boundary samples.
+These scores serve as sample weights within a discrete Optimal Transport objective, guiding prototype selection from a synthetically generated candidate pool.
+We evaluate TAKE on downstream accuracy across five language tasks at extreme compression (0.1\% or 20 samples/class), showing that data efficiency is achievable without sacrificing task fidelity.
+The approach is theoretically grounded, with broader implications for coreset construction and data-centric AI.
+\keywords{Text Dataset Distillation \and Influence Functions \and Optimal Transport.}

@@ -1,0 +1,46 @@
+\begin{foldable} % LLM --> DD
+  The progress of large language models depends on large-scale supervised corpora, yet the cost of curating and training on such data compounds across fine-tuning cycles, hyperparameter sweeps, and continual learning.
+  The real burden is not any single run but the cumulative expenditure across the full development lifecycle.
+  Corpus size, not model size, is often the binding constraint.
+  Reducing it is therefore a systemic priority with direct implications for cost, carbon footprint, and data governance.
+\end{foldable}
+
+\begin{foldable} % DD --> Text DD
+  Dataset distillation (DD), first proposed by~\cite{wang2018dataset}, replaces a large corpus $\mathcal{D}$ with a smaller surrogate $\tilde{\mathcal{D}} \ll \mathcal{D}$ such that a model trained on $\tilde{\mathcal{D}}$ performs comparably to one trained on $\mathcal{D}$.
+  Put another way: what is the smallest textbook that teaches the same exam?
+  This places DD squarely within data-centric AI, complementing model compression by operating on the data rather than the model itself.
+  Early DD methods work in image space, optimizing synthetic pixels via gradient or trajectory matching~\cite{zhao2020dataset,cazenavette2022dataset}.
+  Text breaks these assumptions: non-differentiable token decoding blocks gradient-based synthesis, and embedding spaces are tightly coupled to specific architectures.
+  Adapting DD to text has therefore required fundamentally different strategies.
+\end{foldable}
+
+\begin{foldable} % Baseline text DD methods -- gap --> desiderata --> method
+  Existing text DD methods~\cite{sucholutsky2021soft,li2021data,maekawa2023dataset,maekawa2024dilm,tao2024textual} fall short in at least one of the following: at extreme compression, uniform weighting exhausts the budget on uninformative samples; their objectives lack task alignment or global optimization; and their outputs are embeddings, neither auditable nor transferable.
+  We survey this landscape in \S\ref{sec:02-related-textdd} and show that no prior method simultaneously addresses all of the above.
+  These gaps motivate three desiderata for TAKE:{
+    (1)~\emph{knowledge-based weighting} --- weighting samples by their task-aligned downstream contribution, directing the budget toward the most informative ones;
+    (2)~a \emph{dataset-level distillation objective} --- optimizing over the full training distribution rather than batch-by-batch, ensuring global coverage;
+    and (3)~\emph{human-readable output} --- a distilled corpus that is directly inspectable, auditable, and transferable across architectures.
+  }
+\end{foldable}
+
+\begin{foldable} % Our method TAKE and contributions
+  We propose \textbf{TAKE} (Trajectory-Aware Knowledge Estimation), the first text DD method to satisfy all three desiderata.
+  We address the first via influence functions~\cite{koh2017understanding}, which quantify each sample's counterfactual effect on the downstream loss and provide a theoretically grounded, task-aligned weighting scheme (\S\ref{sec:03-theory}).
+  However, scoring at a single checkpoint introduces the \textit{hard-sample bias} (HSB): at convergence, noisy samples dominate influence scores while clean and moderate samples --- the most valuable for a robust distilled dataset --- are suppressed.
+  TAKE corrects this by integrating influence scores along the full training trajectory into a per-sample knowledge score that captures clean and moderate samples while down-weighting noisy ones.
+  Then, TAKE fine-tunes an LLM to generate a pool of human-readable candidate instances.
+  The knowledge scores and synthetic candidates jointly feed a discrete Optimal Transport (OT) objective that globally selects the distilled corpus.
+  Concretely, we contribute:
+  \begin{itemize}
+    \item {
+        \textbf{Theory:} We formalize the hard-sample bias~(HSB) in the text DD setting, prove that single-checkpoint influence scores are biased toward noisy samples, and derive a formal gap bound for knowledge-reweighted distribution matching.
+      }
+    \item {
+        \textbf{Method:} TAKE is the first text DD method to jointly address sample weighting and distributional coverage --- via trajectory-integrated knowledge scores and a discrete OT objective aligned with the DD goal.
+      }
+    \item {
+        \textbf{Empirical:} TAKE matches or exceeds prior text DD methods across five language tasks at extreme compression (0.1\% or 20 instances/class), producing human-readable distilled corpora that generalize across diverse backbone families.
+      }
+  \end{itemize}
+\end{foldable}

@@ -1,0 +1,35 @@
+\begin{foldable} % LLM --> DD
+    The progress of large language models depends on large-scale supervised corpora, yet the cost of curating and training on such data compounds across fine-tuning cycles, hyperparameter sweeps, and continual learning.
+    The real burden is not any single run but the cumulative expenditure across the full development lifecycle.
+    Corpus size, not model size, is often the binding constraint.
+    Reducing it is therefore a systemic priority with direct implications for cost, carbon footprint, and data governance.
+\end{foldable}
+
+\begin{foldable} % DD --> Text DD
+    Dataset distillation (DD), first proposed by~\cite{wang2018dataset}, replaces a large corpus $\mathcal{D}$ with a smaller surrogate $\tilde{\mathcal{D}} \ll \mathcal{D}$ such that a model trained on $\tilde{\mathcal{D}}$ performs comparably to one trained on $\mathcal{D}$.
+    Put another way: what is the smallest textbook that teaches the same exam?
+    This places DD squarely within data-centric AI, complementing model compression by operating on the data rather than the model itself.
+    Early DD methods work in image space, optimising synthetic pixels via gradient or trajectory matching under a bi-level meta-learning objective~\cite{cazenavette2022dataset,kim2022dataset,wang2018dataset,wang2022cafe,zhao2020dataset}.
+    Text breaks these assumptions: non-differentiable token decoding blocks gradient-based synthesis, semantic coherence requirements mean outputs must be human-interpretable, and retaining verbatim training samples raises privacy concerns.
+    Text dataset distillation~(text DD) therefore calls for a fundamentally different approach.
+\end{foldable}
+
+\begin{foldable} % Baseline text DD methods
+    We argue that a complete text DD framework must satisfy three properties: (1) knowledge-informed sample weighting, so that selection reflects each sample's contribution to the downstream objective; (2) a principled dataset-level objective that optimises distributional coverage rather than ranking samples independently; and (3) human-readable output that permits inspection and downstream reuse.
+    We survey five prior methods \cite{li2021data,sucholutsky2021soft,maekawa2023dataset,maekawa2024dilm,tao2024textual} in \S2.1 and show that each violates at least one of these properties.
+\end{foldable}
+
+\begin{foldable} % Our method TAKE and contributions
+    We propose TAKE (Trajectory-Aware Knowledge Estimation), a text DD method that satisfies all three properties.
+    Influence functions~\cite{koh2017understanding} offer a natural starting point, quantifying each sample's counterfactual effect on the downstream loss.
+    However, scoring at a single checkpoint introduces the \textit{hard-sample bias} (HSB): at convergence, noisy samples dominate influence scores while clean and moderate samples --- the most valuable for a robust distilled dataset --- are suppressed.
+    TAKE corrects this by integrating influence scores along the full training trajectory into a per-sample knowledge score that captures easy, moderate, and boundary samples while down-weighting noisy ones.
+    These scores feed a discrete Optimal Transport (OT) objective, which selects a synthetic corpus that best covers the knowledge-weighted training distribution.
+    \begin{itemize}
+        \item \textbf{Diagnosis:} We formalise HSB in the text DD setting, quantify it, and establish it as the core failure mode of naive influence-based selection. We further identify the absence of a dataset-level objective as a second structural gap.
+        \item \textbf{Method:} TAKE corrects HSB via trajectory-integrated knowledge scores, which serve as source weights in a discrete OT objective aligned with the DD goal --- the first text DD method to jointly address both sample weighting and distributional coverage.
+        \item \textbf{Empirical:} TAKE achieves competitive downstream accuracy across five language tasks at extreme compression (0.1\% or 20 samples/class), producing human-readable distilled corpora validated on task performance across diverse backbone families.
+    \end{itemize}
+\end{foldable}
+
+The remainder of this paper is organised as follows: \S~\ref{sec:02-related} reviews related work; \S~\ref{sec:03-theory} presents theoretical motivation; \S~\ref{sec:04-method} details TAKE and our DD pipeline; \S~\ref{sec:05-experiments} reports experiments and discussion; \S~\ref{sec:06-limits} reflects limitations and ethical concerns; \S~\ref{sec:07-conclusion} concludes.

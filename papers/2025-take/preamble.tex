@@ -1,0 +1,90 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 01. Document Setup
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Encoding and Language
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+% Page Layout
+\usepackage[top=1in, bottom=1in, left=1in, right=1in]{geometry}
+\usepackage{setspace}
+% Running headers
+\usepackage{fancyhdr}
+\setlength{\headheight}{14pt}
+\addtolength{\topmargin}{-2pt}
+\pagestyle{fancy}
+\fancyhead[L]{}
+\fancyhead[R]{}
+\cfoot{\thepage}
+\newcommand{\authorsrunning}[1]{
+  \markboth{#1}{}
+  \fancyhead[L]{\small #1}
+}
+\newcommand{\titlerunning}[1]{
+  \markboth{}{#1}
+  \fancyhead[R]{\small #1}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 02. Content Packages
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Figures
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{subcaption}
+% Tables
+\usepackage{booktabs}
+\usepackage{makecell}
+\usepackage{multirow}
+\usepackage{threeparttable}
+\renewcommand{\arraystretch}{1.1}
+% Algorithms
+\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
+\SetCommentSty{textnormal}
+% Miscellaneous
+\usepackage{enumitem}
+\usepackage{pdfpages}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 03. Math & Theorems
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+% Theorem environments
+\theoremstyle{definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{remark}{Remark}
+\newtheorem{assumption}{Assumption}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 04. References & Links
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Authors & Affiliations
+\usepackage{authblk}
+\renewcommand\Authfont{\small}
+\renewcommand\Affilfont{\small}
+% Bibliography
+\usepackage{natbib}
+\bibliographystyle{unsrt}
+% Hyperlinks
+\usepackage{xcolor}
+\definecolor{darkblue}{rgb}{0, 0, 0.75}
+\definecolor{darkgreen}{rgb}{0, 0.75, 0}
+\usepackage[colorlinks=true, linkcolor=black, citecolor=darkgreen, urlcolor=darkblue]{hyperref}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 05. Commands
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Custom Commands
+\newenvironment{foldable}{}{}
+\newcommand*{\ie}{i.e.}
+\newcommand*{\eg}{e.g.}
+\newcommand*{\etc}{etc.}
+\newcommand{\meanstd}[2]{#1$_{\pm{#2}}$}
+\newcommand{\meanstdbf}[2]{\textbf{#1}$_{\pm{#2}}$}
+\newcommand{\dg}{\rlap{$^\dagger$}}

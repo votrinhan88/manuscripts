@@ -1,0 +1,8 @@
+\begin{foldable} % Conclusion
+    We identified the hard-sample bias (HSB) as the core failure mode of naive gradient-based text dataset distillation: at convergence, clean sample gradients vanish while noisy ones dominate single-snapshot influence scores, suppressing the moderate and boundary samples that matter most for a robust distilled corpus.
+    TAKE corrects this structural bias by integrating gradient norms across the training trajectory into a per-sample knowledge score $\kappa_n$ that up-weights easy and moderate samples while suppressing noisy ones.
+    These scores serve as non-uniform source weights in a discrete Optimal Transport objective, selecting a compact, human-readable corpus that preserves both downstream task fidelity and distributional coverage at extreme compression.
+    Empirically, TAKE achieves competitive downstream accuracy across five language tasks at extreme compression (0.1\% or 20 samples/class), with corpora validated on task performance across diverse backbone families.
+    Theoretically, Proposition~\ref{prop:hsb} establishes that HSB is structural and unavoidable at a single checkpoint; Proposition~\ref{prop:traj} proves that trajectory integration strictly reduces it; and Theorem~\ref{thm:gap} bounds the downstream loss gap in terms of the OT cost --- end-to-end guarantees that prior text DD methods lack.
+    Together, these results position text dataset distillation as a practical, data-centric tool for efficient and privacy-aware NLP, with direct implications for coreset construction and continual learning in resource-constrained settings.
+\end{foldable}

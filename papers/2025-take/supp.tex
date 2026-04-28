@@ -1,0 +1,316 @@
+\documentclass[runningheads]{llncs}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+% N.B.: do not change anything above this line. If you require additional packages, please load them directly after this line.
+
+% Additional packages
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{cite}
+\usepackage{hyperref}
+\usepackage{makecell}
+\usepackage{multirow}
+\usepackage{xcolor}
+
+\spnewtheorem{assumption}{Assumption}{\itshape}{\rmfamily}
+\newcommand*{\ie}{i.e.}
+\newcommand*{\eg}{e.g.}
+\newcommand*{\etc}{etc.}
+
+\begin{document}
+
+\title{TAKE: Trajectory-Aware Knowledge Estimation for Text Dataset Distillation --- Supplementary Material}
+\titlerunning{TAKE: Supplementary Material}
+\author{Author information scrubbed for double-blind reviewing}
+\maketitle
+
+\appendix
+
+% ============================================================
+\section{Proofs}
+\label{app:proofs}
+% ============================================================
+
+% ------------------------------------------------------------
+\subsection{Proof of Proposition~1 (Hard-Sample Bias)}
+\label{app:proof-hsb}
+% ------------------------------------------------------------
+
+\textbf{Setup.}
+Let $\mathcal{I}_\text{self}(z) = \nabla^\top H_{\hat\theta}^{-1} \nabla$, where $\nabla \equiv \nabla_\theta \ell(z;\hat\theta)$ and $H_{\hat\theta}$ is the empirical Hessian, assumed symmetric positive definite (SPD) with $\lambda_{\min}(H_{\hat\theta}) > 0$ (this holds whenever the model is not at a degenerate critical point).
+Partition $\mathcal{D}$ into $\mathcal{D}_\text{clean}$ and $\mathcal{D}_\text{noisy}$ such that $\|\nabla\| \leq \epsilon$ for all $z \in \mathcal{D}_\text{clean}$ and $\|\nabla\| \geq \delta$ for all $z \in \mathcal{D}_\text{noisy}$, with $\delta \gg \epsilon$.
+
+\textbf{Step~1 --- Bound $\mathcal{I}_\text{self}$ for each partition.}
+Since $H_{\hat\theta}$ is SPD with eigenvalues in $[\lambda_{\min}(H_{\hat\theta}),\, \lambda_{\max}(H_{\hat\theta})]$, the Rayleigh quotient gives:
+\begin{equation}
+    \frac{\|\nabla\|^2}{\lambda_{\max}(H_{\hat\theta})}
+    \;\leq\; \mathcal{I}_\text{self}(z)
+    \;\leq\; \frac{\|\nabla\|^2}{\lambda_{\min}(H_{\hat\theta})}.
+\end{equation}
+Substituting the gradient-norm assumptions ($\|\nabla\|^2 \leq \epsilon^2$ for clean samples; $\|\nabla\|^2 \geq \delta^2$ for noisy samples) and taking expectations (the bounds are uniform over each partition, so expectation preserves them):
+\begin{align}
+    \mathbb{E}_{z \sim \mathcal{D}_\text{clean}}[\mathcal{I}_\text{self}(z)]
+        &\leq \frac{\epsilon^2}{\lambda_{\min}(H_{\hat\theta})}, \\
+    \mathbb{E}_{z \sim \mathcal{D}_\text{noisy}}[\mathcal{I}_\text{self}(z)]
+        &\geq \frac{\delta^2}{\lambda_{\max}(H_{\hat\theta})}.
+\end{align}
+
+\textbf{Step~2 --- Lower bound on $\Delta_\text{HSB}$.}
+\begin{equation}
+    \Delta_\text{HSB}
+    := \mathbb{E}_{z \sim \mathcal{D}_\text{noisy}}[\mathcal{I}_\text{self}(z;\hat\theta)]
+     - \mathbb{E}_{z \sim \mathcal{D}_\text{clean}}[\mathcal{I}_\text{self}(z;\hat\theta)]
+    \;\geq\; \frac{\delta^2}{\lambda_{\max}(H_{\hat\theta})} - \frac{\epsilon^2}{\lambda_{\min}(H_{\hat\theta})}.
+\end{equation}
+Substituting $\lambda_{\min}(H_{\hat\theta}) = \lambda_{\max}(H_{\hat\theta})/\mathrm{cond}(H_{\hat\theta})$:
+\begin{equation}
+    \Delta_\text{HSB}
+    \;\geq\; \frac{\delta^2 - \mathrm{cond}(H_{\hat\theta})\,\epsilon^2}{\lambda_{\max}(H_{\hat\theta})}
+    \;>\; 0
+    \qquad \text{whenever} \quad \frac{\delta}{\epsilon} > \sqrt{\mathrm{cond}(H_{\hat\theta})}.
+\end{equation}
+Under the interpolation regime (an overparameterised model trained to near-zero training loss), $\epsilon \to 0$: the bound simplifies to $\delta^2/\lambda_{\max}(H_{\hat\theta}) > 0$ and the positivity condition is trivially satisfied ($\delta/\epsilon \to \infty$). $\square$
+
+% ------------------------------------------------------------
+\subsection{Proof of Proposition~2 (Trajectory Integration Reduces HSB)}
+\label{app:proof-traj}
+% ------------------------------------------------------------
+
+\textbf{Proposition~2.}
+Under smooth loss and bounded gradient noise, the trajectory-integrated knowledge score $\kappa_n$ produces a strictly smaller noisy-over-clean gap than the single last-checkpoint baseline $\kappa^\dagger_n = 1/I_{(n,T-1)}$:
+\begin{equation}
+    \mathbb{E}_{z \sim \mathcal{D}_\text{noisy}}[\kappa_n]
+    - \mathbb{E}_{z \sim \mathcal{D}_\text{clean}}[\kappa_n]
+    \;<\;
+    \mathbb{E}_{z \sim \mathcal{D}_\text{noisy}}[\kappa^\dagger_n]
+    - \mathbb{E}_{z \sim \mathcal{D}_\text{clean}}[\kappa^\dagger_n].
+\end{equation}
+
+\textbf{Memorization onset $T_m$.}
+In the main paper (\S4.2.2) we define $T_m$ as the first checkpoint at which noisy-sample gradient norms begin to decrease.
+The formal continuous analogue is:
+\begin{equation}
+    T_m := \inf\!\left\{t : \mathbb{E}_{z \sim \mathcal{D}_\text{noisy}}\!\left[\|\nabla_\theta \ell(z;\theta_t)\|\right] < \mathbb{E}_{z \sim \mathcal{D}_\text{noisy}}\!\left[\|\nabla_\theta \ell(z;\theta_0)\|\right]\right\}.
+    \label{eq:Tm}
+\end{equation}
+\textbf{Assumptions.}
+\begin{itemize}
+    \item[\textbf{(A1)}] \textit{Monotone gradient decay for clean samples.}
+        For $z \in \mathcal{D}_\text{clean}$, $I_{(n,t)}$ is non-increasing in $t$, converging toward zero (holds under $L$-smooth loss and a sufficiently small learning rate). The reciprocal $1/I_{(n,t)}$ is therefore non-decreasing.
+    \item[\textbf{(A2)}] \textit{Bounded gradient for noisy samples within the proof horizon.}
+        For $z \in \mathcal{D}_\text{noisy}$, $I_{(n,t)} \geq \delta > 0$ for all $t \leq T_m$, where $T_m$ is the memorization onset defined in Section~4.2.2 of the main paper.
+        Beyond $T_m$, noisy gradients decay; the decreasing kernel discounts these late checkpoints.
+        With $\lambda^* = T/T_m$, the kernel weight at $T_m+1$ relative to $t^*$ is $e^{-\lambda^*(T_m+1-t^*)/T}$, which decreases as $T_m \to T$, making the post-memorization contribution $S_2$ negligible relative to $S_1$.
+    \item[\textbf{(A3)}] \textit{Post-memorization baseline inflation.}
+        At $t = T-1 > T_m$, clean gradients are near zero (by A1) and noisy gradients have dropped under memorization.
+        By symmetry near convergence, the noisy reciprocals exceed the clean reciprocals:
+        $\Delta_{T-1} := \mathbb{E}_\text{noisy}[1/I_{(n,T-1)}] - \mathbb{E}_\text{clean}[1/I_{(n,T-1)}] > 0$.
+    \item[\textbf{(A4)}] \textit{Positive temporal kernel.}
+        $k(t) > 0$ for all $t$; decreasing so $k(t^*) > k(T-1)$ for any $t^* < T-1$.
+\end{itemize}
+
+\textbf{Proof.}
+
+Define $\Delta_t := \mathbb{E}_\text{noisy}[1/I_{(n,t)}] - \mathbb{E}_\text{clean}[1/I_{(n,t)}]$, so
+\begin{equation}
+    \mathbb{E}_\text{noisy}[\kappa_n] - \mathbb{E}_\text{clean}[\kappa_n]
+    = \sum_{t=0}^{T-1} k(t)\,\Delta_t.
+\end{equation}
+
+\textit{Step~1 --- Sign structure.}
+For $1 \leq t \leq T_m$: (A1) and (A2) together give $\Delta_t \leq 0$, strictly negative at some $t^* \leq T_m$.
+For $t > T_m$: $\Delta_t$ may be positive (memorization onset decreases noisy norms).
+
+\textit{Step~2 --- Weighted sum.}
+Split at $T_m$:
+\begin{equation}
+    S_1 = \sum_{t=1}^{T_m} k(t)\,\Delta_t \;<\; 0
+    \qquad \text{and} \qquad
+    S_2 = \sum_{t=T_m+1}^{T-1} k(t)\,\Delta_t \;\geq\; 0.
+\end{equation}
+Since the kernel is decreasing, $S_2 \leq k(T_m+1) \cdot \sum_{t > T_m} \Delta_t$, which is dominated by $|S_1|$ for sufficiently large $\lambda$.
+Hence $\sum_t k(t)\,\Delta_t < 0$.
+
+\textit{Step~3 --- Baseline gap.}
+By (A3), $\mathbb{E}_\text{noisy}[\kappa^\dagger_n] - \mathbb{E}_\text{clean}[\kappa^\dagger_n] = \Delta_{T-1} > 0$.
+
+\textit{Combining.}
+\begin{equation}
+    \mathbb{E}_\text{noisy}[\kappa_n] - \mathbb{E}_\text{clean}[\kappa_n]
+    \;<\; 0
+    \;<\; \Delta_{T-1}
+    = \mathbb{E}_\text{noisy}[\kappa^\dagger_n] - \mathbb{E}_\text{clean}[\kappa^\dagger_n].
+    \quad \square
+\end{equation}
+
+% ------------------------------------------------------------
+\subsection{Distribution Matching Gap Bound (Theorem~1)}
+\label{app:proof-gap}
+% ------------------------------------------------------------
+
+\textit{Cited in Section~4.4 of the main paper. Closes the chain from (RDM) back to (DD).}
+
+\textbf{Goal.}
+Let $f^*_\mathcal{S}$ be the model trained on $\mathcal{S}$ and $\mathcal{L}(\mathcal{S}) = \mathbb{E}_{z \sim P^w}[\ell(z; f^*_\mathcal{S})]$ be the downstream loss under $P^w$. Show:
+\begin{equation}
+    |\mathcal{L}(\tilde{\mathcal{D}}) - \mathcal{L}(\mathcal{D})|
+    \;\leq\; 2L \cdot W_1(P^w, P_{\tilde{\mathcal{D}}}) + \beta_K.
+\end{equation}
+
+\textbf{Assumptions.}
+\begin{itemize}
+    \item[\textbf{(B1)}] $\ell(\cdot;\,f)$ is $L$-Lipschitz in the embedding metric $\|\phi(\cdot) - \phi(\cdot)\|$ for all $f$.
+    \item[\textbf{(B2)}] The model class has uniform stability constant $\beta_K = O(1/K)$ \cite{bousquet2002stability}: $\sup_z |\ell(z; f^*_{\tilde{\mathcal{D}}}) - \ell(z; f^*_\mathcal{D})| \leq \beta_K$. Standard ERM algorithms (logistic regression, SVM) satisfy this for bounded loss; as $K \to \infty$, $\beta_K \to 0$.
+    \item[\textbf{(B3)}] The ground metric for $W_1$ is $c(z,z') = \|\phi(z) - \phi(z')\|$.
+\end{itemize}
+
+\textbf{Step~1 --- Kantorovich--Rubinstein bound for a fixed model.}
+By Kantorovich--Rubinstein duality \cite{villani2009optimal} under (B3), for any fixed $f$:
+\begin{equation}
+    \left|
+        \mathbb{E}_{z \sim P^w}[\ell(z; f)]
+        - \mathbb{E}_{z \sim P_{\tilde{\mathcal{D}}}}[\ell(z; f)]
+    \right|
+    \;\leq\; L \cdot W_1(P^w, P_{\tilde{\mathcal{D}}}).
+\end{equation}
+
+\textbf{Step~2 --- Triangle inequality decomposition.}
+$\mathcal{L}(\tilde{\mathcal{D}})$ uses $f^*_{\tilde{\mathcal{D}}}$ while $\mathcal{L}(\mathcal{D})$ uses $f^*_\mathcal{D}$; both are evaluated under $P^w$ but with different models, so Step~1 does not apply directly.
+Insert two intermediates and apply the triangle inequality twice:
+\begin{align}
+    |\mathcal{L}(\tilde{\mathcal{D}}) - \mathcal{L}(\mathcal{D})|
+    &\leq
+    \underbrace{
+        \left|
+            \mathbb{E}_{P^w}[\ell(z;f^*_{\tilde{\mathcal{D}}})]
+            - \mathbb{E}_{P_{\tilde{\mathcal{D}}}}[\ell(z;f^*_{\tilde{\mathcal{D}}})]
+        \right|
+    }_{\text{(I) distribution shift, fixed }f^*_{\tilde{\mathcal{D}}}} \notag \\
+    &\quad +
+    \underbrace{
+        \left|
+            \mathbb{E}_{P_{\tilde{\mathcal{D}}}}[\ell(z;f^*_{\tilde{\mathcal{D}}})]
+            - \mathbb{E}_{P_{\tilde{\mathcal{D}}}}[\ell(z;f^*_\mathcal{D})]
+        \right|
+    }_{\text{(II) model difference, fixed }P_{\tilde{\mathcal{D}}}} \notag \\
+    &\quad +
+    \underbrace{
+        \left|
+            \mathbb{E}_{P_{\tilde{\mathcal{D}}}}[\ell(z;f^*_\mathcal{D})]
+            - \mathbb{E}_{P^w}[\ell(z;f^*_\mathcal{D})]
+        \right|
+    }_{\text{(III) distribution shift, fixed }f^*_\mathcal{D}}.
+\end{align}
+Terms~(I) and~(III) each satisfy Step~1 with $f = f^*_{\tilde{\mathcal{D}}}$ and $f = f^*_\mathcal{D}$ respectively, so each is bounded by $L \cdot W_1(P^w, P_{\tilde{\mathcal{D}}})$.
+Term~(II) is bounded pointwise by (B2): $\text{(II)} \leq \beta_K = O(1/K)$.
+
+\textbf{Combining.}
+\begin{equation}
+    |\mathcal{L}(\tilde{\mathcal{D}}) - \mathcal{L}(\mathcal{D})|
+    \;\leq\; 2L \cdot W_1(P^w, P_{\tilde{\mathcal{D}}}) + \beta_K.
+\end{equation}
+Minimizing $W_1(P^w, P_{\tilde{\mathcal{D}}})$ via the OT objective directly minimizes the dominant term; $\beta_K \to 0$ as $K \to \infty$, a guarantee that k-means and greedy coreset methods lack. $\square$
+
+\noindent\textit{References:} Kantorovich \& Rubinstein (1958); Villani (2009, Ch.~6).
+
+
+% ============================================================
+\section{Entropic Regularization for Tractability}
+\label{app:method}
+% ============================================================
+
+This section extends the derivation in Section~4.4 of the main paper.
+The discrete OT problem is defined over empirical measures $\mu = P^w = \sum_n w_n \delta_{z_n}$ (TAKE-weighted source) and $\nu = \frac{1}{|\mathcal{D}_\text{synth}|}\sum_c \delta_{\tilde{z}_c}$ (uniform target over the synthetic pool).
+
+\textbf{Transportation cost (Kantorovich form).}
+\begin{equation}
+    \mathcal{C}(\gamma)
+    = \int c(x,\hat{x})\,d\gamma(x,\hat{x}),
+    \qquad c(x,\hat{x}) = \|\phi(x) - \phi(\hat{x})\|^2,
+    \quad \gamma \in \Pi(\mu,\nu).
+\end{equation}
+
+\textbf{Entropic regularization.}
+The bare Kantorovich problem is $O(N^3)$ and non-differentiable.
+Adding an entropic penalty yields a strictly convex, smooth objective:
+\begin{equation}
+    \min_{\gamma \in \Pi(\mu,\nu)}
+    \langle C, \gamma \rangle
+    + \varepsilon \cdot \mathrm{KL}(\gamma \,\|\, \mu \otimes \nu),
+    \qquad
+    \mathrm{KL}(\gamma \,\|\, \mu \otimes \nu)
+    = \int \log\frac{d\gamma}{d(\mu \otimes \nu)}\,d\gamma,
+\end{equation}
+where $\mu \otimes \nu$ is the product (independence) reference coupling.
+Smaller $\varepsilon$ recovers the exact OT solution; larger $\varepsilon$ smooths the plan toward the independent coupling, encouraging diversity in the selected prototypes.
+
+\textbf{Optional prior coupling.}
+If a task-specific prior $\alpha(x,\hat{x})$ is available (\eg, a topic-conditional measure), replace $\mu \otimes \nu$ with $\alpha$ to regularize toward domain knowledge.
+
+\textbf{Sinkhorn--Knopp solver.}
+The solution is computed by alternating row/column normalization on the kernel matrix $\mathbf{K}_{nc} = e^{-C_{nc}/\varepsilon}$, yielding $O(N \cdot |\mathcal{D}_\text{synth}|)$ per iteration.
+
+\textbf{Prototype extraction.}
+The distilled set $\tilde{\mathcal{D}}$ is formed by selecting the top-$K$ candidates ranked by received mass $\sum_n \gamma^*_{nc}$.
+
+
+% ============================================================
+\section{Implementation Details}
+\label{app:expts}
+% ============================================================
+
+\textbf{Datasets.}
+Table~\ref{tab:datasets} reports the task type and label set for each benchmark.
+
+\begin{table}[ht]
+    \caption{Dataset overview.}
+    \label{tab:datasets}
+    \centering
+    \begin{tabular}{llrl}
+        \toprule
+        \textbf{Dataset} & \textbf{Task} & $N$ & \textbf{Labels} \\
+        \midrule
+        AG News   & Classification & 120,000 & World, Sports, Business, Sci/Tech \\
+        IMDb      & Classification &  25,000 & Pos., Neg. \\
+        SST-2     & Classification &  67,349 & Pos., Neg. \\
+        MNLI-m    & NLI            & 392,702 & Entailment, Neutral, Contradiction \\
+        QQP       & NLI            & 363,846 & Duplicate, Non-duplicate \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\textbf{Backbone models.}
+Classification experiments use well-known classifiers such as Logistic Regression, TextCNN, TextRNN, and BERT.
+NLI experiments use Siamese Logistic Regression and BERT.
+These architectures are chosen as standard, reproducible benchmarks spanning the major NLP paradigms while remaining tractable at ablation study scale.
+
+\begin{table}[ht]
+    \caption{Backbone model details.}
+    \label{tab:backbones}
+    \centering
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Model}        & \textbf{Architecture}        & \textbf{Tasks} \\
+        \midrule
+        Logistic              & Linear head on embeddings    & Classification \\
+        TextCNN               & Convolutional encoder        & Classification \\
+        TextRNN               & Recurrent encoder (GRU)      & Classification \\
+        Siamese Logistic      & Siamese features \& logistic head & NLI \\
+        BERT & Transformer encoder (110M) & Classification + NLI \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\textbf{Hyperparameters.}
+All experiments run on a single NVIDIA V100 40\,GB GPU using PyTorch, PyTorch Lightning, HuggingFace Transformers, and the Python Optimal Transport (POT) library.
+Influence scoring uses all-MiniLM-L6-v2~\cite{reimers2019sentence,wang2020minilm} as the frozen sentence encoder $\phi$.
+We use $T = 20$ checkpoints, balancing trajectory coverage and compute.
+The kernel decay is set to $\lambda^* = T / T_m$, concentrating mass on the pre-memorization phase as derived in Section~4.2.2.
+For the Sinkhorn solver we use $\varepsilon = 0.05$ with 200 iterations, which produces soft plans with sufficient diversity and converges for all tested pool sizes.
+The synthetic pool size is fixed at $|\mathcal{D}_\text{synth}| = 5{,}000$, chosen based on empirical saturation across all tested domains.
+The language model generator is Gemma-3-270M, which is small, fast, and sufficient for in-domain fluency at this pool size.
+
+\bibliographystyle{splncs04}
+\bibliography{references}
+
+\end{document}
