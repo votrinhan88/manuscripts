@@ -5,12 +5,15 @@
 *.bcf
 *.bcf-SAVE-ERROR
 *.blg
+*.lof
 *.log
+*.lot
 *.out
 *.toc
 *.fdb_latexmk
 *.fls
 *.synctex
+*.synctex(busy)
 *.synctex.gz
 *.xml
 
