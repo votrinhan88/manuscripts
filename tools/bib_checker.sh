@@ -8,6 +8,7 @@
 BIB_FILE=""
 TEX_FOLDER=""
 SYNTAX=""  # Empty means scan for all citation commands
+SHALLOW=0  # If 1, only scan top-level .tex files (no recursion into subdirs)
 
 # Function to display help
 show_help() {
@@ -60,6 +61,10 @@ while [[ $# -gt 0 ]]; do
         --syntax|-s)
             SYNTAX="$2"
             shift 2
+            ;;
+        --shallow)
+            SHALLOW=1
+            shift
             ;;
         --help|-h)
             show_help
@@ -115,7 +120,11 @@ else
 fi
 echo "---"
 # Find all .tex files
-TEX_FILES=$(find "$TEX_FOLDER" -name "*.tex" -type f)
+if [[ "$SHALLOW" -eq 1 ]]; then
+    TEX_FILES=$(find "$TEX_FOLDER" -maxdepth 1 -name "*.tex" -type f)
+else
+    TEX_FILES=$(find "$TEX_FOLDER" -name "*.tex" -type f)
+fi
 TEX_FILE_COUNT=$(echo "$TEX_FILES" | wc -l)
 
 echo "Found $TEX_FILE_COUNT .tex file(s) to scan:"

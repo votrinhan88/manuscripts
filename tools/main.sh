@@ -106,32 +106,6 @@ build_menu() {
     echo "========================================"
 }
 
-check_menu() {
-    clear
-    echo "========================================"
-    echo "  Check Bibliography"
-    echo "========================================"
-    echo ""
-    echo "1. Select reference bib"
-    echo "2. Back to main menu"
-    echo ""
-    echo "========================================"
-}
-
-bib_source_menu() {
-    clear
-    echo "========================================"
-    echo "  Select Reference Bibliography"
-    echo "========================================"
-    echo ""
-    echo "1. Global (papers/references.bib - check all papers)"
-    echo "2. Paper (specific paper's references.bib - check paper/versions)"
-    echo "3. Version (specific version's references.bib - check version only)"
-    echo "4. Back"
-    echo ""
-    echo "========================================"
-}
-
 bib_target_menu() {
     clear
     echo "========================================"
@@ -241,173 +215,50 @@ clean_files() {
 }
 
 check_submenu() {
-    # Phase 1: Select reference bibliography
-    local ref_bib=""
-    local ref_folder=""
-    local check_target=""
-    local target_paper=""
-    
-    while true; do
-        bib_source_menu
-        read -p "Choose option: " choice
+    # Phase 1: Select paper
+    local paper
+    paper=$("$SCRIPT_DIR/list-papers.sh" | select_option "Select paper:")
+    if [ $? -ne 0 ] || [ -z "$paper" ]; then
+        return
+    fi
+    paper=$(echo "$paper" | tr '\\' '/')
 
-        case $choice in
-            1)
-                # Global bib
-                ref_bib="$REPO_DIR/papers/references.bib"
-                ref_folder="$REPO_DIR/papers"
+    # Phase 2: Select target (what tex files to scan)
+    local tex_folder=""
+    local target_label=""
 
-                if [ ! -f "$ref_bib" ]; then
-                    echo "Error: Global references.bib not found at $ref_bib"
-                    read -p "Press enter to continue..."
-                    continue
-                fi
-                check_target="global"
-                
-                # For global bib, ask which paper to check
-                target_paper=$("$SCRIPT_DIR/list-papers.sh" | select_option "Select paper to check:")
-                if [ $? -ne 0 ] || [ -z "$target_paper" ]; then
-                    read -p "Press enter to continue..."
-                    continue
-                fi
-                target_paper=$(echo "$target_paper" | tr '\\' '/')
-                break
-                ;;
-            2)
-                # Paper bib
-                local paper=$("$SCRIPT_DIR/list-papers.sh" | select_option "Select paper:")
-                if [ $? -ne 0 ] || [ -z "$paper" ]; then
-                    read -p "Press enter to continue..."
-                    continue
-                fi
-                
-                ref_bib="$PAPERS_DIR/$paper/references.bib"
-                ref_folder="$PAPERS_DIR/$paper"
-                
-                if [ ! -f "$ref_bib" ]; then
-                    echo "Error: references.bib not found for paper $paper"
-                    read -p "Press enter to continue..."
-                    continue
-                fi
-                check_target="paper:$paper"
-                target_paper=$(echo "$paper" | tr '\\' '/')
-                break
-                ;;
-            3)
-                # Specific version bib - check that version directly
-                local paper=$("$SCRIPT_DIR/list-papers.sh" | select_option "Select paper:")
-                if [ $? -ne 0 ] || [ -z "$paper" ]; then
-                    read -p "Press enter to continue..."
-                    continue
-                fi
-                
-                local versions=$("$SCRIPT_DIR/list-versions.sh" "$paper" 2>/dev/null)
-                if [ $? -ne 0 ] || [ -z "$versions" ]; then
-                    echo "Error: No versions found for $paper"
-                    read -p "Press enter to continue..."
-                    continue
-                fi
-                
-                local version=$(echo "$versions" | select_option "Select version:")
-                if [ $? -ne 0 ] || [ -z "$version" ]; then
-                    read -p "Press enter to continue..."
-                    continue
-                fi
-                
-                ref_bib="$PAPERS_DIR/$paper/versions/$version/references.bib"
-                ref_folder="$PAPERS_DIR/$paper/versions/$version"
-                
-                if [ ! -f "$ref_bib" ]; then
-                    echo "Error: references.bib not found for version $version"
-                    read -p "Press enter to continue..."
-                    continue
-                fi
-                
-                # Check this specific version directly
-                local paper_path="$paper/versions/$version"
-                local paper_path=$(echo "$paper_path" | tr '\\' '/')
-                local tex_folder="$PAPERS_DIR/$paper_path"
-                
-                echo ""
-                echo "Checking bibliography for: $paper_path"
-                echo "Using bib: $ref_bib"
-                echo "This may take a moment..."
-                echo ""
-                bash "$SCRIPT_DIR/bib_checker.sh" -b "$ref_bib" -t "$tex_folder"
-                read -p "Press enter to continue..."
-                return
-                ;;
-            4)
-                return
-                ;;
-            *)
-                echo "Invalid option"
-                read -p "Press enter to continue..."
-                ;;
-        esac
-    done
-    
-    # Phase 2: Select target scope (all versions, main only, or specific version)
-    echo ""
-    echo "Using bib: $ref_bib"
-    echo "Paper: $target_paper"
-    echo ""
-    
     while true; do
         bib_target_menu
         read -p "Choose option: " choice
 
         case $choice in
             1)
-                # Check all versions
-                local check_folder="$PAPERS_DIR/$target_paper"
-                
-                echo ""
-                echo "Checking all versions of: $target_paper"
-                echo "Using bib: $ref_bib"
-                echo "This may take a moment..."
-                echo ""
-                bash "$SCRIPT_DIR/bib_checker.sh" -b "$ref_bib" -t "$check_folder"
-                read -p "Press enter to continue..."
+                tex_folder="$PAPERS_DIR/$paper"
+                target_label="all versions of $paper"
+                break
                 ;;
             2)
-                # Check main paper only
-                local tex_folder="$PAPERS_DIR/$target_paper"
-                
-                echo ""
-                echo "Checking main paper: $target_paper"
-                echo "Using bib: $ref_bib"
-                echo "This may take a moment..."
-                echo ""
-                bash "$SCRIPT_DIR/bib_checker.sh" -b "$ref_bib" -t "$tex_folder"
-                read -p "Press enter to continue..."
+                tex_folder="$PAPERS_DIR/$paper"
+                target_label="main paper only: $paper"
+                break
                 ;;
             3)
-                # Check specific version
-                local versions=$("$SCRIPT_DIR/list-versions.sh" "$target_paper" 2>/dev/null)
-                if [ $? -ne 0 ] || [ -z "$versions" ]; then
-                    echo "Error: No versions found for $target_paper"
+                local versions
+                versions=$("$SCRIPT_DIR/list-versions.sh" "$paper" 2>/dev/null)
+                if [ -z "$versions" ]; then
+                    echo "Error: No versions found for $paper"
                     read -p "Press enter to continue..."
                     continue
                 fi
-                
-                local version=$(echo "$versions" | select_option "Select version:")
-                if [ $? -ne 0 ] || [ -z "$version" ]; then
+                local version
+                version=$(echo "$versions" | select_option "Select version:")
+                if [ -z "$version" ]; then
                     read -p "Press enter to continue..."
                     continue
                 fi
-                
-                local paper_path="$target_paper/versions/$version"
-                local paper_path=$(echo "$paper_path" | tr '\\' '/')
-                local tex_folder="$PAPERS_DIR/$paper_path"
-                
-                echo ""
-                echo "Checking: $paper_path"
-                echo "Using bib: $ref_bib"
-                echo "This may take a moment..."
-                echo ""
-                bash "$SCRIPT_DIR/bib_checker.sh" -b "$ref_bib" -t "$tex_folder"
-                read -p "Press enter to continue..."
+                tex_folder="$PAPERS_DIR/$paper/versions/$version"
+                target_label="$paper/versions/$version"
+                break
                 ;;
             4)
                 return
@@ -418,6 +269,61 @@ check_submenu() {
                 ;;
         esac
     done
+
+    # Phase 3: Select bib — show only bibs that exist
+    local bib_options=()
+    local bib_paths=()
+
+    local global_bib="$REPO_DIR/papers/references.bib"
+    local paper_bib="$PAPERS_DIR/$paper/references.bib"
+
+    [ -f "$global_bib" ] && bib_options+=("Global  ($global_bib)") && bib_paths+=("$global_bib")
+    [ -f "$paper_bib"  ] && bib_options+=("Paper   ($paper_bib)")  && bib_paths+=("$paper_bib")
+
+    # Version bib only available when checking a specific version
+    if [[ "$choice" == "3" ]]; then
+        local version_bib="$tex_folder/references.bib"
+        [ -f "$version_bib" ] && bib_options+=("Version ($version_bib)") && bib_paths+=("$version_bib")
+    fi
+
+    if [ ${#bib_options[@]} -eq 0 ]; then
+        echo "Error: No references.bib found"
+        read -p "Press enter to continue..."
+        return
+    fi
+
+    local selected_bib_label
+    selected_bib_label=$(printf '%s\n' "${bib_options[@]}" | select_option "Select bibliography:")
+    if [ -z "$selected_bib_label" ]; then
+        return
+    fi
+
+    # Resolve selected label back to path
+    local ref_bib=""
+    for i in "${!bib_options[@]}"; do
+        if [ "${bib_options[$i]}" = "$selected_bib_label" ]; then
+            ref_bib="${bib_paths[$i]}"
+            break
+        fi
+    done
+
+    if [ -z "$ref_bib" ]; then
+        echo "Error: Could not resolve bib path"
+        read -p "Press enter to continue..."
+        return
+    fi
+
+    # Run
+    local shallow_flag=""
+    [[ "$choice" == "2" ]] && shallow_flag="--shallow"
+
+    echo ""
+    echo "Checking: $target_label"
+    echo "Using bib: $ref_bib"
+    echo "This may take a moment..."
+    echo ""
+    bash "$SCRIPT_DIR/bib_checker.sh" -b "$ref_bib" -t "$tex_folder" $shallow_flag
+    read -p "Press enter to continue..."
 }
 
 while true; do
