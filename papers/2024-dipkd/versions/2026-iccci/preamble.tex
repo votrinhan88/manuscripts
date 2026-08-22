@@ -1,27 +1,43 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 01. Document Setup
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \usepackage[T1]{fontenc}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 02. Content Packages
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Figures
+\usepackage{float}
 \usepackage{graphicx}
 
-% Additional packages by authors %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Font size: tiny < scriptsize < footnotesize < small < normalsize < large < Large < LARGE < huge < Huge
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{amsfonts}
-\usepackage{mathtools}
-\usepackage[linesnumbered,ruled,vlined]{algorithm2e}
-    \SetCommentSty{textnormal}
-\usepackage{algorithmic}
-\usepackage{cite}
-\usepackage{comment}
-\usepackage{float}
-\usepackage{hyperref}
+% Tables
+\usepackage{booktabs}
 \usepackage{makecell}
 \usepackage{multirow}
-\usepackage{textcomp}
-\usepackage{xcolor}
+\usepackage{threeparttable}  % for table footnotes
+\renewcommand{\arraystretch}{1.1}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 03. Math & Theorems
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 04. References & Links
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{cite}
+\usepackage{hyperref}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 05. Commands
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Custom Commands
 \newenvironment{foldable}{}{}
-\newcommand*{\methodname}{DIPKD}
 \newcommand*{\ie}{i.e.}
 \newcommand*{\eg}{e.g.}
 \newcommand*{\etc}{etc.}
+\newcommand{\meanstd}[2]{#1$_{\pm{#2}}$}
+\newcommand{\meanstdbf}[2]{\textbf{#1}$_{\pm{#2}}$}
 \newcommand{\boldtight}[1]{{\fontseries{b}\selectfont #1}}
+\newcommand*{\bltrg}{$^{\blacktriangle}$}
