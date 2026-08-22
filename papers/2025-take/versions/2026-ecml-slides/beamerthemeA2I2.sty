@@ -1,0 +1,192 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{beamerthemeA2I2}[2026/08/01 A2I2 presentation theme]
+
+\RequirePackage{tikz}
+\RequirePackage{graphicx}
+\RequirePackage{etoolbox}
+\RequirePackage[absolute,overlay]{textpos}
+\RequirePackage{adjustbox}
+\RequirePackage{iftex}
+% Computer Modern roman throughout, text and maths alike.
+% New Computer Modern ships as OpenType only, so pdfLaTeX cannot load it.  Under
+% pdfLaTeX we use Latin Modern instead -- NewCM is built on Latin Modern, so for
+% the Latin script the two are visually the same.  LuaLaTeX/XeLaTeX get NewCM
+% proper.  amsmath must precede unicode-math, which newcomputermodern pulls in.
+\RequirePackage{amsmath}
+\ifPDFTeX
+  \RequirePackage[T1]{fontenc}
+  \RequirePackage{lmodern}
+  \RequirePackage{amssymb}   % under unicode-math these symbols come from the font
+\else
+  % Swap for "[sansdefault]{newcomputermodern}" to set the deck in NewCM Sans.
+  \RequirePackage{newcomputermodern}
+\fi
+
+\mode<presentation>
+
+% Primary accent.  A2I2Red is kept as an alias so existing decks keep working.
+\definecolor{A2I2Primary}{HTML}{4D1D2D}
+\colorlet{A2I2Red}{A2I2Primary}
+\definecolor{A2I2Black}{HTML}{000000}
+\definecolor{A2I2Grey}{HTML}{D8D8D8}
+
+\usefonttheme{professionalfonts}
+% Beamer defaults to sans; NewCM Roman is the classic LaTeX look and matches the
+% maths font.  Comment this line out for NewCM Sans instead.
+\usefonttheme{serif}
+\setbeamercolor{normal text}{fg=A2I2Black,bg=white}
+\setbeamercolor{structure}{fg=A2I2Red}
+\setbeamercolor{frametitle}{fg=A2I2Primary,bg=white}
+\setbeamercolor{title}{fg=A2I2Primary}
+\setbeamercolor{subtitle}{fg=A2I2Black}
+\setbeamercolor{author}{fg=A2I2Black}
+\setbeamercolor{itemize item}{fg=A2I2Red}
+\setbeamercolor{itemize subitem}{fg=A2I2Red}
+\setbeamercolor{enumerate item}{fg=A2I2Red}
+
+% PowerPoint's 13.333in canvas is mapped to Beamer's 16cm canvas (scale 0.47244).
+\setbeamerfont{title}{size=\fontsize{16}{21},series=\bfseries}
+\setbeamerfont{subtitle}{size=\fontsize{11.34}{14},series=\mdseries}
+\setbeamerfont{author}{size=\fontsize{13}{16},series=\mdseries}
+\setbeamerfont{frametitle}{size=\fontsize{13.23}{16},series=\bfseries}
+\setbeamerfont{normal text}{size=\fontsize{11}{13.2}}
+\setbeamerfont{footline}{size=\fontsize{7}{8}}
+% In-slide headings (block titles: Proposition, Remark, Theorem, ...) carry the
+% accent colour and bold, one step down from the frame title.
+\setbeamercolor{block title}{fg=A2I2Primary,bg=white}
+\setbeamerfont{block title}{series=\bfseries}
+% Trailing gloss inside a block title, set back to regular weight:
+%   \begin{block}{Proposition 1: Hard-Sample Bias \AIIGloss{(the weights are biased)}}
+\newcommand{\AIIGloss}[1]{{\mdseries #1}}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize item}{\raise0.15ex\hbox{\color{A2I2Red}\scriptsize$\blacksquare$}}
+\setbeamertemplate{itemize subitem}{\raise0.1ex\hbox{\color{A2I2Red}\tiny$\blacksquare$}}
+\setbeamersize{text margin left=0.92cm,text margin right=0.92cm}
+\textblockorigin{0mm}{0mm}
+
+% Change this after copying the theme if the assets live elsewhere.
+\newcommand{\AIIAssetPath}{assets}
+\newcommand{\AIISetAssetPath}[1]{\renewcommand{\AIIAssetPath}{#1}}
+
+% Institution logo followed by the conference logo, both set to the same height
+% and bottom-aligned.  Change \AIIConferenceLogo to swap conferences.
+\newcommand{\AIIInstitutionLogo}{A2I2_Logo_Roundel_2025_Keyline}
+\newcommand{\AIIConferenceLogo}{ecml-logo}
+\newcommand{\AIILogoGap}{.16cm}
+
+\newcommand{\AIILogoStrip}[1]{%
+  \includegraphics[height=#1]{\AIIAssetPath/\AIIInstitutionLogo}%
+  \hspace{\AIILogoGap}%
+  \includegraphics[height=#1]{\AIIAssetPath/\AIIConferenceLogo}%
+}
+
+\newcommand{\AIIHeaderLogo}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=north east,inner sep=0pt]
+      at ([xshift=-.18cm,yshift=-.08cm]current page.north east)
+      {\AIILogoStrip{.66cm}};
+  \end{tikzpicture}%
+}
+
+\newcommand{\AIITitleLogo}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=north east,inner sep=0pt]
+      at ([xshift=-.18cm,yshift=-.10cm]current page.north east)
+      {\AIILogoStrip{.85cm}};
+  \end{tikzpicture}%
+}
+
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip
+  % Reserve a slightly taller header than the source deck.  The heading is
+  % optically centred on the logo; the rule sits below both with clear space.
+  \begin{beamercolorbox}[wd=\paperwidth,ht=.95cm,dp=0ex]{frametitle}\end{beamercolorbox}%
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=west,inner sep=0pt,text width=11.6cm,align=left]
+      at ([xshift=.12cm,yshift=-.396cm]current page.north west)
+      {\usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}\insertframetitle};
+    \draw[A2I2Red,line width=1.063pt]
+      (current page.north west) ++(0,-.81cm) -- ++(\paperwidth,0);
+  \end{tikzpicture}%
+  \AIIHeaderLogo
+}
+
+\setbeamertemplate{footline}{%
+  \leavevmode\hbox{%
+    \begin{beamercolorbox}[wd=.96\paperwidth,ht=.42cm,dp=.12cm]{footline}\end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.04\paperwidth,ht=.42cm,dp=.12cm,center]{footline}
+      \insertframenumber
+    \end{beamercolorbox}}%
+}
+
+\setbeamertemplate{title page}{%
+  \AIITitleLogo
+  % Set as a paragraph rather than an \adjustbox so that \ in \title works.
+  % Long titles wrap on their own; add \ to control where the break falls.
+  \begin{textblock*}{14.5cm}(.75cm,2.75cm)
+    \centering\usebeamerfont{title}\usebeamercolor[fg]{title}%
+    \inserttitle
+  \end{textblock*}%
+  \begin{textblock*}{13.692cm}(1.154cm,5.354cm)
+    \centering\usebeamerfont{author}\usebeamercolor[fg]{author}\insertauthor
+  \end{textblock*}%
+  \begin{textblock*}{13.692cm}(1.154cm,6.38cm)
+    \centering\usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle
+  \end{textblock*}%
+  \begin{tikzpicture}[remember picture,overlay]
+    \draw[A2I2Red,line width=1pt]
+      ([xshift=-3.543cm,yshift=-.397cm]current page.center) --
+      ([xshift=3.543cm,yshift=-.397cm]current page.center);
+  \end{tikzpicture}%
+}
+
+% Unnumbered title slide matching the original deck.
+\newcommand{\maketitleslide}{\begin{frame}[plain]\titlepage\end{frame}}
+
+% Large centred red Q&A / closing slide.
+\newcommand{\AIIClosingFrame}[1][Q\&A]{%
+  \begin{frame}[plain]
+    \AIIHeaderLogo
+    \begin{tikzpicture}[remember picture,overlay]
+      \draw[A2I2Red,line width=1.063pt] (current page.north west) ++(0,-.81cm) -- ++(\paperwidth,0);
+      \ifdefstrequal{#1}{Q\&A}{%
+        \node[align=center,text=A2I2Red,font=\bfseries] at (current page.center)
+          {{\fontsize{112.9}{118}\selectfont Q}{\fontsize{78.4}{84}\selectfont\&}{\fontsize{112.9}{118}\selectfont A}};
+      }{%
+        \node[align=center,text=A2I2Red,font=\bfseries\fontsize{78.4}{84}\selectfont] at (current page.center) {#1};
+      }%
+    \end{tikzpicture}
+  \end{frame}%
+}
+
+% Three-column alternative overview used by the PowerPoint template.
+\newcommand{\AIIOverviewThree}[4][Overview (alternative)]{%
+  \begin{frame}{#1}
+    \begin{textblock*}{4.724cm}(.913cm,6.434cm)
+      \centering\fontsize{11.34}{14}\selectfont #2
+    \end{textblock*}
+    \begin{textblock*}{4.724cm}(5.638cm,6.434cm)
+      \centering\fontsize{11.34}{14}\selectfont #3
+    \end{textblock*}
+    \begin{textblock*}{4.724cm}(10.362cm,6.434cm)
+      \centering\fontsize{11.34}{14}\selectfont #4
+    \end{textblock*}
+  \end{frame}%
+}
+
+% Overview positioned like slide 2 of the PowerPoint template.  Pass the entries
+% as one argument separated by \\, so the list can be any length:
+%   \AIIOverviewLines{1. First\\2. Second\\3. Third}
+\newcommand{\AIIOverviewLines}[1]{%
+  \begin{frame}{Overview}
+    \begin{textblock*}{7cm}(5.837cm,2.6cm)
+      \raggedright\fontsize{17}{20.3}\selectfont #1
+    \end{textblock*}
+  \end{frame}%
+}
+
+% Original fixed four-line form, kept so existing decks keep working.
+\newcommand{\AIIOverviewList}[4]{\AIIOverviewLines{#1\\#2\\#3\\#4}}
+
+\mode<all>

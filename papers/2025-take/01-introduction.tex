@@ -1,3 +1,4 @@
+\section{Introduction} \label{sec:01-introduction}
 \begin{foldable} % LLM --> DD
   The progress of large language models depends on large-scale supervised corpora, yet the cost of curating and training on such data compounds across fine-tuning cycles, hyperparameter sweeps, and continual learning.
   The real burden is not any single run but the cumulative expenditure across the full development lifecycle.
@@ -37,10 +38,12 @@
         \textbf{Theory:} We formalize the hard-sample bias~(HSB) in the text DD setting, prove that single-checkpoint influence scores are biased toward noisy samples, and derive a formal gap bound for knowledge-reweighted distribution matching.
       }
     \item {
-        \textbf{Method:} TAKE is the first text DD method to jointly address sample weighting and distributional coverage --- via trajectory-integrated knowledge scores and a discrete OT objective aligned with the DD goal.
+        \textbf{Method:} TAKE is the first text DD method to jointly address sample weighting and distributional coverage---via trajectory-integrated knowledge scores and a discrete OT objective aligned with the DD goal.
       }
     \item {
-        \textbf{Empirical:} TAKE matches or exceeds prior text DD methods across five language tasks at extreme compression (0.1\% or 20 instances/class), producing human-readable distilled corpora that generalize across diverse backbone families.
+        \textbf{Empirical:} TAKE matches or exceeds prior text DD methods across six language benchmarks at extreme compression (0.1\% or 20 instances/class), producing human-readable distilled corpora that generalize across diverse backbone families.
       }
   \end{itemize}
 \end{foldable}
+
+The remainder of this paper is organised as follows: \S~\ref{sec:02-related} reviews related work; \S~\ref{sec:03-theory} presents theoretical motivation; \S~\ref{sec:04-method} details TAKE and our DD pipeline; \S~\ref{sec:05-experiments} reports experiments and discussion; \S~\ref{sec:06-limits} reflects limitations and ethical concerns; \S~\ref{sec:07-conclusion} concludes.

@@ -9,6 +9,7 @@
 
 % Additional packages by authors %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Font size: tiny < scriptsize < footnotesize < small < normalsize < large < Large < LARGE < huge < Huge
+\usepackage{enumitem}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage[linesnumbered,ruled,vlined]{algorithm2e}
     \SetCommentSty{textnormal}
@@ -19,6 +20,7 @@
 \usepackage{hyperref}
 \usepackage{makecell}
 \usepackage{mathtools}
+\usepackage{threeparttable}
 \usepackage{multirow}
 \usepackage{subcaption}
 \usepackage{textcomp}
@@ -30,3 +32,7 @@
 \newcommand*{\eg}{e.g.}
 \newcommand*{\etc}{etc.}
 \newcommand{\boldtight}[1]{{\fontseries{b}\selectfont #1}}
+\newcommand{\meanstd}[2]{#1$_{\pm{#2}}$}
+\newcommand{\meanstdbf}[2]{\textbf{#1}$_{\pm{#2}}$}
+\newcommand*{\bltrg}{$^{\blacktriangle}$}
+\newcommand{\dg}{\rlap{$^\dagger$}}

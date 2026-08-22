@@ -1,5 +1,8 @@
-We identified the hard-sample bias (HSB) as the core failure mode of gradient-based text dataset distillation: at convergence, noisy samples dominate single-checkpoint influence scores, suppressing the informative ones that matter most.
-TAKE corrects this by integrating gradient norms across the training trajectory into per-sample knowledge scores, used as non-uniform source weights in a discrete Optimal Transport objective to select a compact, human-readable corpus.
-Theoretically, we provide end-to-end guarantees: the hard-sample bias is structural, trajectory integration strictly reduces it, and the downstream loss gap is bounded by the OT cost.
-TAKE outperforms baselines across five language tasks at extreme compression (0.1\% or 20 samples/class), generalizing across diverse backbone families.
-Together, these results position text dataset distillation as a practical, data-centric tool for efficient and privacy-aware NLP, with direct implications for coreset construction and continual learning in resource-constrained settings.
+\section{Conclusion} \label{sec:07-conclusion}
+\begin{foldable}
+  We identified the hard-sample bias (HSB) as the core failure mode of gradient-based text dataset distillation: at convergence, noisy samples dominate single-checkpoint influence scores, suppressing the informative ones that matter most.
+  TAKE corrects this by integrating gradient norms across the training trajectory into per-sample knowledge scores, used as non-uniform source weights in a discrete Optimal Transport objective to select a compact, human-readable corpus.
+  Theoretically, we provide end-to-end guarantees: the hard-sample bias is structural, trajectory integration strictly reduces it, and the downstream loss gap is bounded by the OT cost.
+  TAKE outperforms baselines across six language benchmarks at extreme compression (0.1\% or 20 samples/class), generalizing across diverse backbone families.
+  Together, these results position text dataset distillation as a practical, data-centric tool for efficient and privacy-aware NLP, with direct implications for coreset construction and continual learning in resource-constrained settings.
+\end{foldable}

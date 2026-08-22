@@ -1,3 +1,4 @@
+\section{Related Works} \label{sec:02-related}
 \subsection{Text Dataset Distillation} \label{sec:02-related-textdd}
 \begin{foldable} % DD --> Text DD
   Dataset distillation was introduced by~\cite{wang2018dataset} as a bi-level meta-learning problem: synthesize a small set of images such that a model trained on them matches one trained on the full dataset.
@@ -7,7 +8,7 @@
 \end{foldable}
 
 \begin{foldable} % Text DD landscape: progression of trade-offs and the uniform-weighting gap
-  Adapting DD to text has therefore required fundamentally different strategies---from meta-learning on synthetic embeddings to LLM-based generation of readable corpora, each generation trading one limitation for another.
+  Adapting DD to text has therefore required fundamentally different strategies, from meta-learning on synthetic embeddings to LLM-based generation of readable corpora, each generation trading one limitation for another.
   SLDD and DDTC~\cite{sucholutsky2021soft,li2021data} directly adapted the meta-learning formulation~\cite{wang2018dataset}, optimizing synthetic text embeddings so that a model trained on them minimizes task loss.
   Of the two, only SLDD partially recovers interpretability by mapping distilled embeddings to per-token nearest bag-of-words.
   DDAL~\cite{maekawa2023dataset} optimizes the attention labels of a BERT model to match class-wise dataset statistics, achieving partial task alignment but producing outputs that are both architecture-locked and uninterpretable.
@@ -16,9 +17,8 @@
   DaLLME~\cite{tao2024textual} learns an inverse mapping from distilled embeddings back to synthetic text, recovering interpretability and attempting global coverage via k-centroids clustering; but with no task-loss objective, task alignment is absent.
   Table~\ref{tab:landscape-textdd-methods} maps this progression: each generation addressed some gaps while leaving others open.
 \end{foldable}
-% Coreset methods~\cite{welling2009herding,sener2018active} address a related but structurally different problem --- they select informative records from the original dataset, which raises privacy concerns.
 
-\begin{table}[h] % Table: Comparison of text DD methods.
+\begin{table}[ht] % Table: Comparison of text DD methods.
   \centering
   \caption{Landscape of text DD methods.}
   \label{tab:landscape-textdd-methods}
@@ -60,14 +60,15 @@
 
 \subsection{Optimal Transport for Distribution Matching} \label{sec:02-related-ot}
 \begin{foldable} % Distribution matching as a DD surrogate
-  Distribution matching has been proposed as a tractable DD surrogate~\cite{zhao2023dataset}: if the distilled and training sets induce equal expected gradients along the optimization trajectory, the trained models converge to comparable parameters --- a sufficient condition, not an equivalence (the formal gap bound appears in Appendix~A.3).
+  Distribution matching has been proposed as a tractable DD surrogate~\cite{zhao2023dataset}: if the distilled and training sets induce equal expected gradients along the optimization trajectory, the trained models converge to comparable parameters.
+  This is a sufficient condition, but not an equivalence (the formal gap bound appears in Theorem~\ref{thm:gap}).
   Common divergences have practical shortcomings at the extreme budgets relevant here.
   MMD~\cite{gretton2012kernel} lacks sample-level assignment structure, requiring auxiliary scoring heuristics that reintroduce the global optimization gap that distribution matching is meant to close.
   Kullback--Leibler and Jensen--Shannon divergences require density estimation, which is unreliable in the low-data regime~\cite{paninski2003estimation}.
 \end{foldable}
 
 \begin{foldable} % Discrete OT
-  OT in the Monge-Kantorovich sense avoids both pitfalls: it operates natively on discrete measures, respects the metric geometry of the embedding space, and produces an explicit transport plan that directly assigns training samples to prototypes --- no auxiliary heuristic needed.
+  OT in the Monge-Kantorovich sense avoids both pitfalls: it operates natively on discrete measures, respects the metric geometry of the embedding space, and produces an explicit transport plan that directly assigns training samples to prototypes---no auxiliary heuristic needed.
   Entropic regularization via Sinkhorn-Knopp~\cite{cuturi2013sinkhorn} makes this tractable at corpus scale.
   OT has been widely applied in NLP and machine learning~\cite{kusner2015word,tolstikhin2018wasserstein,courty2016optimal,arjovsky2017wasserstein}, but never to text DD, and never combined with a knowledge-reweighted source distribution in any DD setting.
   TAKE fills both gaps: $\kappa_n$ defines a non-uniform source measure, and the discrete entropic OT plan selects prototypes covering the knowledge-weighted training distribution without any auxiliary selection step.

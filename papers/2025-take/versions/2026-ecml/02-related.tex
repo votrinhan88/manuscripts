@@ -1,64 +1,73 @@
+\section{Related Works} \label{sec:02-related}
 \subsection{Text Dataset Distillation} \label{sec:02-related-textdd}
-\begin{foldable} % DD --> Three criteria for complete text DD
-    DD methods~\cite{wang2018dataset,zhao2020dataset,cazenavette2022dataset,kim2022dataset,wang2022cafe} were originally designed for images, where data is differentiable and continuous.
-    Text breaks these assumptions: token decoding is non-differentiable, outputs must be semantically coherent, and embedding spaces are tightly coupled to specific architectures.
-    Coreset methods~\cite{welling2009herding,sener2018active} address a related but structurally different problem --- they select informative records from the original dataset, which raises privacy concerns.
-    Against this backdrop, we identify three properties that any complete text DD method should have: (1)~a \emph{knowledge-informed criterion} that weights samples by their contribution to the downstream objective; (2)~a \emph{principled dataset-level objective} that optimises distributional coverage globally rather than ranking samples independently; and (3)~\emph{human-readable output} that is directly inspectable and reusable without specialised decoding.
+\begin{foldable} % DD --> Text DD
+  Dataset distillation was introduced by~\cite{wang2018dataset} as a bi-level meta-learning problem: synthesize a small set of images such that a model trained on them matches one trained on the full dataset.
+  Subsequent methods improve scalability and fidelity via gradient matching~\cite{zhao2020dataset}, distribution matching~\cite{wang2022cafe}, and trajectory matching~\cite{cazenavette2022dataset,kim2022dataset}.
+  These methods share a common assumption: data is continuous and differentiable, so the synthetic set can be directly optimised via backpropagation.
+  Text violates the differentiability assumption: token decoding is non-differentiable, outputs must be semantically coherent, and embedding spaces are tightly coupled to specific architectures.
 \end{foldable}
 
-\begin{table}[t] % Table: Comparison of text DD methods.
-    \centering
-    \caption{Comparison of text DD methods.}
-    \label{tab:landscape-textdd-methods}
-    \begin{tabular}{l c l c}
-        \toprule
-        \textbf{Method}                 & \quad Knowledge-informed \quad \quad & \multicolumn{1}{c}{Dataset-level objective \quad \quad} & Readable     \\
-        \midrule
-        SLDD~\cite{sucholutsky2021soft} & $-$                                  & $-$ meta-learning                                       & $\triangle$  \\
-        DDTC~\cite{li2021data}          & $-$                                  & $\triangle$ meta-learning                               & $-$          \\
-        DDAL~\cite{maekawa2023dataset}  & $-$                                  & $-$ gradient matching                                   & $-$          \\
-        DiLM~\cite{maekawa2024dilm}     & $-$                                  & $-$ gradient matching                                   & $\checkmark$ \\
-        DaLLME~\cite{tao2024textual}    & $-$                                  & $-$ geometric                                           & $\checkmark$ \\
-        \textbf{TAKE} (ours)            & $\checkmark$                         & $\checkmark$ discrete OT                                & $\checkmark$ \\
-        \bottomrule
-        \multicolumn{4}{l}{$-$: absent, $\triangle$: partial, $\checkmark$: present}
-    \end{tabular}
+\begin{foldable} % Text DD landscape: progression of trade-offs and the uniform-weighting gap
+  Adapting DD to text has therefore required fundamentally different strategies, from meta-learning on synthetic embeddings to LLM-based generation of readable corpora, each generation trading one limitation for another.
+  SLDD and DDTC~\cite{sucholutsky2021soft,li2021data} directly adapted the meta-learning formulation~\cite{wang2018dataset}, optimizing synthetic text embeddings so that a model trained on them minimizes task loss.
+  Of the two, only SLDD partially recovers interpretability by mapping distilled embeddings to per-token nearest bag-of-words.
+  DDAL~\cite{maekawa2023dataset} optimizes the attention labels of a BERT model to match class-wise dataset statistics, achieving partial task alignment but producing outputs that are both architecture-locked and uninterpretable.
+  A second generation of methods addressed interpretability by rethinking the pipeline entirely.
+  DiLM~\cite{maekawa2024dilm} generates readable candidate texts via an LLM and selects among them by gradient matching over the training corpus, followed by k-centre selection; but matching gradients at discrete checkpoints is a proxy for task loss, leaving task alignment only partial.
+  DaLLME~\cite{tao2024textual} learns an inverse mapping from distilled embeddings back to synthetic text, recovering interpretability and attempting global coverage via k-centroids clustering; but with no task-loss objective, task alignment is absent.
+  Table~\ref{tab:landscape-textdd-methods} maps this progression: each generation addressed some gaps while leaving others open.
+\end{foldable}
+
+\begin{table}[ht] % Table: Comparison of text DD methods.
+  \centering
+  \caption{Landscape of text DD methods.}
+  \label{tab:landscape-textdd-methods}
+  \setlength{\tabcolsep}{6pt}
+  \begin{tabular}{l c c c c c c}
+    \toprule
+    \textbf{Gap}         & SLDD         & DDTC         & DDAL         & DiLM         & DaLLME       & \textbf{TAKE} \\
+    \midrule
+    Task alignment       & $\checkmark$ & $\checkmark$ & $\triangle$  & $\triangle$  & $-$          & $\checkmark$ \\
+    Global optimization  & $\triangle$  & $\triangle$  & $\triangle$  & $\triangle$  & $\triangle$  & $\checkmark$ \\
+    Interpretability     & $\triangle$  & $-$          & $-$          & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
+    Importance weighting & $-$          & $-$          & $-$          & $-$          & $-$          & $\checkmark$ \\
+    \bottomrule
+    \multicolumn{7}{l}{$-$: absent, $\triangle$: partial, $\checkmark$: addressed}
+  \end{tabular}
 \end{table}
 
-\begin{foldable} % TAKE is first to clear all three criteria
-    Table~\ref{tab:landscape-textdd-methods} summarises the landscape.
-    The three embedding-space methods~\cite{sucholutsky2021soft,li2021data,maekawa2023dataset} are architecture-locked, effectively failing~(3)~readability.
-    The two recent readable methods both lack a dataset-level objective aligned with DD: DiLM~\cite{maekawa2024dilm} uses gradient matching followed by k-centre selection, while DaLLME~\cite{tao2024textual} clusters sentence embeddings via k-means --- neither has a formal connection to the downstream task.
-    TAKE is the first text DD method to satisfy all three properties: trajectory-aware knowledge scores $\kappa_n$ address~(1), discrete OT addresses~(2), and LLM-generated synthetic text addresses~(3).
+\begin{foldable} % Uniform-weighting gap: the blind spot shared by all methods
+  A subtler gap cuts across all methods: every existing approach applies \emph{uniform weighting}, treating every training sample as equally informative.
+  At moderate distillation budgets this is defensible, but extreme compression is precisely the regime where distillation matters most, and there the assumption fails.
+  Samples vary substantially in their influence on learning (clean vs.\ noisy, easy vs.\ hard), yet no prior method accounts for this structure.
+  Without importance weighting, the distillation budget is exhausted on uninformative samples, biasing selection away from the boundary cases that matter most for robustness.
 \end{foldable}
-
 
 \subsection{Influence Functions and the Hard-Sample Bias} \label{sec:02-related-influence}
 \begin{foldable} % Influence functions & trajectory-based methods
-    Influence functions~(IFs)~\cite{cook1982residuals,koh2017understanding} quantify the leave-one-out effect of a training point via $\mathcal{I}(z) = \nabla^\top H_\theta^{-1} \nabla$, but depend on a single checkpoint and require expensive second-order computation.
-    Trajectory-based methods --- TracIn~\cite{pruthi2020estimating}, TRAK~\cite{park2023trak}, DataInf~\cite{kwon2023datainf} --- extend attribution across checkpoints but are \emph{test-conditioned}: each method requires a fixed test query and is therefore unsuitable for corpus-level scoring.
-    TAKE sidesteps both limitations by computing gradient \emph{norms} across the full trajectory with no test query, yielding a corpus-level, task-agnostic score $\kappa_n$.
+  Influence functions (IF)~\cite{cook1982residuals,koh2017understanding} quantify the leave-one-out effect of a training point via $\mathcal{I}(z) = \nabla^\top H_\theta^{-1} \nabla$, but depend on a single checkpoint and require expensive second-order computation.
+  Trajectory-based methods~\cite{pruthi2020estimating,park2023trak,kwon2023datainf} extend attribution across checkpoints but are \emph{test-conditioned}: designed to attribute a fixed test prediction.
+  However, self-influence is evaluated only once at the final parameters, introducing a systematic bias that corrupts the corpus-level scores.
 \end{foldable}
 
 \begin{foldable} % Hard-sample bias
-    Scoring at a single checkpoint introduces what we call the \emph{hard-sample bias} (HSB): at convergence, clean samples have near-zero gradient by definition, so noisy or hard samples dominate influence scores.
-    This failure mode is well-documented in adjacent work: \cite{arpit2017closer} show that networks fit clean patterns before noisy ones; dataset cartography~\cite{swayamdipta2020dataset} confirms that single-checkpoint statistics conflate difficulty with noise; and Co-teaching~\cite{han2018co} documents systematic overselection of noisy samples in gradient-based curricula.
-    In standard training, HSB can often be mitigated via regularisation; in the extreme low-data regime of DD, however, it amplifies --- biased selection suppresses the moderate and boundary samples whose inclusion is essential for model robustness.
-    To our knowledge, no prior text DD method has identified or corrected for it.
+  We refer to this as the \emph{hard-sample bias} (HSB): at convergence, clean samples have near-zero gradient by definition, so noisy or hard samples dominate influence scores.
+  This failure mode is well-documented in adjacent work: \cite{arpit2017closer} show that networks fit clean patterns before noisy ones; dataset cartography~\cite{swayamdipta2020dataset} confirms that single-checkpoint statistics conflate difficulty with noise; and Co-teaching~\cite{han2018co} documents systematic overselection of noisy samples in gradient-based curricula.
+  In standard training, HSB can often be mitigated via regularization; in the extreme low-data regime of DD, however, it amplifies: biased selection suppresses the \emph{informative} samples essential for model robustness.
+  To our knowledge, no prior text DD method has identified or corrected for it.
 \end{foldable}
-
 
 \subsection{Optimal Transport for Distribution Matching} \label{sec:02-related-ot}
 \begin{foldable} % Distribution matching as a DD surrogate
-    Distribution matching has been proposed as a tractable DD surrogate~\cite{zhao2023dataset}: if the distilled and training sets induce equal expected gradients along the optimisation trajectory, the trained models converge to comparable parameters --- a sufficient condition, not an equivalence (the formal gap bound appears in Appendix~A.3).
-    Common divergences have practical shortcomings at the extreme budgets relevant here.
-    MMD lacks sample-level assignment structure, requiring auxiliary scoring heuristics that reintroduce the gap that property~(2) is meant to close.
-    KL and JS divergences require density estimation, which is unreliable at budgets of $\approx\!100$ samples.
+  Distribution matching has been proposed as a tractable DD surrogate~\cite{zhao2023dataset}: if the distilled and training sets induce equal expected gradients along the optimization trajectory, the trained models converge to comparable parameters.
+  This is a sufficient condition, but not an equivalence (the formal gap bound appears in Theorem~\ref{thm:gap}).
+  MMD~\cite{gretton2012kernel} lacks sample-level assignment structure, requiring auxiliary scoring heuristics that reintroduce the global optimization gap that distribution matching is meant to close.
+  Kullback--Leibler and Jensen--Shannon divergences require density estimation, which is unreliable in the low-data regime~\cite{paninski2003estimation}.
 \end{foldable}
 
 \begin{foldable} % Discrete OT
-    OT in the Monge-Kantorovich sense avoids both pitfalls: it operates natively on discrete measures, respects the metric geometry of the embedding space, and produces an explicit transport plan that directly assigns training samples to prototypes --- no auxiliary heuristic needed.
-    Entropic regularisation via Sinkhorn-Knopp~\cite{cuturi2013sinkhorn} makes this tractable at corpus scale.
-    OT has been widely applied in NLP and machine learning~\cite{kusner2015word,tolstikhin2018wasserstein,courty2016optimal,arjovsky2017wasserstein}, but never to text DD, and never combined with a knowledge-reweighted source distribution in any DD setting.
-    TAKE fills both gaps: $\kappa_n$ defines a non-uniform source measure, and the discrete entropic OT plan selects prototypes covering the knowledge-weighted training distribution without any auxiliary selection step.
+  OT in the Monge-Kantorovich sense avoids both pitfalls: it operates natively on discrete measures, respects the metric geometry of the embedding space, and produces an explicit transport plan that directly assigns training samples to prototypes---no auxiliary heuristic needed.
+  Entropic regularization via Sinkhorn-Knopp~\cite{cuturi2013sinkhorn} makes this tractable at corpus scale.
+  OT has been widely applied in NLP and machine learning~\cite{kusner2015word,tolstikhin2018wasserstein,courty2016optimal,arjovsky2017wasserstein}, but never to text DD, and never combined with a knowledge-reweighted source distribution in any DD setting.
+  TAKE fills both gaps: $\kappa_n$ defines a non-uniform source measure, and the discrete entropic OT plan selects prototypes covering the knowledge-weighted training distribution without any auxiliary selection step.
 \end{foldable}

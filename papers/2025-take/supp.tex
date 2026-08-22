@@ -199,14 +199,14 @@ The discrete OT problem is defined over empirical measures $\mu = P^w = \sum_n w
 \end{equation}
 
 \textbf{Entropic regularization.}
-The bare Kantorovich problem is $O(N^3)$ and non-differentiable.
+The bare Kantorovich problem is $O(N^3)$ complexity and non-differentiable.
 Adding an entropic penalty yields a strictly convex, smooth objective:
 \begin{equation}
     \min_{\gamma \in \Pi(\mu,\nu)}
     \langle C, \gamma \rangle
-    + \varepsilon \cdot \mathrm{KL}(\gamma \,\|\, \mu \otimes \nu),
+    + \varepsilon \cdot \mathrm{KL}(\gamma, \mu \otimes \nu),
     \qquad
-    \mathrm{KL}(\gamma \,\|\, \mu \otimes \nu)
+    \mathrm{KL}(\gamma, \mu \otimes \nu)
     = \int \log\frac{d\gamma}{d(\mu \otimes \nu)}\,d\gamma,
 \end{equation}
 where $\mu \otimes \nu$ is the product (independence) reference coupling.
@@ -242,6 +242,7 @@ Table~\ref{tab:datasets} reports the task type and label set for each benchmark.
         IMDb      & Classification &  25,000 & Pos., Neg. \\
         SST-2     & Classification &  67,349 & Pos., Neg. \\
         MNLI-m    & NLI            & 392,702 & Entailment, Neutral, Contradiction \\
+        QNLI      & NLI            & 104,743 & Entailment, Not Entailment \\
         QQP       & NLI            & 363,846 & Duplicate, Non-duplicate \\
         \bottomrule
     \end{tabular}

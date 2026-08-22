@@ -1,0 +1,414 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+\usetheme{A2I2}
+
+\usepackage{booktabs}
+\usepackage{multirow}
+% amsmath and unicode-math come from the theme (New Computer Modern).
+\usetikzlibrary{positioning}
+
+% Macros mirrored from the paper preamble.
+\newcommand{\meanstd}[2]{#1$_{\pm{#2}}$}
+\newcommand{\meanstdbf}[2]{\textbf{#1}$_{\pm{#2}}$}
+\newcommand*{\bltrg}{$^{\blacktriangle}$}
+\newcommand{\dg}{\rlap{$^\dagger$}}
+\newcommand{\Dtrain}{\mathcal{D}}
+\newcommand{\Dsyn}{\mathcal{D}_\text{synth}}
+\newcommand{\Ddist}{\tilde{\mathcal{D}}}
+
+\title{TAKE: Trajectory-Aware Knowledge Estimation\\for Text Dataset Distillation}
+\author{Tri-Nhan Vo, Dang Nguyen, Sunil Gupta}
+\subtitle{Deakin Applied AI Initiative, Deakin University, Australia}
+\date{}
+
+\begin{document}
+
+\maketitleslide
+
+\AIIOverviewLines{
+  1. Motivation\\
+  2. Theory\\
+  3. Method\\
+  4. Results\\
+  5. Limitations \& ethics\\
+  6. Takeaways
+}
+
+% ================================================================ 1. Motivation
+\begin{frame}{1. Motivation --- the corpus bottleneck}
+  \begin{itemize}
+    \item Corpus cost recurs: every fine-tuning cycle, hyperparameter sweep, and continual-learning pass pays it again.
+    \item Corpus size, not model size, is usually what binds.
+  \end{itemize}
+  \medskip
+  \begin{block}{Dataset distillation \AIIGloss{(DD)}}
+    Replace $\Dtrain$ with a surrogate $\Ddist \ll \Dtrain$ that trains a comparable model.\par\medskip
+    \emph{What is the smallest textbook that teaches the same exam?}
+  \end{block}
+  \medskip
+  \textbf{Text breaks image-space DD:} token decoding is non-differentiable, and embeddings are architecture-locked.
+\end{frame}
+
+\begin{frame}{1. Motivation --- the gap in text DD}
+  \begin{center}
+    \scriptsize
+    \begin{tabular}{l c c c c c c}
+      \toprule
+      \textbf{Gap}         & SLDD         & DDTC         & DDAL         & DiLM         & DaLLME       & \textbf{TAKE} \\
+      \midrule
+      Task alignment       & $\checkmark$ & $\checkmark$ & $\triangle$  & $\triangle$  & $-$          & $\checkmark$ \\
+      Global optimization  & $\triangle$  & $\triangle$  & $\triangle$  & $\triangle$  & $\triangle$  & $\checkmark$ \\
+      Interpretability     & $\triangle$  & $-$          & $-$          & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
+      Importance weighting & $-$          & $-$          & $-$          & $-$          & $-$          & $\checkmark$ \\
+      \bottomrule
+      \multicolumn{7}{l}{\scriptsize $-$: absent, \quad $\triangle$: partial, \quad $\checkmark$: addressed}
+    \end{tabular}
+  \end{center}
+  \smallskip
+  \textbf{One gap cuts across all of them: uniform weighting.} At extreme compression, the budget goes to uninformative samples.
+  \medskip
+  \begin{block}{Three desiderata \AIIGloss{(all satisfied by TAKE)}}
+    \textbf{(1) Knowledge-based weighting:} by task-aligned downstream contribution.\par
+    \textbf{(2) Dataset-level objective:} the full training distribution, not batch by batch.\par
+    \textbf{(3) Human-readable output:} auditable, and transferable across architectures.
+  \end{block}
+\end{frame}
+
+% ================================================================ 2. Theory
+\begin{frame}{2. Theory --- from DD to reweighted DM}
+  The DD objective is bi-level, and intractable for discrete text:
+  \[
+    \min_{\Ddist}\; \mathbb{E}_{\theta_0 \sim p(\theta_0)} \left[ \mathbb{E}_{z \sim \Dtrain} \left[ \ell\!\left(z;\; F(\theta_0;\, \Ddist, \eta, T)\right) \right] \right]
+  \]
+  \textbf{Gradient-field equivalence:} a matching expected gradient field gives comparable parameters. Hence \emph{distribution matching} (DM):
+  \[
+    \min_{|\Ddist| = K}\; d\!\left(P_{\Ddist},\; P_{\Dtrain}\right)
+  \]
+  \textbf{But uniform matching follows density.} Budget goes to dense easy regions instead of decision boundaries. Reweighting by importance $w_n$ gives \emph{reweighted} DM (RDM):
+  \[
+    \min_{|\Ddist| = K}\; d\!\left(P_{\Ddist},\; P^w\right), \qquad P^w = \textstyle\sum_n w_n \delta_{z_n}
+  \]
+\end{frame}
+
+\begin{frame}{2. Theory --- why the naive approach fails}
+  Natural choice: the influence self-score $\mathcal{I}_\text{self} = \nabla_\theta \ell^\top H_{\hat{\theta}}^{-1} \nabla_\theta \ell$, task-aligned by construction. Set $w_n \propto \mathcal{I}_\text{self}$ and take top-$K$. \textbf{Two orthogonal failures:}
+  \smallskip
+  \begin{block}{Proposition 1: Hard-Sample Bias \AIIGloss{(the weights are biased)}}
+    If clean samples have $\|\nabla_\theta \ell\| \leq \epsilon$ and noisy samples $\|\nabla_\theta \ell\| \geq \delta \gg \epsilon$ at convergence, then
+    \[
+      \Delta_\text{HSB} := \mathbb{E}_{\text{noisy}}[\mathcal{I}_\text{self}] - \mathbb{E}_{\text{clean}}[\mathcal{I}_\text{self}]
+      \;\geq\; \frac{\delta^2 - \mathrm{cond}(H_{\hat{\theta}})\,\epsilon^2}{\lambda_{\max}(H_{\hat{\theta}})} \;>\; 0
+    \]
+    Clean gradients vanish at a local minimum by definition, so the bias is \textbf{structural}.
+  \end{block}
+  \begin{block}{Remark: Coverage \AIIGloss{(independent scoring $\neq$ distributional coverage)}}
+    When two near-duplicates both score highly, top-$K$ takes both. A distributional objective keeps one and frees a slot for an uncovered region.
+  \end{block}
+\end{frame}
+
+% ================================================================ 3. Method
+\begin{frame}{3. Method --- TAKE at a glance}
+  \small
+  \begin{block}{Two open problems \AIIGloss{(carried over from the theory)}}
+    \textbf{(a) Biased weighting.} Estimate $w_n$ by integrating gradient signals across the
+    trajectory $\{\theta_t\}_{t=0}^{T-1}$, reducing $\Delta_\text{HSB}$. \hfill $\rightarrow$ Stage 1\par\smallskip
+    \textbf{(b) Independent selection.} Solve the RDM objective directly for a metric $d$ that
+    jointly optimises coverage of $P^w$. \hfill $\rightarrow$ Stage 3
+  \end{block}
+  \begin{center}
+    \begin{tikzpicture}[
+      box/.style={draw=A2I2Red,line width=.9pt,rounded corners=2pt,align=center,
+                  inner sep=5pt,text width=3.9cm,font=\footnotesize},
+      lbl/.style={font=\scriptsize\itshape,align=center,text width=3.9cm},
+      arr/.style={-latex,line width=.9pt,draw=A2I2Red}]
+      \node[box] (s1) {\textbf{Stage 1: Score}\\[2pt] Logistic probe over $T$ checkpoints $\Rightarrow I \in \mathbb{R}^{N \times T}$; reciprocal $+$ temporal weighting $\Rightarrow \kappa_n$};
+      \node[box,right=.7cm of s1] (s2) {\textbf{Stage 2: Generate}\\[2pt] Fine-tune a small LM on $\Dtrain$; sample a readable candidate pool $\Dsyn$};
+      \node[box,right=.7cm of s2] (s3) {\textbf{Stage 3: Distill}\\[2pt] Discrete entropic OT with weights $\kappa_n$ over $\Dsyn$ $\Rightarrow \Ddist$, $|\Ddist| = K$};
+      \draw[arr] (s1) -- (s2);
+      \draw[arr] (s2) -- (s3);
+      \node[lbl,below=2mm of s1] {answers (a)};
+      \node[lbl,below=2mm of s3] {answers (b)};
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+\begin{frame}{3. Method --- Stage 1: knowledge scores}
+  \small
+  The self-score needs Hessian inversion at convergence. We instead use per-sample gradient norms of a linear head $W$ over a frozen encoder $\phi$, column-normalized:
+  \[
+    I_{(n,t)} = \|\nabla_W \ell(z_n;\,\theta_t)\|,
+    \qquad
+    \kappa_n = \sum_{t=0}^{T-1} \frac{k(t)}{I_{(n,t)}},
+    \qquad k(t) = e^{-\lambda t / T}
+  \]
+  \begin{itemize}
+    \item Goodfellow identity $\nabla_W \ell = g_n \phi(x_n)^\top$ vectorizes the backward pass, with no per-sample loops.
+    \item A well-fitted sample has a small norm, so the reciprocal inverts the ranking.
+    \item A decreasing kernel $k$ concentrates mass before memorization sets in.
+  \end{itemize}
+  \begin{block}{Proposition 2: Trajectory Integration \AIIGloss{(reduces the HSB gap)}}
+    For \emph{any} strictly decreasing $k$, $\kappa_n$ gives a strictly smaller noisy-over-clean gap than the last checkpoint.\quad Weights: $w_n = \kappa_n / \sum_{n'} \kappa_{n'}$.
+  \end{block}
+\end{frame}
+
+\begin{frame}{3. Method --- Stages 2 \& 3: generate and distill}
+  \begin{columns}[T,onlytextwidth]
+    \column{.47\textwidth}
+      \textbf{Stage 2: Synthetic pool}\par\medskip
+      Direct subsampling risks privacy, and $K$ is too small to cover the support. Fine-tune a small LM on $\Dtrain$, then sample $\Dsyn$.\par\medskip
+      $P_{\Dsyn} \neq P_{\Dtrain}$, and that helps:
+      \begin{itemize}
+        \item \textbf{Coverage expansion} of thin regions
+        \item \textbf{Fluency bias} suppresses noise
+        \item \textbf{Decoupling} from verbatim records
+      \end{itemize}
+    \column{.49\textwidth}
+      \textbf{Stage 3: Discrete entropic OT}\par\medskip
+      With $C_{nc} = \|\phi(z_n) - \phi(\tilde{z}_c)\|^2$, bare OT is $O(N^3)$. Entropic regularization is convex and Sinkhorn-solvable:
+      \[
+        \gamma^* = \arg\!\!\min_{\gamma \in \Pi(\mu,\nu)} \langle C, \gamma \rangle + \varepsilon \cdot \mathrm{KL}(\gamma \,\|\, \mu \otimes \nu)
+      \]
+      \begin{itemize}
+        \item Soft coupling spreads mass $\Rightarrow$ diversity
+        \item Take the $K$ candidates with most received mass $\sum_n \gamma^*_{nc}$
+      \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{3. Method --- the theoretical chain}
+  \begin{block}{Theorem: Gap Bound \AIIGloss{(distribution matching)}}
+    With $\ell$ $L$-Lipschitz in the embedding metric and uniform stability $\beta_K = O(1/K)$,
+    \[
+      \bigl|\mathcal{L}(\Ddist) - \mathcal{L}(\Dtrain)\bigr|
+      \;\leq\; 2L \cdot W_1(P^w,\,P_{\Ddist}) + \beta_K
+    \]
+    As $K \to \infty$, the bound is dominated by $W_1$, which the OT objective controls directly.
+  \end{block}
+  \vfill
+  End-to-end guarantees:
+  \begin{itemize}
+    \item HSB is structural and unavoidable at a single checkpoint \hfill (Proposition 1)
+    \item Trajectory integration strictly reduces it \hfill (Proposition 2)
+    \item Minimizing OT cost controls the downstream loss gap under $P^w$ \hfill (Theorem)
+    \item The residual gap from $P^w$ to $P_{\Dtrain}$ is bounded, computable from $\kappa_n$ \hfill (Remark)
+  \end{itemize}
+\end{frame}
+
+% ================================================================ 4. Results
+\begin{frame}{4. Results --- experimental setup}
+  \begin{columns}[T,onlytextwidth]
+    \column{.48\textwidth}
+      \textbf{Tasks and data}\par\medskip
+      \begin{itemize}
+        \item \textbf{Classification:} AG News (120K), IMDb (25K), SST-2 (67K)
+        \item \textbf{NLI:} MNLI-m (393K), QNLI (105K), QQP (364K)
+        \item Budgets: \textbf{0.1\%} and \textbf{20 samples/class}
+        \item Accuracy, mean$_{\pm\text{s.e.}}$ over five runs
+      \end{itemize}
+      \medskip
+      \textbf{Baselines:} Random; EDA (10$\times$ augmentation); DiLM (gradient matching $+$ $k$-centre); DaLLME (inverted embeddings).
+    \column{.48\textwidth}
+      \textbf{Implementation}\par\medskip
+      \begin{itemize}
+        \item $T = 20$ checkpoints, exponential kernel $\lambda^* = T/T_m$
+        \item Encoder $\phi$: all-MiniLM-L6-v2 (frozen)
+        \item Pool: Gemma-3 (270M) fine-tuned, $|\Dsyn| = 5{,}000$
+        \item Sinkhorn: $\varepsilon = 0.05$, 200 iterations
+        \item Single NVIDIA V100 (40\,GB)
+      \end{itemize}
+      \medskip
+      \textbf{Downstream models:} LR (TF-IDF), TextCNN, TextRNN (GloVe), BERT; Siamese LR and BERT for NLI.
+  \end{columns}
+\end{frame}
+
+\begin{frame}{4. Results --- text classification}
+  \begin{center}
+    \scriptsize
+    \setlength{\tabcolsep}{5pt}
+    \renewcommand{\arraystretch}{0.82}
+    \begin{tabular}{l l l c c c c}
+      \toprule
+      & \textbf{Method} & \textbf{Budget} & \textbf{LR} & \textbf{TextCNN} & \textbf{TextRNN} & \textbf{BERT} \\
+      \midrule
+      \multirow{5}{*}{\rotatebox{90}{AG News}}
+      & Full dataset  & 100\% & \meanstd{90.21}{0.14}    & \meanstd{91.27}{0.20}    & \meanstd{90.98}{0.32}      & \meanstd{93.85}{0.12} \\
+      & Random        & 0.1\% & \meanstd{66.39}{2.27}    & \meanstd{75.56}{0.14}    & \meanstd{74.91}{1.45}      & \meanstd{78.12}{3.25} \\
+      & EDA           & 0.1\% & \meanstd{68.03}{2.43}    & \meanstd{82.27}{0.15}    & \meanstd{81.46}{1.34}      & \meanstd{84.45}{1.44} \\
+      & DaLLME        & 0.1\% & \meanstd{74.60}{0.02}\dg & \meanstd{88.30}{0.02}\dg & \meanstdbf{84.50}{0.02}\dg & $-$ \\
+      & \textbf{TAKE} & 0.1\% & \meanstdbf{77.07}{0.09}  & \meanstdbf{88.53}{0.21}  & \meanstd{84.25}{1.03}      & \meanstdbf{89.82}{0.18} \\
+      \midrule
+      \multirow{5}{*}{\rotatebox{90}{IMDb}}
+      & Full dataset  & 100\% & \meanstd{88.41}{0.13}    & \meanstd{87.40}{0.20}    & \meanstd{83.00}{0.35}      & \meanstd{91.22}{0.25} \\
+      & Random        & 0.1\% & \meanstd{59.73}{5.51}    & \meanstd{57.65}{1.19}    & \meanstd{55.09}{4.31}      & \meanstd{60.40}{4.10} \\
+      & EDA           & 0.1\% & \meanstd{61.52}{4.62}    & \meanstd{62.40}{3.40}    & \meanstd{58.92}{1.93}      & \meanstd{63.12}{1.95} \\
+      & DaLLME        & 0.1\% & \meanstd{65.00}{0.02}\dg & \meanstd{68.30}{0.02}\dg & \meanstdbf{64.50}{0.02}\dg & $-$ \\
+      & \textbf{TAKE} & 0.1\% & \meanstdbf{66.83}{0.13}  & \meanstdbf{68.93}{2.15}  & \meanstd{63.26}{0.38}      & \meanstdbf{71.55}{0.22} \\
+      \midrule
+      \multirow{5}{*}{\rotatebox{90}{SST-2}}
+      & Full dataset  & 100\%  & \meanstd{80.23}{0.27}   & \meanstd{88.81}{0.15}    & \meanstd{87.40}{0.76}      & \meanstd{92.52}{0.28} \\
+      & Random        & 20/cls & \meanstd{55.28}{2.32}   & \meanstd{63.85}{0.87}    & \meanstd{61.52}{1.66}      & \meanstd{69.97}{3.21} \\
+      & EDA           & 20/cls & \meanstd{57.21}{1.05}   & \meanstd{65.54}{0.45}    & \meanstd{63.17}{0.84}      & \meanstd{74.21}{1.58} \\
+      & DiLM          & 20/cls & $-$                     & $-$                      & $-$                        & \meanstd{80.30}{2.80}\dg \\
+      & \textbf{TAKE} & 20/cls & \meanstdbf{65.05}{0.05} & \meanstdbf{70.65}{0.32}  & \meanstdbf{67.18}{0.49}    & \meanstdbf{81.15}{0.24} \\
+      \bottomrule
+    \end{tabular}
+    \par\smallskip
+    {\tiny [$-$] not reported;\quad [$\dagger$] reported from respective paper;\quad [\textbf{bold}] best per budget.}
+  \end{center}
+  \vfill
+  {\scriptsize \textbf{Gains are widest at LR} and narrow for neural backbones: $\kappa_n$ is model-independent, so coverage transfers. Errors are $\geq 5\times$ narrower than Random's.\par}
+\end{frame}
+
+\begin{frame}{4. Results --- natural language inference}
+  \begin{columns}[T,onlytextwidth]
+    \column{.50\textwidth}
+      \centering
+      \scriptsize
+      \setlength{\tabcolsep}{2pt}
+      \renewcommand{\arraystretch}{0.9}
+      \begin{tabular}{l l l c c}
+        \toprule
+        & \textbf{Method} & \textbf{Budget} & \textbf{SiamLR} & \textbf{BERT} \\
+        \midrule
+        \multirow{5}{*}{\rotatebox{90}{MNLI-m}}
+        & Full dataset    & 100\%  & \meanstd{60.02}{0.07}   & \meanstd{86.81}{0.30} \\
+        & Random          & 20/cls & \meanstd{34.15}{2.10}   & \meanstd{40.10}{3.20} \\
+        & EDA             & 20/cls & \meanstd{37.80}{1.45}   & \meanstd{44.52}{2.80} \\
+        & DiLM            & 20/cls & $-$                     & \meanstd{48.70}{2.60}\dg \\
+        & \textbf{TAKE}   & 20/cls & \meanstdbf{42.66}{0.15} & \meanstdbf{51.24}{0.45} \\
+        \midrule
+        \multirow{5}{*}{\rotatebox{90}{QNLI}}
+        & Full dataset    & 100\%  & \meanstd{73.05}{0.13}   & \meanstd{82.50}{0.12} \\
+        & Random          & 20/cls & \meanstd{52.21}{0.28}   & \meanstd{57.19}{2.20} \\
+        & EDA             & 20/cls & \meanstd{54.33}{1.21}   & \meanstd{59.81}{1.42} \\
+        & DiLM            & 20/cls & $-$                     & $-$ \\
+        & \textbf{TAKE}   & 20/cls & \meanstdbf{57.96}{0.58} & \meanstdbf{64.89}{3.58} \\
+        \midrule
+        \multirow{5}{*}{\rotatebox{90}{QQP}}
+        & Full dataset    & 100\%  & \meanstd{78.58}{0.05}   & \meanstd{89.45}{0.15} \\
+        & Random          & 20/cls & \meanstd{52.40}{1.32}   & \meanstd{59.10}{3.80} \\
+        & EDA             & 20/cls & \meanstd{55.12}{1.88}   & \meanstd{62.35}{2.45} \\
+        & DiLM            & 20/cls & $-$                     & \meanstd{64.40}{2.20}\dg \\
+        & \textbf{TAKE}   & 20/cls & \meanstdbf{60.04}{0.12} & \meanstdbf{67.76}{0.35} \\
+        \bottomrule
+      \end{tabular}
+      \par\smallskip
+      {\tiny [$-$] not reported;\quad [$\dagger$] from respective paper;\quad [\textbf{bold}] best per budget.}
+    \column{.48\textwidth}
+      \scriptsize
+      \textbf{Beats DiLM} by $+2.5$ (MNLI-m) and $+3.4$ (QQP) on BERT.
+      \medskip
+
+      The Siamese LR gap is the telling one ($+8.5$ / $+5.8$ / $+7.6$ over Random): a weak learner cannot mask a poor corpus. It even beats Random's BERT on QQP and QNLI.
+      \medskip
+
+      \textbf{The ceiling gap} is wider than for single sentences: NLI needs \emph{pairs} that realise each label, so pool coverage and budget become the binding constraints.
+      \medskip
+
+      Stability: $5$--$7\times$ narrower errors than DiLM.
+  \end{columns}
+\end{frame}
+
+\begin{frame}{4. Results --- ablations}
+  \begin{columns}[T,onlytextwidth]
+    \column{.49\textwidth}
+      \centering \tiny
+      \textbf{Components}\par\smallskip
+      \setlength{\tabcolsep}{1.5pt}
+      \begin{tabular}{l c c c c}
+        \toprule
+        & \multicolumn{2}{c}{\textbf{AG News}} & \multicolumn{2}{c}{\textbf{QQP}} \\
+        \cmidrule(lr){2-3} \cmidrule(lr){4-5}
+        & \textbf{LR} & \textbf{BERT} & \textbf{SiamLR} & \textbf{BERT} \\
+        \midrule
+        Random                & \meanstd{66.39}{2.27}   & \meanstd{75.92}{0.98}   & \meanstd{52.40}{1.32}   & \meanstd{57.94}{1.30} \\
+        \bltrg $k$-Means      & \meanstd{72.89}{1.37}   & \meanstd{77.79}{1.04}   & \meanstd{55.28}{1.12}   & \meanstd{61.30}{1.08} \\
+        No $\kappa$           & \meanstd{75.82}{0.23}   & \meanstd{80.94}{0.93}   & \meanstd{58.80}{0.92}   & \meanstd{63.66}{1.25} \\
+        \textbf{TAKE}         & \meanstdbf{77.07}{0.09} & \meanstdbf{86.50}{1.01} & \meanstdbf{60.04}{0.12} & \meanstdbf{66.29}{1.91} \\
+        \bottomrule
+      \end{tabular}
+      \par\smallskip
+      {\tiny [$\blacktriangle$] \textbf{not} inclusive of TAKE.}
+      \par\medskip
+      \raggedright\scriptsize
+      \textbf{OT alone carries most of the gain} ($+9.4$ LR / $+5.0$ BERT over Random on AG News, vs.\ $+6.5$ / $+1.9$ for $k$-means). $\kappa$ adds the rest: $+1.2$ SiamLR, $+5.6$ BERT.
+    \column{.02\textwidth}
+      \centering
+      \textcolor{A2I2Grey}{\rule{.4pt}{5.2cm}}
+    \column{.49\textwidth}
+      \centering \tiny
+      \textbf{Temporal kernels}\par\smallskip
+      \setlength{\tabcolsep}{1.5pt}
+      \begin{tabular}{l c c c c}
+        \toprule
+        & \multicolumn{2}{c}{\textbf{AG News}} & \multicolumn{2}{c}{\textbf{QQP}} \\
+        \cmidrule(lr){2-3} \cmidrule(lr){4-5}
+        \textbf{Kernel} & \textbf{LR} & \textbf{BERT} & \textbf{SiamLR} & \textbf{BERT} \\
+        \midrule
+        No $\kappa$           & \meanstd{75.82}{0.23}   & \meanstd{80.94}{0.93}   & \meanstd{58.80}{0.92}   & \meanstd{63.66}{1.25} \\
+        Last ckpt             & \meanstd{75.24}{0.57}   & \meanstd{78.28}{0.66}   & \meanstd{58.32}{1.56}   & \meanstd{62.19}{0.57} \\
+        Constant              & \meanstd{76.13}{1.14}   & \meanstd{83.47}{0.71}   & \meanstd{59.44}{0.86}   & \meanstd{64.78}{1.51} \\
+        Linear                & \meanstd{76.20}{0.68}   & \meanstd{85.20}{1.00}   & \meanstd{59.61}{1.11}   & \meanstd{65.60}{1.35} \\
+        Cosine                & \meanstd{76.74}{0.53}   & \meanstd{85.46}{0.64}   & \meanstd{59.14}{0.85}   & \meanstd{66.16}{0.41} \\
+        \textbf{Exp.}         & \meanstdbf{77.07}{0.09} & \meanstdbf{86.50}{1.01} & \meanstdbf{60.04}{0.12} & \meanstdbf{66.29}{1.91} \\
+        \bottomrule
+      \end{tabular}
+      \par\medskip
+      \raggedright\scriptsize
+      \textbf{Last-checkpoint scoring falls \emph{below} no-$\kappa$} ($-2.7$ BERT), the failure mode of Proposition 2. Every decreasing kernel beats it, and exponential wins throughout.
+  \end{columns}
+\end{frame}
+
+% ================================================================ Wrap-up
+\begin{frame}{5. Limitations \& ethical considerations}
+  \small
+  \begin{columns}[T,onlytextwidth]
+    \column{.48\textwidth}
+      \textbf{Limitations}\par\medskip
+      \begin{itemize}
+        \item \textbf{Gradient-norm proxy.} Not Fisher-preconditioned; K-FAC / EKFAC are natural extensions.
+        \item \textbf{Encoder dependence.} The OT cost inherits the geometry of $\phi$; $L$-Lipschitzness is only approximate for discrete text.
+        \item \textbf{Pool coverage.} Bounded by the generator; fine-tuning on $\Dtrain$ mitigates this.
+      \end{itemize}
+    \column{.48\textwidth}
+      \textbf{Ethical considerations}\par\medskip
+      \begin{itemize}
+        \item \textbf{Bias propagation.} Distillation concentrates $\Dtrain$'s statistics, demographic biases included, so audit \emph{before} distilling.
+        \item \textbf{Privacy risk.} Fine-tuned LMs can memorise. Screen $\Dsyn$ by distance-to-closest-record; use DP fine-tuning in regulated domains.
+      \end{itemize}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{6. Takeaways}
+  \begin{itemize}
+    \item The \textbf{hard-sample bias} is the core failure mode of gradient-based text DD: at convergence, noisy samples dominate single-checkpoint influence scores.
+    \medskip
+    \item \textbf{TAKE} corrects it: gradient norms integrated along the trajectory give knowledge scores $\kappa_n$, which weight a discrete OT objective selecting a compact, human-readable corpus.
+    \medskip
+    \item Guarantees end to end: HSB is structural, trajectory integration strictly reduces it, and the loss gap is bounded by the OT cost.
+    \medskip
+    \item Empirically: best across six benchmarks at 0.1\% / 20 per class, and it transfers across backbones.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Resources}
+  \vfill
+  \begin{columns}[T,onlytextwidth]
+    \column{.32\textwidth}
+      \centering
+      \includegraphics[width=3.4cm]{\AIIAssetPath/qr-paper}\par\medskip
+      \textbf{Paper}
+    \column{.32\textwidth}
+      \centering
+      \includegraphics[width=3.4cm]{\AIIAssetPath/qr-code}\par\medskip
+      \textbf{Code}
+    \column{.32\textwidth}
+      \centering
+      \includegraphics[width=3.4cm]{\AIIAssetPath/qr-aboutme}\par\medskip
+      \textbf{About me}
+  \end{columns}
+  \vfill
+\end{frame}
+
+\AIIClosingFrame
+
+\end{document}

@@ -1,3 +1,4 @@
+\section{Methodology} \label{sec:04-method}
 \subsection{Problem Setup and Framework Overview} \label{sec:04-method-setup}
 \begin{foldable} % Setup + overview merged
   TAKE instantiates the RDM objective (Eq.~\ref{eq:reweighted-distribution-matching}) by solving the two open problems from \S\ref{sec:03-theory-failures}.
@@ -31,7 +32,9 @@
   \end{equation}
   As the $H=I$ special case of the influence self-score (Remark~\ref{rem:grad-norm}), $I_{(n,t)}$ exhibits the same HSB structure---the bias that $\kappa_n$ corrects via reciprocal inversion and trajectory integration (Proposition~\ref{prop:traj}).
   Scores are column-wise normalized $I_{(n,t)} \leftarrow I_{(n,t)} / \sum_{n'} I_{(n',t)}$ for comparability across checkpoints.
+\end{foldable}
 
+\begin{foldable}
   In practice, we score samples with a linear head $W$ atop a pre-trained, frozen sentence encoder $\phi$, giving $\theta = (W, \phi)$.
   The signal quality comes not from the linear head but from $\phi(x_n)$: $\phi$ is pre-trained on large-scale corpora and $W$ is fine-tuned on the full task corpus, so the representations, and hence the gradient norms, are both semantically rich and task-aligned by construction.
   Following the standard practice in scalable influence estimation~\cite{guo2021fastif}, we approximate full-model influence via the last layer---here, the linear head $W$:
@@ -57,7 +60,7 @@
 \end{foldable}
 
 \begin{foldable}
-  A decreasing kernel is the principled choice: early checkpoints capture easy samples fitting rapidly, mid checkpoints offer the strongest discriminative signal, and late checkpoints see the gap narrow as memorization sets in~\cite{arpit2017closer}.
+  A decreasing kernel is the natural choice: early checkpoints capture easy samples fitting rapidly, mid checkpoints offer the strongest signal, and late checkpoints see the gap narrow as memorization sets in~\cite{arpit2017closer}.
   Thus, concentrating mass on the early-to-mid phase and discounting late memorization directly corrects the HSB structure identified in Proposition~\ref{prop:hsb}.
   By default we use the exponential kernel $k(t) = e^{-\lambda t / T}$ ($\lambda > 0$), with $\lambda$ treated as a hyperparameter.
   Alternative kernels (linear, cosine) are drop-in replacements, and Proposition~\ref{prop:traj} guarantees bias reduction holds for any strictly decreasing $k$.
@@ -67,7 +70,7 @@
 
 \begin{foldable}
   \begin{proposition}[Trajectory Integration Reduces HSB] \label{prop:traj}
-    Under smooth loss and bounded gradient noise, $\kappa_n$ produces a strictly smaller noisy-over-clean gap than the single last-checkpoint baseline $\kappa^\dagger_n = 1/I_{(n,T-1)}$:
+    Under a smooth loss and bounded gradient noise, $\kappa_n$ produces a strictly smaller noisy-over-clean gap than the single last-checkpoint baseline $\kappa^\dagger_n = 1/I_{(n,T-1)}$:
     \begin{equation}
       \mathbb{E}_{z \sim \mathcal{D}_\textup{noisy}}[\kappa_n] - \mathbb{E}_{z \sim \mathcal{D}_\textup{clean}}[\kappa_n]
       < \mathbb{E}_{z \sim \mathcal{D}_\textup{noisy}}[\kappa^\dagger_n] - \mathbb{E}_{z \sim \mathcal{D}_\textup{clean}}[\kappa^\dagger_n].
@@ -75,7 +78,7 @@
     \end{equation}
   \end{proposition}
   \begin{proof}[Proof sketch (full proof: Appendix~A.2)]
-    Define $\Delta_t := \mathbb{E}_\textup{noisy}[1/I_{(n,t)}] - \mathbb{E}_\textup{clean}[1/I_{(n,t)}]$.
+    Define $\Delta_t := \mathbb{E}_\textup{noisy}[1/I_{(n,t)}] - \mathbb{E}_\textup{clean}[1/I_{(n,t)}]$ as the noisy-over-clean gap.
     The left-hand side of Eq.~\ref{eq:prop2} equals $\sum_t k(t)\Delta_t$.
     For $t \leq T_m$ (before memorization onset): clean gradients decay so $\Delta_t \leq 0$, strictly at some $t^*$ (Appendix~A.2).
     Beyond $T_m$: noisy gradients also drop (memorization), so $\Delta_{T-1} > 0$ — the last-checkpoint baseline is inflated by memorization.
@@ -85,7 +88,6 @@
 \end{foldable}
 
 \subsection{Synthetic Candidate Pool Generation} \label{sec:04-method-pool}
-
 \begin{foldable} % Why a synthetic pool
   Rather than selecting directly from $\mathcal{D}$, TAKE draws $\tilde{\mathcal{D}}$ from a synthetic candidate pool $\mathcal{D}_\text{synth}$.
   Direct subsampling has two problems: at extreme compression, verbatim records raise privacy concerns, and the budget $K$ is too small to cover the full training support.
@@ -126,7 +128,6 @@
   The soft coupling distributes mass across nearby candidates rather than hard one-to-one assignment, reducing sensitivity to embedding errors and encouraging diversity in $\tilde{\mathcal{D}}$.
   The $K$ candidates with highest received mass $\sum_n \gamma^*_{nc}$ are selected as $\tilde{\mathcal{D}}$, resolving open problem~\ref{open-problem-select}.
   The following theorem closes the theoretical chain from RDM (Eq.~\ref{eq:reweighted-distribution-matching}) back to DD (Eq.~\ref{eq:dataset-distillation}), bounding the downstream loss gap in terms of the OT cost.
-
   \begin{theorem}[Distribution Matching Gap Bound] \label{thm:gap}
     Let $f^*_{\mathcal{S}}$ denote the model trained on $\mathcal{S}$, and let $\mathcal{L}(\mathcal{S}) = \mathbb{E}_{z \sim P^w}[\ell(z;\,f^*_{\mathcal{S}})]$.
     Assume: \emph{(i)} $\ell(\cdot;\,f)$ is $L$-Lipschitz in the embedding metric for all $f$; \emph{(ii)} the model class has uniform stability constant $\beta_K = O(1/K)$~\cite{bousquet2002stability}, so that $\sup_z |\ell(z;\,f^*_{\tilde{\mathcal{D}}}) - \ell(z;\,f^*_\mathcal{D})| \leq \beta_K$.

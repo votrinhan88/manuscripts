@@ -1,6 +1,7 @@
-﻿\subsection{Setup} \label{sec:05-setup}
+﻿\section{Experiments} \label{sec:05-experiments}
+\subsection{Setup} \label{sec:05-setup}
 \begin{foldable} % Datasets and models
-  We evaluate on two linguistic tasks: AG News ($N=120$\,K), IMDb ($N=25$\,K), SST-2 ($N=67$\,K) for classification; MNLI-m ($N=393$\,K) and QQP ($N=364$\,K) for natural language inference (NLI).
+  We evaluate on two linguistic tasks: AG News ($N=120$\,K), IMDb ($N=25$\,K), SST-2 ($N=67$\,K) for classification; MNLI-m ($N=393$\,K), QNLI ($N=105$\,K), and QQP ($N=364$\,K) for natural language inference (NLI).
   We compare against four baselines:
   \begin{itemize}
     \item \textbf{Random}: uniform random selection at the target budget.
@@ -57,7 +58,7 @@
     \end{tabular}
     \begin{tablenotes} \footnotesize
     \item {
-        [$-$] not reported; [$\dagger$] reported from respective paper; [\textbf{bold}] best per budget. \phantom{1234}
+        [$-$]~not reported; [$\dagger$]~reported from respective paper; [\textbf{bold}]~best per budget. \phantom{1234}
         DaLLME reported with its best case (OpenAI-3-large embeddings).
       }
     \end{tablenotes}
@@ -67,20 +68,23 @@
 \begin{foldable} % Classification
   \textbf{Accuracy gains and their source.}
   TAKE (0.1\%) outperforms DaLLME on LR by $+2.5$ on AG News and $+1.8$ on IMDb.
-  The gap is widest at the LR level and narrows for neural backbones, consistent with TAKE's backbone-agnostic selection --- trajectory scores are computed independently of the downstream model.
+  The gap is widest at the LR level and narrows for neural backbones, consistent with TAKE's backbone-agnostic selection---trajectory scores are computed independently of the downstream model.
   TAKE minimizes the OT cost in embedding space, directly controlling the downstream loss gap under $P^w$ via Theorem~\ref{thm:gap} (the gap to the original $P_\mathcal{D}$ is bounded by Remark~\ref{rem:double-gap}).
   Since $\kappa_n$ scores are computed independently of the evaluation backbone, this coverage of $P^w$ transfers across model families.
+\end{foldable}
 
+\begin{foldable}
   \textbf{Stability across runs.}
   The wide standard errors for Random (IMDb LR $\pm5.5$, BERT $\pm4.1$) reveal that random selection at 0.1\% can land anywhere from a coherent corpus to a degenerate one.
-  TAKE's errors are at least $5\times$ narrower ($\pm0.1$--$2.2$), a direct consequence of OT-based selection: the transport plan distributes selected prototypes across $P^w$ rather than drawing them i.i.d., suppressing the variance that Random incurs by chance.
+  TAKE's errors are at least $5\times$ narrower ($\pm0.1$--$2.2$), a direct consequence of OT-based selection: the transport plan distributes selected prototypes across $P^w$ rather than drawing them independently, suppressing the variance that Random incurs by chance.
+\end{foldable}
 
+\begin{foldable}
   \textbf{SST-2 vs.\ DiLM.}
-  At 20/cls, TAKE matches DiLM on BERT ($81.15$ vs.\ $80.30$, within s.e.) while also providing results for LR, TextCNN, and TextRNN where DiLM has none --- indicating that the OT selection step generalizes across backbone families without retraining the scorer.
+  At 20/cls, TAKE matches DiLM on BERT ($81.15$ vs.\ $80.30$, within s.e.) while also providing results for LR, TextCNN, and TextRNN where DiLM has none---indicating that the OT selection step generalizes across backbone families without retraining the scorer.
 \end{foldable}
 
 \subsection{Natural Language Inference} \label{sec:05-results-nli}
-
 \begin{table}[ht]
   \centering
   \begin{threeparttable}
@@ -98,9 +102,16 @@
       & DiLM            & 20/cls & $-$                     & \meanstd{48.70}{2.60}\dg \\
       & \textbf{TAKE}   & 20/cls & \meanstdbf{42.66}{0.15} & \meanstdbf{51.24}{0.45} \\
       \midrule
+      \multirow{5}{*}{\rotatebox{90}{QNLI}}
+      & Full dataset    & 100\%  & \meanstd{73.05}{0.13}   & \meanstd{82.50}{0.12} \\
+      & Random          & 20/cls & \meanstd{52.21}{0.28}   & \meanstd{57.19}{2.20} \\
+      & EDA             & 20/cls & \meanstd{54.33}{1.21}   & \meanstd{59.81}{1.42} \\
+      & DiLM            & 20/cls & $-$                     & $-$ \\
+      & \textbf{TAKE}   & 20/cls & \meanstdbf{57.96}{0.58} & \meanstdbf{64.89}{3.58} \\
+      \midrule
       \multirow{5}{*}{\rotatebox{90}{QQP}}
       & Full dataset    & 100\%  & \meanstd{78.58}{0.05}   & \meanstd{89.45}{0.15} \\
-      & Random          & 20/cls & \meanstd{52.40}{3.12}   & \meanstd{59.10}{3.80} \\
+      & Random          & 20/cls & \meanstd{52.40}{1.32}   & \meanstd{59.10}{3.80} \\
       & EDA             & 20/cls & \meanstd{55.12}{1.88}   & \meanstd{62.35}{2.45} \\
       & DiLM            & 20/cls & $-$                     & \meanstd{64.40}{2.20}\dg \\
       & \textbf{TAKE}   & 20/cls & \meanstdbf{60.04}{0.12} & \meanstdbf{67.76}{0.35} \\
@@ -108,8 +119,8 @@
     \end{tabular}
     \begin{tablenotes} \footnotesize
     \item {
-        [$-$] not reported; [$\dagger$] reported from respective paper; \phantom{12345}
-        [\textbf{bold}] best per budget.
+        [$-$]~not reported; [$\dagger$]~reported from respective paper; \phantom{12345}
+        [\textbf{bold}]~best per budget.
       }
     \end{tablenotes}
   \end{threeparttable}
@@ -117,17 +128,88 @@
 \begin{foldable} % NLI
   \textbf{Gains and their interpretation.}
   DaLLME has no published NLI experiments and is excluded from this comparison.
-  TAKE outperforms DiLM by $+2.5$ on MNLI-m and $+3.4$ on QQP (BERT), and leads on Siamese LR across both datasets where DiLM has no result.
-  The LR gap ($+8.5$ on MNLI-m, $+7.6$ on QQP relative to Random) is particularly informative: Siamese LR has no capacity to compensate for a poor corpus --- every percentage point of accuracy here must come from the quality of $\tilde{\mathcal{D}}$ itself.
-  That TAKE's Siamese LR ($60.04$) exceeds even the Random BERT baseline ($59.10$) on QQP suggests the selected sentence pairs are genuinely more informative, not merely better distributed.
+  In comparison with DiLM, TAKE outperforms DiLM by $+2.5$ on MNLI-m and $+3.4$ on QQP on a BERT learner, and provides competitive results for QNLI.
+  The LR gap ($+8.5$ on MNLI-m, $+5.8$ on QNLI, $+7.6$ on QQP relative to Random) is particularly informative: Siamese LR has no capacity to compensate for a poor corpus---every percentage point of accuracy here must come from the quality of $\tilde{\mathcal{D}}$ itself.
+  That TAKE's Siamese LR exceeds the Random BERT baseline on both QQP ($60.04$ vs.\ $59.10$) and QNLI ($57.96$ vs.\ $57.19$) suggests the selected sentence pairs are genuinely more informative, not merely better distributed.
+\end{foldable}
 
+\begin{foldable}
   \textbf{The NLI ceiling gap and what it implies.}
-  All distilled methods fall well short of the full-dataset ceiling ($86.8$ / $89.5$), a gap larger than on single-sentence tasks.
-  NLI imposes a joint constraint: the synthetic pool must contain pairs whose premise--hypothesis relationship correctly reflects each class label at extreme budget ($\approx\!60$ pairs for MNLI-m at 20/cls).
-  This is a harder coverage requirement than single-sentence classification, and it points to two compounding limitations: the 20/cls budget leaves only $\approx\!60$ pairs for MNLI-m, and the synthetic pool must jointly cover all premise--hypothesis relationship types.
-  Either could be the binding bottleneck; the gap narrows the hypothesis space to pool generation and budget, rather than scoring or selection.
+  All distilled methods fall short of the full-dataset ceiling ($86.8$ / $82.5$ / $89.5$ for MNLI-m, QNLI, QQP), a gap larger than on single-sentence tasks.
+  NLI imposes a joint constraint: the synthetic pool must contain pairs whose relationship correctly reflects each class label at extreme budget ($\approx\!60$ pairs for MNLI-m, $\approx\!40$ for QQP and QNLI, at 20/cls).
+  This is a harder coverage requirement than single-sentence classification, and the synthetic pool must cover all relationship types within it.
+  This suggests that pool generation and budget are the binding constraints, rather than scoring or selection.
+\end{foldable}
 
+\begin{foldable}
   \textbf{Stability.}
-  TAKE's errors ($\pm0.1$--$0.5$) are $5$--$7\times$ narrower than DiLM's ($\pm2.2$--$2.6$), mirroring the pattern on classification.
-  This is consistent with the OT transport plan enforcing coverage of $P^w$ rather than selecting samples independently: deterministic coverage implies that any two runs of TAKE over the same pool yield nearly identical corpora, whereas DiLM's gradient-matching step introduces variance through its dependence on a randomly initialised model.
+  On MNLI-m and QQP, TAKE's errors ($\pm0.1$--$0.5$) are $5$--$7\times$ narrower than DiLM's ($\pm2.2$--$2.6$), mirroring the pattern on classification.
+  This is consistent with the OT transport plan enforcing coverage of $P^w$ rather than selecting samples independently: deterministic coverage implies that any two runs of TAKE over the same pool yield nearly identical corpora, whereas DiLM's gradient-matching step introduces variance through its dependence on a randomly initialized model.
+\end{foldable}
+
+\subsection{Component Contributions} \label{sec:05-results-components}
+\begin{table}[ht]
+  \centering
+  \begin{threeparttable}
+    \caption{Distillation accuracy (\%) under TAKE component ablation.}
+    \label{tab:results-abla-components}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{l c c c c}
+      \toprule
+      & \multicolumn{2}{c}{\textbf{AG News}} & \multicolumn{2}{c}{\textbf{QQP}} \\
+      \cmidrule(lr){2-3} \cmidrule(lr){4-5}
+      & \textbf{LR} & \textbf{BERT} & \textbf{Siamese LR} & \textbf{BERT} \\
+      \midrule
+      Random                   & \meanstd{66.39}{2.27}   & \meanstd{75.92}{0.98}   & \meanstd{52.40}{1.32}   & \meanstd{57.94}{1.30} \\
+      \bltrg $k$-Means nearest & \meanstd{72.89}{1.37}   & \meanstd{77.79}{1.04}   & \meanstd{55.28}{1.12}   & \meanstd{61.30}{1.08} \\
+      TAKE without $\kappa$    & \meanstd{75.82}{0.23}   & \meanstd{80.94}{0.93}   & \meanstd{58.80}{0.92}   & \meanstd{63.66}{1.25} \\
+      \textbf{TAKE}            & \meanstdbf{77.07}{0.09} & \meanstdbf{86.50}{1.01} & \meanstdbf{60.04}{0.12} & \meanstdbf{66.29}{1.91} \\
+      \bottomrule
+    \end{tabular}
+    \begin{tablenotes} \footnotesize
+      \item {[$\blacktriangle$]~\textbf{not} inclusive of TAKE; [\textbf{bold}]~best results.}
+    \end{tablenotes}
+  \end{threeparttable}
+\end{table}
+
+\begin{foldable} % Ablation
+  To isolate the contribution of each design choice, we ablate TAKE's components on AG News and QQP as representatives for the classification and NLI tasks, in Table~\ref{tab:results-abla-components}.
+  TAKE improves over Random by $+10.7$ on AG News LR and $+10.6$ on BERT; $k$-means, by comparison, accounts for only part of this gain ($+6.5$ LR, $+1.9$ BERT), while our discrete OT selection step alone (TAKE without $\kappa$) already achieves $+9.4$ LR and $+5.0$ BERT from the same baseline.
+  The same pattern holds on QQP: $k$-means gains $+2.9$ / $+3.4$ (Siamese LR / BERT) whereas TAKE without $\kappa$ gains $+6.4$ / $+5.7$.
+  Adding $\kappa$ knowledge scores delivers the remaining improvement, modestly for Siamese LR ($+1.2$) but substantially for BERT ($+5.6$ on AG News, $+2.6$ on QQP), suggesting that $\kappa$ primarily benefits models with enough capacity to exploit the harder, informative examples that high-$\kappa$ samples represent.
+\end{foldable}
+
+\subsection{Kernels for Temporal Weighting} \label{sec:05-results-kernels}
+\begin{table}[ht]
+  \centering
+  \begin{threeparttable}
+    \caption{Distillation accuracy (\%) with alternative temporal kernels.}
+    \label{tab:results-abla-kernels}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{l c c c c}
+      \toprule
+      & \multicolumn{2}{c}{\textbf{AG News}} & \multicolumn{2}{c}{\textbf{QQP}} \\
+      \cmidrule(lr){2-3} \cmidrule(lr){4-5}
+      \textbf{Kernel} & \textbf{LR} & \textbf{BERT} & \textbf{Siamese LR} & \textbf{BERT} \\
+      \midrule
+      TAKE without $\kappa$       & \meanstd{75.82}{0.23}   & \meanstd{80.94}{0.93}   & \meanstd{58.80}{0.92}   & \meanstd{63.66}{1.25} \\
+      Last checkpoint             & \meanstd{75.24}{0.57}   & \meanstd{78.28}{0.66}   & \meanstd{58.32}{1.56}   & \meanstd{62.19}{0.57} \\
+      Constant                    & \meanstd{76.13}{1.14}   & \meanstd{83.47}{0.71}   & \meanstd{59.44}{0.86}   & \meanstd{64.78}{1.51} \\
+      Linear                      & \meanstd{76.20}{0.68}   & \meanstd{85.20}{1.00}   & \meanstd{59.61}{1.11}   & \meanstd{65.60}{1.35} \\
+      Cosine                      & \meanstd{76.74}{0.53}   & \meanstd{85.46}{0.64}   & \meanstd{59.14}{0.85}   & \meanstd{66.16}{0.41} \\
+      Exponential (\textbf{TAKE}) & \meanstdbf{77.07}{0.09} & \meanstdbf{86.50}{1.01} & \meanstdbf{60.04}{0.12} & \meanstdbf{66.29}{1.91} \\
+      \bottomrule
+    \end{tabular}
+    \begin{tablenotes} \footnotesize
+      \item {[\textbf{bold}]~best results.}
+    \end{tablenotes}
+  \end{threeparttable}
+\end{table}
+
+\begin{foldable}
+  Table~\ref{tab:results-abla-kernels} ablates the choice of temporal kernel defined in \S\ref{sec:04-gradient-kappa}.
+  The last-checkpoint baseline is the critical exception: it falls \textit{below} the no-$\kappa$ baseline across all backbones, most severely on BERT ($-2.7$ on AG News, $-1.5$ on QQP).
+  This is precisely the failure mode identified in Proposition~\ref{prop:traj}: when $\kappa$ is extracted at convergence only, the learner has fully memorized difficult samples, so the \textit{hard-sample bias} is intensified rather than corrected, and the selected corpus is skewed towards harder, less representative examples.
+  All other trajectory-based strategies lessen this effect and outperform the no-$\kappa$ baseline (OT only), with decreasing kernels (linear, cosine, exponential) doing so most strongly by concentrating mass on the early-to-mid training phase where the bias-correcting signal is strongest.
+  The exponential kernel (TAKE default) achieves the best result in all cases, consistent with the theoretical preference for early-phase concentration of influence.
 \end{foldable}
