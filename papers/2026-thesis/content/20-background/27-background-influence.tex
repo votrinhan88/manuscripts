@@ -1,0 +1,96 @@
+\section{Influence Functions for Importance Weighting} \label{sec:27-background-influence}
+
+\S\ref{sec:26-background-datasetdistill} identified property~(1) as a binding constraint: a complete text dataset distillation method needs knowledge-informed sample weighting that reflects each sample's contribution to the downstream objective.
+Influence functions address this by quantifying each sample's counterfactual effect on learned parameters, providing a principled importance score that reflects true contribution rather than convergence-stage noise.
+The text setting introduces a structural complication, the hard-sample bias, that this section develops before turning to its correction via trajectory integration.
+
+\begin{foldable}
+  \textbf{Influence as counterfactual contribution.}
+  Influence functions~\cite{cook1982residuals,koh2017understanding} formalize a simple question: how much would removing a training example $z_n = (\mathbf{x}_n, y_n)$ from the dataset change the learned parameters?
+  This counterfactual contribution is a direct measure of example importance for the learning objective, not a proxy based on geometry (which examples are central), frequency (which examples appear often), or loss (which examples are hard to fit).
+  The influence of $z_n$ on the converged model $\hat\theta$ is approximated via implicit differentiation, treating the converged parameters as an implicit function of the training set:
+  \begin{equation}
+    \mathcal{I}(z_n) \approx
+    -\nabla_\theta \mathcal{L}(z_n, \hat\theta)^\top
+    H_{\hat\theta}^{-1}
+    \nabla_\theta \mathcal{L}(z_n, \hat\theta),
+    \label{eq:influence}
+  \end{equation}
+  where $\hat\theta$ is the converged model and $H_{\hat\theta} = \frac{1}{N}\sum_n \nabla^2_\theta \mathcal{L}(z_n, \hat\theta)$ is the Hessian of the training loss.
+  Intuitively, the influence combines two factors: the gradient $\nabla_\theta \mathcal{L}(z_n, \hat\theta)$ (how far is $z_n$ from being fit) and $H_{\hat\theta}^{-1}$ (how sensitive are the converged parameters to that misfitting).
+  A large positive influence indicates that $z_n$ is informative for learning, removing it would degrade the model significantly.
+  Whereas a large negative influence indicates that $z_n$ is either mislabeled or an outlier and is harmful to generalization.
+  Influence is defined relative to convergence, not relative to a training loss threshold; it captures counterfactual impact on the final learned behaviour.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Tractable approximations.}
+  The practical limitation of exact influence functions is computational: Hessian inversion is $O(p^2)$ in space and $O(p^3)$ in time for dense matrices, intractable for modern scale.
+  For a model the size of BERT-base ($p \approx 110$\,M parameters), storing a dense $p \times p$ Hessian is infeasible on any current hardware.
+  Tractable approximations replace Hessian inversion with cheaper operations that capture the same intuition.
+  TracIn~\cite{pruthi2020estimating} (Influence via TracIn) replaces $H^{-1}$ with a sum of gradient dot-products across training checkpoints, based on the implicit function theorem:
+  \begin{equation}
+    \text{TracIn}(z_n) = \sum_{t=1}^{T} \eta_t \,
+    \nabla_\theta \mathcal{L}(z_n, \theta_t)^\top \,
+    \nabla_\theta \mathcal{L}(z_n, \theta_t),
+    \label{eq:tracin}
+  \end{equation}
+  where $\theta_t$ is the model checkpoint at step $t$ and $\eta_t$ is the learning rate at that step.
+  This requires only storing gradients (a vector per checkpoint), not Hessians.
+  TracIn is naturally trajectory-aware: it integrates influence contributions across the full training arc (all $T$ steps), not just the convergence point.
+  Early-stage gradients capture which examples drive initial learning; late-stage gradients capture refinement and overfitting.
+  Their sum provides a balanced importance estimate.
+  TRAK~\cite{park2023trak} (Improving Tracin) scales further by projecting gradients onto low-rank subspaces, reducing both memory and computation to $O(p \cdot r)$ where $r \ll p$ is the rank.
+  DataInf~\cite{kwon2023datainf} pushes the cost down further by replacing $H^{-1}$ with a closed-form approximation derived from a block-diagonal Hessian assumption, avoiding both Hessian inversion and trajectory storage.
+  The simplest proxy, gradient norm $\|\nabla_\theta \mathcal{L}(z_n, \hat\theta)\|$ at convergence, trades theoretical accuracy for practical speed, requiring only a single forward-backward pass.
+  This single-checkpoint approximation is widely used because it has near-zero computational overhead and often works well empirically when combined with other mechanisms.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{From test attribution to corpus-level scoring.}
+  TracIn, TRAK, and DataInf were all designed as \textit{test-conditioned} attribution methods: they answer the question ``which training examples most influenced this specific test prediction?''.
+  Dataset distillation needs the dual question: which training examples are most important to the corpus as a whole, independent of any one test point.
+  The standard adaptation is \textit{self-influence}, $\mathcal{I}_\text{self}(z_n) = \mathcal{I}(z_n; z_n)$, obtained by setting the query point equal to the training point itself.
+  Self-influence is then evaluated at the converged parameters $\hat\theta$, which is exactly where the next foldable's bias originates.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Hard-sample bias: the structural failure.}
+  Single-checkpoint influence estimates, whether computed exactly or approximately as gradient norms, suffer from a systematic bias at convergence.
+  After sufficient training, a well-fitted model assigns near-zero loss to clean, easy examples; their gradients $\nabla_\theta \mathcal{L}(z_n, \hat\theta)$ vanish.
+  Noisy, mislabeled, or atypical examples resist convergence: the model cannot simultaneously fit them and the clean majority to perfection, so their gradients remain large.
+  A selector maximising single-checkpoint gradient norms $\|\nabla_\theta \mathcal{L}(z_n, \hat\theta)\|$ therefore preferentially selects the hardest, noisiest examples, exactly the examples most harmful to a student trained on the resulting surrogate.
+  This creates a perverse inversion: examples that are most influential by counterfactual impact (hard-to-fit examples that the model has compromised on) are conflated with examples that are most representative of the true distribution (central, representative examples that the model fits perfectly).
+  The selector picks outliers.
+  This is not a tuning problem that can be fixed by rescaling, threshold adjustment, or different gradient aggregation; it is structural.
+  The gradient signal itself at convergence is misaligned with the learning objective: a large gradient indicates the example is hard to fit, not that it is representative.
+\end{foldable}
+
+\begin{foldable}
+  Empirical evidence for hard-sample bias appears in multiple literatures.
+  \cite{arpit2017closer} show that neural networks fit clean patterns before noisy ones during training, so any score that averages over the late training phase is dominated by examples the network failed to fit.
+  Dataset cartography~\cite{swayamdipta2020dataset} traces training dynamics epoch-by-epoch and defines a confidence-variability plane: each example receives a per-epoch confidence (model's probability on the true label) and a variability (standard deviation of confidence across epochs).
+  Examples cluster into four regions: easy (high confidence, low variability), hard (low confidence, high variability), ambiguous (high variability), and memorized (high confidence, low variability).
+  The hard region is enriched in mislabeled and noisy examples, examples that hurt generalization.
+  Co-teaching~\cite{han2018co} studies noise-robust training through the lens of which examples large-loss samplers select: at late training stages, examples with large losses are predominantly noisy or mislabeled, not informative.
+  Both findings confirm that gradient norms (which correlate with loss magnitude) at convergence are poor importance proxies.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Trajectory integration as correction.}
+  If single-checkpoint scores are biased by late-stage noise dominance, the solution is to integrate importance signals across multiple training stages rather than relying on convergence.
+  Consider the training trajectory: at early epochs, all examples have large gradients because the model's initial random initialisation is far from the true target.
+  As training progresses, clean examples' gradients shrink (the model learns to fit them) while noisy examples' gradients plateau or grow (the model struggles to fit them without hurting clean examples).
+  By late epochs, gradient magnitude is almost entirely determined by noise/hardness, not importance.
+  Averaging gradient norms across $T$ checkpoints from different training stages $(t=1, 2, \ldots, T)$ dilutes this late-stage bias.
+  The average example (clean or noisy) receives calibrated importance that reflects its true learning contribution across the full trajectory.
+  Trajectory-integrated importance scores (as in TracIn or checkpoint averaging) reduce hard-sample bias substantially, producing importance estimates that correlate with representation quality rather than with noise.
+  Theoretically, under distributional assumptions (\eg, noise is light-tailed), trajectory integration produces unbiased influence estimates; empirically, even simple checkpoint averaging provides substantial improvement.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Corrected weights are necessary but insufficient.}
+  Trajectory-integrated importance scores address property~(1): they quantify each sample's true contribution to learning.
+  However, the selection rule applied to these corrected scores determines whether the chosen subset covers the importance-weighted distribution or concentrates on the highest-scoring subset of it.
+  Property~(2) remains open: no matter how accurate the per-sample weights, ranking and selecting independently cannot guarantee that the chosen subset covers the weighted distribution.
+\end{foldable}

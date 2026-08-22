@@ -1,19 +1,41 @@
+\acresetall
+
 \chapter{Background} \label{ch:20-background}
 
 \begin{foldable}
-  This chapter establishes the technical foundations for the two parallel tracks that converge on the thesis contributions.
-  Track~A covers the image knowledge distillation pipeline (\S\ref{sec:21-background-deeplearning}--\S\ref{sec:25-background-synthetic}): beginning with the deep learning architectures and compression landscape that motivate the problem, through the standard and restricted-access distillation settings, and ending with the generative and contrastive tools that the thesis uses to enforce distributional coverage.
-  Track~B covers text dataset distillation (\S\ref{sec:26-background-datasetdistillation}--\S\ref{sec:27-background-importanceselection}): beginning with the language model foundations, tracing the dataset distillation paradigm from image to text, and developing the importance-scoring and optimal-transport machinery that underpins Chapter~\ref{ch:50-research03}.
-  Both tracks share the same theoretical root: whether the compressed artefact is a student model or a surrogate corpus, it must faithfully cover the teacher's (or full dataset's) distribution.
-  Distributional fidelity is therefore a first-class design criterion in both settings, not a coincidental commonality.
-  \S\ref{sec:28-background-summary} synthesises the two tracks and states the three open problems that Chapters~\ref{ch:30-research01}--\ref{ch:50-research03} address in turn.
+  This chapter sets out a two-track overview in which \textit{distributional fidelity} is the unifying design criterion.
+  \S\ref{sec:21-background-deeplearning}--\S\ref{sec:22-background-compression} establish the shared foundation: deep learning architectures across vision and language, and the compression landscape.
+  From there the chapter divides into two parallel tracks.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Model Track}:
+  \S\ref{sec:23-background-modeldistill}--\S\ref{sec:24-background-kdrestricted} develops the model distillation pipeline from standard \ac{KD} (soft-target transfer, dark knowledge, temperature scaling) through the taxonomy of methods (response/feature/relation-based) to the restricted-access setting that arises in practice.
+  Two restrictions define this landscape: teacher access and data availability.
+  As restrictions tighten, the distillation signal degrades: few-shot or data-free combined with black-box access creates a double bind where both coverage and signal quality are simultaneously constrained.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Dataset Track}:
+  \S\ref{sec:26-background-datasetdistill}--\S\ref{sec:28-background-ot} develops the parallel problem on the data axis: compressing a training corpus into a small surrogate that induces similar model behavior.
+  Text dataset distillation under extreme compression requires knowledge-informed weighting and distributional coverage for utility, and must remain human-readable for interpretability.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Unifying Principle}:
+  Both tracks are connected by \S\ref{sec:25-background-distribution}, which establishes \textit{distributional fidelity} as the binding constraint: whether the compressed artefact is a student model (Model Track) or a surrogate corpus (Dataset Track), it must faithfully recover the original distribution.
+\end{foldable}
+
+\begin{foldable}
+  \S\ref{sec:29-background-summary} draws both tracks together and states three open problems that Chapters~\ref{ch:30-research01}--\ref{ch:50-research03} address: few-shot black-box \ac{KD}, data-free black-box \ac{KD}, and text dataset distillation.
 \end{foldable}
 
 \input{./content/20-background/21-background-deeplearning}
 \input{./content/20-background/22-background-compression}
-\input{./content/20-background/23-background-kdfoundations}
+\input{./content/20-background/23-background-modeldistill}
 \input{./content/20-background/24-background-kdrestricted}
-\input{./content/20-background/25-background-synthetic}
-\input{./content/20-background/26-background-datasetdistillation}
-\input{./content/20-background/27-background-importanceselection}
-\input{./content/20-background/28-background-summary}
+\input{./content/20-background/25-background-distribution}
+\input{./content/20-background/26-background-datasetdistill}
+\input{./content/20-background/27-background-influence}
+\input{./content/20-background/28-background-ot}
+\input{./content/20-background/29-background-summary}

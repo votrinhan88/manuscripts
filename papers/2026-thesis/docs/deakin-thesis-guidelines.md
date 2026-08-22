@@ -4,7 +4,7 @@
 **Last updated:** 27 February 2026  
 **Reference:** https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/examination-procedures
 
-> **Note:** This document focuses on formatting, content structure, and technical submission requirements. For examination procedures, timelines, and post-submission processes, see [Deakin's full examination procedures](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/examination-procedures).
+> **Note:** This document focuses on formatting, content structure, and technical submission requirements. For examination procedures, timelines, and post-submission processes, see Examination procedures. A full list of references and templates will also be provided at the end of file.
 
 ---
 
@@ -28,6 +28,7 @@
 - **Thesis title limit:** 10 words maximum
 - Avoid acronyms and abbreviations
 - Non-compliance may delay progression to examination
+- [Self-note]: The thesis has 
 
 ### Candidate Declaration Form (Page 2 - Not Numbered)
 - Must be signed electronically or printed and scanned
@@ -37,12 +38,6 @@
 - Required if you received scholarship or any financial support for project
 - Include The Research Training Program (RTP)/Funding Acknowledgement form
 
-### Authorship Statement (If Applicable)
-- Required if thesis includes any multi-authored publications
-- One form per multi-authored publication
-- Must describe contributions by you and every other author
-- Must be signed by all authors
-
 ### Acknowledgement Page (Page 4 - Not Numbered - Optional)
 - If professional editor used, editing assistance must be acknowledged
 
@@ -51,15 +46,15 @@
 - Full versions may be included as appendix (not numbered)
 - Note: Will be included in word count; alternatively, provide link to publication
 
+### Authorship Statement (If Applicable)
+- Required if thesis includes any multi-authored publications
+- One form per multi-authored publication
+- Must describe contributions by you and every other author
+- Must be signed by all authors
+
 ### COVID-19 Thesis Impact Statement (Optional)
 - Maximum 600 words
 - May be included as additional page and/or addressed within thesis content
-
-### Course Learning Outcomes Statement (Required)
-- Written statement (maximum 1 page)
-- Demonstrate how you have met course learning outcomes with at least one example
-- Submit to HDR Examinations at same time as thesis
-- May reference progress review milestone or individual learning plan as evidence
 
 ### Submission of Thesis
 
@@ -104,9 +99,9 @@ Submit simultaneously with thesis (same day, matching document); detects plagiar
 1. **Title page**
 2. **Candidate declaration form**
 3. **RTP/Funding Acknowledgement**
-4. **Authorship statement**
-5. **Acknowledgement page**
-6. **List of publications**
+4. **Acknowledgement page**
+5. **List of publications**
+6. **Authorship statement**
 7. **COVID-19 Thesis Impact Statement**
 8.(*) NOT INCLUDED: Course Learning Outcomes Statement
 
@@ -125,7 +120,19 @@ Write 50–59 words for graduation program and Deakin Research Online: begin wit
 
 ---
 
-## Resources & Checklists
-**Formatting checklists:** [Thesis formatting](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/examination-procedures) (200 KB) | [Library copy submission](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/examination-procedures) (221.8 KB)
-**Required forms for submission:** Response to Examiners | RTP/Funding Acknowledgement | Course learning outcomes statement
-**Full procedures:** [Deakin examination procedures](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/examination-procedures) | [FAQs for students](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/hdr-examinations-faqs-for-students)
+## References
+- Start here at the root [Thesis and examinations](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations)
+- [Examination procedures](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/examination-procedures)
+- [Forms & Guidelines](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/forms-and-guidelines)
+   - Guidelines
+      - Examination process flowchart
+      - Thesis formatting checklist
+      - Library copy submission checklist
+   - Forms
+      - Sample thesis title page for PhD and Masters
+      - Candidate declaration form
+      - Research Training Program (RTP) / Funding Acknowledgement
+      - Authorship Statement
+      - Digital Thesis and Copyright Access form
+      - Response to Examiners template
+- [FAQs for students](https://www.deakin.edu.au/students/research-support/during-your-studies/thesis-and-examinations/hdr-examinations-faqs-for-students)

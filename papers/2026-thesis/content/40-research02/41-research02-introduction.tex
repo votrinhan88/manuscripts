@@ -1,39 +1,38 @@
 \section{Introduction} \label{sec:41-research02-introduction}
-\begin{foldable} % Knowledge distillation
-    The evolution of Artificial Intelligence has resulted in high-capacity models that serve as centralized repositories of specialized expertise.
-    However, the substantial size of these models often limits their mobility and deployment in decentralized environments, such as mobile or edge devices.
-    To bridge this gap, research on model compression seeks to transfer these expert insights into lightweight, portable agents.
-    \textit{Knowledge distillation} (KD)~\cite{hinton2015distilling} is the primary framework for this pedagogical exchange, where an ``expert'' network (teacher) guides the learning of a ``novice'' network (student).
-\end{foldable}
 
-\begin{foldable} % Black-box data-free KD
-    In practical AI ecosystems, this information flow is frequently obstructed by systemic barriers that prevent transparent knowledge exchange.
-    Stringent privacy regulations, such as HIPAA or GDPR~\cite{us1996hipaa, eu2016gdpr}, prohibit access to original training data, particularly in sensitive domains, such as personal, health, and proprietary data.
-    Furthermore, intellectual property or security concerns~\cite{us2016dsta} often render the teacher as ``black-box'', withholding internal signals like activations, gradients, or class probabilities, and returning only the top-1 predictions.
-    These constraints define the \textit{black-box data-free KD} (BBDFKD) problem: training a student to emulate an expert's intelligence through a narrow interface without any historical data.
+\begin{foldable}
+  The dual challenge of domain-coverage deficit and information-bottleneck deficit is qualitatively different from the few-shot setting addressed in Chapter~\ref{ch:30-research01}.
+  Few-shot black-box \ac{KD} at least provides a distributional anchor: real training images from the teacher's domain, even if limited in diversity.
+  Data-free black-box \ac{KD} removes this anchor entirely.
+  The generator must reconstruct the image manifold from hard-label queries alone, with no real samples to guide synthesis and no soft targets to preserve inter-class structure.
 \end{foldable}
 
 \begin{foldable} % Recent methods
-    Recent methods in BBDFKD~\cite{wang2021zero,zhang2022ideal,yuan2024data} leverage synthetic data, but they still encounter two primary bottlenecks.
-    First, they suffer from a lack of \textbf{domain coverage}; synthetic samples fail to replicate the hierarchical structures and semantic variation of natural environments, resulting in a distribution mismatch with the teacher's expertise.
-    Second, the \textbf{distillation signals} are suboptimal.
-    By relying exclusively on hard top-1 indices, students are denied the ``dark knowledge'' of inter-class relationships---a cornerstone of KD essential for emulating expert logic.
-    Within a collective intelligence framework, this resembles an agent attempting to reconstruct a diverse collective memory from discrete feedback, deprived of the historical data that shaped the expert's knowledge.
+  Recent methods in BBDFKD~\cite{wang2021zero,zhang2022ideal,yuan2024data} use synthetic data, but they still encounter two primary bottlenecks.
+  First, they suffer from a lack of domain coverage: synthetic samples fail to replicate the hierarchical structures and semantic variation of natural environments, resulting in a distribution mismatch with the teacher's expertise.
+  Second, the distillation signals are suboptimal.
+  By relying exclusively on hard top-1 indices, students are denied the \textit{dark} knowledge of inter-class relationships---a cornerstone of \ac{KD} essential for emulating expert logic.
 \end{foldable}
 
 \begin{foldable} % Our method
-    \textbf{Our method.} We propose \textbf{Diverse Image Priors Knowledge Distillation (DIPKD)} to tackle the BBDFKD problem, i.e., training a student from a black-box teacher with only top-1 signal and without access to any real data.
-    To improve KD, we incorporate \textit{diversity}, i.e., ``how broadly the samples distribute'', into a collaborative three-phase pipeline:
-        (1)~\textit{Synthesis}: a pipeline that crafts synthetic \textit{``image priors''} with diverse patterns and semantics of natural objects;
-        (2)~\textit{Contrast}: an optimization phase that employs an auxiliary primer student to act as a white-box mediator and ensure synthetic samples are informationally distinct via contrastive learning;
-        and (3)~\textit{Distillation}: a final training stage that reconciles hard teacher signals with soft probabilistic insights extracted from the primer student to maximize knowledge transfer.
+  \textbf{Our method.} We propose \textbf{\acl{DIPKD}} (\acs{DIPKD}) to tackle the BBDFKD problem, \ie, training a student from a black-box teacher with only top-1 signal and without access to any real data.
+  To improve \ac{KD}, we incorporate \textit{diversity}, \ie, how broadly the samples distribute, into a collaborative three-phase pipeline:{
+    (1)~\textit{Synthesis}: crafts synthetic \textit{image priors} with diverse patterns and semantics of natural objects;
+    (2)~\textit{Contrast}: employs a \textit{primer student} to act as a white-box mediator and ensure synthetic samples are informationally distinct via contrastive learning;
+    and (3)~\textit{Distillation}: distills the final student optimally with hard labels from teacher and soft probabilistic labels from the primer student.
+  }
+  Synthesis and Contrast together address the domain-coverage deficit; the primer student's soft labels in Distillation partially restore the information-bottleneck deficit.
 \end{foldable}
 
 \begin{foldable} % Contribution
-    \textbf{Contribution.} In summary, we highlight our contributions as follows:
-    \begin{enumerate}
-        \item We introduce \textbf{image priors}, a novel class of synthetic images exhibiting diversity across hierarchical structures, nonlinearity, and semantics.
-        \item We propose the novel use of a \textbf{primer student}, enabling contrastive optimization and the extraction of soft probabilistic signals that are otherwise restricted in black-box KD.
-        \item Extensive analysis across 12 benchmarks demonstrates that our framework achieves state-of-the-art KD performance by effectively expanding the semantic coverage of the synthetic domain.
-    \end{enumerate}
+  \textbf{Contribution.} In summary, we highlight our contributions as follows:
+  \begin{enumerate}
+    \item We introduce \textit{image priors}, a novel class of synthetic images exhibiting diversity across hierarchical structures, nonlinearity, and semantics.
+    \item We propose the novel use of a \textit{primer student}, enabling contrastive optimization and extraction of soft probabilistic signals originally restricted in black-box \ac{KD}.
+    \item Extensive analysis of our framework demonstrates that it effectively expands the semantic coverage of synthetic domains, leading to our state-of-the-art performance across 12 benchmarks.
+  \end{enumerate}
+\end{foldable}
+
+\begin{foldable}
+  The remainder of this chapter develops the framework (\S\ref{sec:43-research02-framework}), reports extensive experiments and ablations (\S\ref{sec:44-research02-experiments}), and concludes with discussion (\S\ref{sec:45-research02-conclusion}).
 \end{foldable}

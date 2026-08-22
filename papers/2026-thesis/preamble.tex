@@ -36,6 +36,7 @@
 \usepackage{booktabs}
 \usepackage{makecell}
 \usepackage{multirow}
+\usepackage{threeparttable}
 \renewcommand{\arraystretch}{1.1}
 % Algorithms
 \usepackage[linesnumbered,ruled,vlined]{algorithm2e}
@@ -84,38 +85,46 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Custom Commands
 \newenvironment{foldable}{}{}
+\newcommand{\frontmattersection}[1]{\newpage\thispagestyle{empty}\noindent{\bfseries \Large #1 \par}\vspace{2em}}
 \newcommand*{\ie}{i.e.}
 \newcommand*{\eg}{e.g.}
 \newcommand*{\etc}{etc.}
 \newcommand{\meanstd}[2]{#1$_{\pm{#2}}$}
 \newcommand{\meanstdbf}[2]{\textbf{#1}$_{\pm{#2}}$}
 \newcommand{\boldtight}[1]{{\fontseries{b}\selectfont #1}}
+\newcommand{\whitebox}{\textsuperscript{(W)}}
+\newcommand{\blackbox}{\textsuperscript{(B)}}
+\newcommand{\dg}{$^\dagger$}
+\newcommand*{\bltrg}{$^{\blacktriangle}$}
 
 % Acronyms
 \usepackage{acro}
-\DeclareAcronym{AI}{short = AI, long = Artificial Intelligence}
-\DeclareAcronym{API}{short = API, long = Application Programming Interface}
-\DeclareAcronym{BBDFKD}{short = BBDFKD, long = Black-Box Data-Free Knowledge Distillation}
-\DeclareAcronym{BFKD}{short = BFKD, long = Black-Box Few-Shot Knowledge Distillation}
-\DeclareAcronym{BN}{short = BN, long = Batch Normalisation}
-\DeclareAcronym{BPE}{short = BPE, long = Byte Pair Encoding}
-\DeclareAcronym{CNN}{short = CNN, long = Convolutional Neural Network}
-\DeclareAcronym{DIPKD}{short = DIPKD, long = Data-free Improved Privacy Knowledge Distillation}
+\DeclareAcronym{AI}{short = AI, long = artificial intelligence}
+\DeclareAcronym{API}{short = API, long = application programming interface}
+\DeclareAcronym{BBDFKD}{short = BBDFKD, long = black-box data-free knowledge distillation}
+\DeclareAcronym{CNN}{short = CNN, long = convolutional neural network}
+\DeclareAcronym{DD}{short = DD, long = dataset distillation}
+\DeclareAcronym{DIPKD}{short = DIPKD, long = Diverse Image Priors Knowledge Distillation}
 \DeclareAcronym{DivBFKD}{short = DivBFKD, long = Diverse Few-Shot Black-Box Knowledge Distillation}
-\DeclareAcronym{FID}{short = FID, long = Fréchet Inception Distance}
-\DeclareAcronym{FLOP}{short = FLOP, long = Floating Point Operations}
-\DeclareAcronym{GAN}{short = GAN, long = Generative Adversarial Network}
-\DeclareAcronym{IID}{short = IID, long = Independent and Identically Distributed}
-\DeclareAcronym{IS}{short = IS, long = Inception Score}
-\DeclareAcronym{KD}{short = KD, long = Knowledge Distillation}
-\DeclareAcronym{MI}{short = MI, long = Mutual Information}
-\DeclareAcronym{ML}{short = ML, long = Machine Learning}
-\DeclareAcronym{NAS}{short = NAS, long = Neural Architecture Search}
-\DeclareAcronym{NLI}{short = NLI, long = Natural Language Inference}
-\DeclareAcronym{NLP}{short = NLP, long = Natural Language Processing}
-\DeclareAcronym{OT}{short = OT, long = Optimal Transport}
-\DeclareAcronym{RNN}{short = RNN, long = Recurrent Neural Network}
-\DeclareAcronym{SGD}{short = SGD, long = Stochastic Gradient Descent}
+\DeclareAcronym{FID}{short = FID, long = Fréchet inception distance}
+\DeclareAcronym{FLOP}{short = FLOP, long = floating point operations}
+\DeclareAcronym{GAN}{short = GAN, long = generative adversarial network}
+\DeclareAcronym{GDPR}{short = GDPR, long = General Data Protection Regulation}
+\DeclareAcronym{HIPAA}{short = HIPAA, long = Health Insurance Portability and Accountability Act}
+\DeclareAcronym{HSB}{short = HSB, long = hard-sample bias}
+\DeclareAcronym{IS}{short = IS, long = Inception score}
+\DeclareAcronym{KD}{short = KD, long = knowledge distillation}
+\DeclareAcronym{KL}{short = KL, long = Kullback-Leibler}
+\DeclareAcronym{LLM}{short = LLM, long = large language model}
+\DeclareAcronym{ML}{short = ML, long = machine learning}
+\DeclareAcronym{NLI}{short = NLI, long = natural language inference}
+\DeclareAcronym{NLP}{short = NLP, long = natural language processing}
+\DeclareAcronym{OT}{short = OT, long = optimal transport}
+\DeclareAcronym{RDM}{short = RDM, long = reweighted distribution matching}
+\DeclareAcronym{RNN}{short = RNN, long = recurrent neural network}
+\DeclareAcronym{SGD}{short = SGD, long = stochastic gradient descent}
+\DeclareAcronym{SPD}{short = SPD, long = symmetric positive definite}
 \DeclareAcronym{TAKE}{short = TAKE, long = Trajectory-Aware Knowledge Estimation}
-\DeclareAcronym{VAE}{short = VAE, long = Variational Autoencoder}
-\DeclareAcronym{WGAN}{short = WGAN, long = Wasserstein Generative Adversarial Network}
+\DeclareAcronym{VAE}{short = VAE, long = variational autoencoder}
+\DeclareAcronym{WGAN}{short = WGAN, long = Wasserstein generative adversarial network}
+\DeclareAcronym{WGAN-GP}{short = WGAN-GP, long = Wasserstein generative adversarial network with gradient penalty}

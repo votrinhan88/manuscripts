@@ -1,0 +1,50 @@
+\section{Thesis Contributions} \label{sec:15-introduction-contributions}
+\begin{foldable}
+  The three restricted settings identified in \S\ref{sec:12-introduction-model} and \S\ref{sec:13-introduction-dataset} are few-shot and data-free black-box model distillation, and text dataset distillation.
+  Each imposes a distinct form of information scarcity on the distillation process.
+  Structurally, these settings map to two complementary axes of \ac{KD}: the first operates on the model axis (Chapters~\ref{ch:30-research01}--\ref{ch:40-research02}), compressing the learned function under restricted teacher access; the second operates on the data axis (Chapter~\ref{ch:50-research03}), compressing the training signal under discrete-token and coverage constraints.
+  Across both axes, distributional fidelity is the binding constraint.
+  The thesis addresses all three settings under a single design philosophy: treat distributional fidelity as a first-class objective, derive practical constraints from the deployment setting, and enforce representational coverage of the distilled signal explicitly.
+  The three contributions are as follows.
+\end{foldable}
+
+\begin{foldable}
+  \boldtight{Diversity-Aware Black-Box Few-Shot Knowledge Distillation} (\textbf{\acs{DivBFKD}}).
+  In Chapter~\ref{ch:30-research01}, \ac{DivBFKD} addresses the setting in which only a small number of real training images are available and the teacher is accessible only as a black box, returning final predictions rather than internal representations.
+  The method trains a \ac{WGAN} to synthesize additional training images, augmenting this process with a high-confidence image scheme that identifies and retains synthetic samples whose teacher-assigned confidence exceeds class-specific adaptive thresholds computed via the $q$-quantile of the score distribution.
+  This threshold acts as a quality gate, admitting only sufficiently informative and class-coherent synthetic images into the distillation pipeline, and directly counters the semantic narrowness that arises when few real examples are available.
+  We evaluate across seven image classification benchmarks and reach state-of-the-art performance, with a gain of over 17\% relative to standard \ac{KD} on CIFAR-10 and closing to within 2\% of a fully supervised student upper bound on the simpler datasets.
+  This work was published at ECML-PKDD 2024.
+\end{foldable}
+
+\begin{foldable}
+  \boldtight{Diverse Image Priors for Black-Box Data-Free Knowledge Distillation} (\textbf{\acs{DIPKD}}).
+  Later, in Chapter~\ref{ch:40-research02}, \ac{DIPKD} addresses the strictest image-domain setting: the student has access to neither real training data nor teacher internals, receiving only top-1 hard labels in response to queries.
+  The method is organised as a three-phase pipeline.
+  In the first phase, a diverse pool of synthetic images is built using hierarchical noise injection, nonlinear photometric transforms, and semantic cutmixing, producing candidate images that cover a broad region of the input space.
+  In the second phase, a lightweight primer student is trained on these candidates under a contrastive objective that maximises inter-class separation, sharpening the diversity of the pool before full distillation begins.
+  In the third phase, the trained primer student supplies surrogate logits as soft distillation labels to supplement the teacher's hard labels, recovering much of the information lost to black-box access.
+  \ac{DIPKD} reaches state-of-the-art results on 11 of 12 benchmarks, with a gain of over 21\% on Imagenette relative to the best prior baseline, and shows strong performance on medical imaging datasets from MedMNIST.
+  This work has been submitted to ICCCI 2026.
+\end{foldable}
+
+\begin{foldable}
+  \boldtight{Trajectory-Aware Knowledge Estimation for Text Dataset Distillation} (\textbf{\acs{TAKE}}).
+  Finally, in Chapter~\ref{ch:50-research03}, \ac{TAKE} addresses dataset distillation in the natural language domain, where the goal is to distill a compact subset of a large text corpus that can surrogates the performance of training on the full dataset.
+  Existing text dataset distillation methods fall short on three fronts: their weighting schemes are uniform and uninformative about task-aligned importance, their objectives optimize batch by batch rather than enforcing global distributional coverage, and their outputs are embeddings rather than human-readable text.
+  \ac{TAKE} addresses all three through a multi-stage methodology.
+  First, it quantifies each sample's downstream contribution via influence functions and integrates these estimates across the full training trajectory.
+  Second, it generates a pool of human-readable synthetic candidates through language model fine-tuning, then distills a compact corpus via discrete optimal transport that enforces global distributional coverage rather than relying on per-sample independence.
+  Theoretically, \ac{TAKE} formalizes the hard-sample bias in text distillation and derives formal bounds on the downstream loss gap.
+  Empirically, \ac{TAKE} matches or exceeds baseline methods across six text datasets at extreme compression ratios, producing human-readable corpora that generalize across diverse model architectures.
+  This work has been submitted to ECML-PKDD 2026.
+\end{foldable}
+
+\begin{foldable}
+  Operationally, the design philosophy becomes concrete mechanisms tailored to the information scarcity each setting imposes.
+  \ac{DivBFKD} (image, black-box few-shot) filters synthetic candidates through generation and adaptive confidence thresholds, admitting only semantically coherent, informative examples into distillation.
+  \ac{DIPKD} (image, black-box data-free) synthesizes diverse image priors, applies contrastive learning to sharpen distinction between samples, then distills via a primer student that supplies soft signals, addressing the diversity deficit that arises without real data.
+  \ac{TAKE} (text dataset) concentrates budget through knowledge-based influence weighting and discrete optimal transport, identifying high-value samples (not uniform, uninformative ones), while trajectory integration corrects hard-sample bias and enforces global coverage.
+  Across all three, the unifying insight is the same: representational coverage and quality are not implicit properties of the training signal, but design objectives that require explicit measurement and enforcement.
+  Together, these contributions show that \ac{KD} under restricted access is feasible and can match or exceed methods that operate under far less constrained conditions.
+\end{foldable}

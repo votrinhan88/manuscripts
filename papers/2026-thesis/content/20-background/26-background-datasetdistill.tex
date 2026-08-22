@@ -1,0 +1,148 @@
+\section{Dataset Distillation} \label{sec:26-background-datasetdistill}
+\subsection{Problem Definition} \label{sec:26-background-datasetdistill-definition}
+\begin{foldable}
+  Dataset distillation~\cite{wang2018dataset} (also called dataset condensation) seeks a small surrogate dataset $\tilde{\mathcal{D}}$ with $|\tilde{\mathcal{D}}| = K \ll N = |\mathcal{D}|$ such that a model trained on $\tilde{\mathcal{D}}$ performs approximately as well as one trained on the full dataset $\mathcal{D}$:
+  \begin{equation}
+    \tilde{\mathcal{D}}^{*} = \arg\min_{|\tilde{\mathcal{D}}|=K}
+    \mathbb{E}_{\theta \sim \mathcal{A}(\tilde{\mathcal{D}})}\!\left[\mathcal{L}(\theta; \mathcal{D})\right],
+    \label{eq:dd-objective}
+  \end{equation}
+  where $\mathcal{A}(\tilde{\mathcal{D}})$ denotes the learning algorithm applied to $\tilde{\mathcal{D}}$.
+  This objective is bold: the student model (trained on $\tilde{\mathcal{D}}$) is evaluated on the full held-out test set, not on the original dataset.
+  A model that memorizes the surrogate is worthless; the surrogate must capture the generalization properties of the original dataset.
+  The compression ratio $N/K$ is typically large, ranging from $10\times$ to $100\times$ in practice, and the surrogate may consist of either selected real examples (coreset selection) or synthesized examples that do not appear in $\mathcal{D}$.
+  Figure~\ref{fig:26-background-datasetdistill-overview} illustrates the core objective: a model trained on the small distilled dataset should achieve similar performance to a model trained on the full dataset.
+\end{foldable}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.75\columnwidth]{./figures/20-background/26-background-datasetdistill-datasetdistill.pdf}
+  \caption[Dataset distillation.]{
+    Dataset distillation objective.
+    The original dataset $\mathcal{D}$ (left) is compressed into a small distilled dataset $\tilde{\mathcal{D}}$ (middle, green).
+    A model trained on $\tilde{\mathcal{D}}$ (upper path) should achieve similar performance to a model trained on the full dataset $\mathcal{D}$ (lower path), measured by the distillation loss $\mathcal{L}_{\text{distill}}$ (right).
+    The key challenge is preserving the generalization properties of the original dataset in a far smaller surrogate.
+  }
+  \label{fig:26-background-datasetdistill-overview}
+\end{figure}
+
+\begin{foldable}
+  The objective~\eqref{eq:dd-objective} is intractable when the dataset is large: computing the full training trajectory for every candidate surrogate is prohibitively expensive.
+  A tractable relaxation replaces loss-trajectory matching with distribution matching:
+  \begin{equation}
+    \tilde{\mathcal{D}}^{*} = \arg\min_{|\tilde{\mathcal{D}}|=K} d(P_{\tilde{\mathcal{D}}}, P_{\mathcal{D}}),
+    \label{eq:dm-abstract}
+  \end{equation}
+  where $d$ measures distributional divergence in a task-relevant feature space (\eg, gradient space, embedding space, or optimal transport cost).
+  Different choices of $d$ and feature space can lead to qualitatively different approaches to tackle the \ac{DD} problem.
+  The assumption underlying the relaxation is that distributional proximity in the chosen feature space implies similar learning outcomes---an assumption that holds well empirically for gradient-matching but requires verification for each new distance metric.
+\end{foldable}
+
+\begin{foldable}
+  Dataset distillation and model distillation are complementary but distinct in scope.
+  Model distillation compresses a \textit{model}: given a trained teacher, it produces a smaller student with similar predictive behaviour.
+  Dataset distillation compresses a \textit{dataset}: given a full training corpus, it produces a smaller surrogate that induces similar model behaviour when used for training.
+  Model distillation evaluates success by student accuracy on held-out test data (how well the student predicts).
+  Dataset distillation evaluates success by training a model on the surrogate and measuring its accuracy on held-out test data (how well a model trained on the surrogate generalizes).
+  Both problems share the distributional fidelity requirement established in \S\ref{sec:25-background-distribution}, that the student model and the surrogate corpus must represent their source distributions faithfully, but they differ in their input (a trained model vs.\ a raw dataset) and output (a model vs.\ a corpus).
+\end{foldable}
+
+\begin{foldable}
+  A complete dataset distillation method for text should satisfy three properties.
+  First, it should be \textit{knowledge-informed}: the selection or synthesis of $\tilde{\mathcal{D}}$ should reflect each example's contribution to model learning, not just its frequency or surface features.
+  Second, it should ensure \textit{distributional coverage}: the surrogate should represent the full range of semantic and task-relevant variation in $\mathcal{D}$, not just its high-frequency modes.
+  Third, for text specifically, it should produce \textit{human-readable output}: unlike image distillation where synthetic pixels need not be interpretable, text examples must be fluent and coherent to be usable for fine-tuning and auditable for privacy inspection.
+\end{foldable}
+
+\subsection{Image Dataset Distillation} \label{sec:26-background-datasetdistill-imagedd}
+\begin{foldable}
+  Image dataset distillation methods synthesize a small set of images by optimizing them to preserve some property of training on the full dataset.
+  Three optimization targets have been explored.
+  \textit{Gradient matching}~\cite{zhao2021dataset} (DC) synthesizes $\tilde{\mathcal{D}}$ such that the model gradients computed on $\tilde{\mathcal{D}}$ match those computed on $\mathcal{D}$ at each training step:
+  \begin{equation}
+    \min_{\tilde{\mathcal{D}}} \sum_{t} \left\| \nabla_\theta \mathcal{L}(\theta_t;
+    \tilde{\mathcal{D}}) - \nabla_\theta \mathcal{L}(\theta_t; \mathcal{D}) \right\|^2.
+    \label{eq:dc-objective}
+  \end{equation}
+  Because the gradient matching loss is differentiable with respect to the pixel values of the synthesized images, the images can be optimized directly by backpropagation.
+  The resulting synthetic images often appear unnatural, encoding gradient information rather than visual realism, but they reliably reproduce the training dynamics of the full dataset on simple benchmarks such as MNIST and CIFAR-10.
+\end{foldable}
+
+\begin{foldable}
+  \textit{Trajectory matching}~\cite{cazenavette2022dataset,kim2022dataset} extends gradient matching from single-step gradients to entire parameter trajectories.
+  Given expert parameters $\theta^*_t$ obtained by training on $\mathcal{D}$, the synthetic set is optimized so that $N$ steps of training on $\tilde{\mathcal{D}}$ starting from $\theta^*_t$ reach a point close to the expert checkpoint $M$ steps further along the trajectory:
+  \begin{equation}
+    \min_{\tilde{\mathcal{D}}} \sum_{t} \frac{\left\| \hat\theta_{t+N}(\tilde{\mathcal{D}}) - \theta^*_{t+M} \right\|^2}{\left\| \theta^*_t - \theta^*_{t+M} \right\|^2},
+    \label{eq:mtt-objective}
+  \end{equation}
+  where $\hat\theta_{t+N}(\tilde{\mathcal{D}})$ is the parameter reached after $N$ gradient steps on $\tilde{\mathcal{D}}$ from $\theta^*_t$, and the denominator normalizes by the expert displacement so the loss is dimensionless across stages of training.
+  Matching the entire trajectory rather than single-step gradients improves performance on larger and more complex datasets.
+\end{foldable}
+
+\begin{foldable}
+  \textit{Distribution matching}~\cite{zhao2023dataset,wang2022cafe} takes a softer approach: instead of matching gradients or trajectories, it aligns the feature-space distributions of real and synthetic data.
+  It instantiates~\eqref{eq:dm-abstract} with $d$ = squared L2 of mean embeddings under random feature maps $\psi_\vartheta$:
+  \begin{equation}
+    \min_{\tilde{\mathcal{D}}} \mathbb{E}_\vartheta \left\| \frac{1}{|\mathcal{D}|} \sum_{x \in \mathcal{D}} \psi_\vartheta(x) - \frac{1}{|\tilde{\mathcal{D}}|} \sum_{\tilde{x} \in \tilde{\mathcal{D}}} \psi_\vartheta(\tilde{x}) \right\|^2.
+    \label{eq:dm-objective}
+  \end{equation}
+  Distribution matching is more computationally scalable than gradient or trajectory matching because it does not require unrolling the training computation graph.
+\end{foldable}
+
+\begin{foldable}
+  All three methods share a basic incompatibility with the text domain.
+  They synthesize examples by gradient-based optimization in the continuous pixel space of images.
+  Text tokens are discrete: there is no well-defined gradient of a loss with respect to an integer token index.
+  Straight-through estimators and continuous relaxations partially address this, but they introduce approximation errors that compound across the typically long token sequences of text examples, and the resulting `soft' token sequences are not human-readable.
+\end{foldable}
+
+\subsection{Text Dataset Distillation} \label{sec:26-background-datasetdistill-textdd}
+\begin{foldable}
+  The discrete and sequential nature of text requires a different approach to dataset distillation.
+  Text operates over discrete tokens (integers indexing a vocabulary) with no natural interpolation between adjacent tokens, and semantic relationships span non-local dependencies that cannot be captured by per-token gradient information.
+  These constraints invalidate the gradient matching, trajectory matching, and distribution matching approaches developed for continuous image data.
+  Specifically: gradient-matching on pixels is differentiable ($\frac{\partial}{\partial x_{ij}}$ is well-defined for pixel values); gradient-matching on token indices is not ($\frac{\partial}{\partial t_i}$ where $t_i$ is a discrete token is undefined without approximation).
+  Straight-through estimators and continuous relaxations partially address this by replacing discrete tokens with soft token distributions, but they introduce approximation errors that compound across token sequences (typically hundreds of tokens) and the resulting soft sequences are not human-readable or usable for downstream applications.
+  Text imposes a constraint absent from image \ac{DD}: the synthetic outputs have to be \textit{semantically coherent}, not just gradient-aligned, so an objective that matches gradients while producing token-soup is not a valid solution.
+  Prior methods for text dataset distillation fall into distinct families, each satisfying some but not all of the three properties outlined above.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Soft-embedding methods} apply continuous optimization in the embedding space, instead of the discrete token space.
+  SLDD~\cite{sucholutsky2021soft} optimizes a set of soft-label, continuous embedding vectors that, when used as training inputs to a language model, preserve model performance; it partially recovers interpretability by mapping each distilled embedding to its nearest bag-of-words in vocabulary space.
+  DDTC~\cite{li2021data} similarly learns embedding sequences optimized by gradient matching against a differentiable fine-tuning objective.
+  DDAL~\cite{maekawa2023dataset} takes a different angle within the same continuous-optimization regime: instead of learning embedding sequences directly, it optimizes the attention labels of a BERT model to match class-wise dataset statistics.
+  By operating in embedding space, they sidestep the discrete-token gradient problem entirely.
+  These methods achieve good compression ratios on simple classification tasks and satisfy property (3) in a minimal sense: the output is interpretable as importance scores on real examples.
+  However, they satisfy neither property (2) nor the stronger interpretation of property (3).
+  The optimized embeddings are \textit{architecture-locked}: they are tailored to a specific model's embedding layer and non-transferable to other models, making them brittle for deployment.
+  None produce natural language text---the output is a set of continuous vectors in embedding space that are uninterpretable as sequences, cannot be shared or audited for privacy, and cannot be used outside the model training pipeline.
+  For practical applications where auditing (\eg, privacy inspection, fairness analysis) or reuse (\eg, fine-tuning on different models) is required, this is a severe limitation.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Clustering-based methods} select real examples by clustering the full dataset in embedding space and taking cluster representatives.
+  DaLLME~\cite{tao2024textual} embeds all training examples using a language model and applies $k$-means clustering, selecting the example closest to each centroid.
+  This approach is fast (linear in $N$), architecture-agnostic (operates on pre-computed embeddings), and produces human-readable output (real examples rather than soft embeddings), strongly satisfying property (3).
+  However, $k$-means assigns uniform weight to each cluster---it selects exactly one representative per cluster, regardless of that cluster's contribution to model learning.
+  A cluster containing critical, hard-to-learn boundary examples receives the same selection budget as a cluster of redundant, easy examples.
+  This violates property (1), knowledge-informed weighting.
+  Moreover, the selection criterion (Euclidean proximity to centroid) is geometric, not learning-objective-aware.
+  The selection does not formally minimise any measure of distributional divergence from the weighted source, violating property (2)---the method has no principled dataset-level objective, only independent per-cluster decisions.
+  Clustering is a form of geometric summarization, effective for input-space coverage but not for learning-objective coverage.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{\ac{LLM}-based generation.}
+  An alternative to selecting from $\mathcal{D}$ is to generate a synthetic candidate pool by fine-tuning a language model on $\mathcal{D}$ and sampling from it.
+  DiLM~\cite{maekawa2024dilm} is an instance of this family: it generates readable candidate texts from a fine-tuned \ac{LLM} and then selects among them by gradient matching against the training corpus, followed by $k$-centre selection.
+  This approach is attractive for several reasons.
+  First, it avoids the gradient-flow problem entirely: the generation process is autoregressive and produces fluent, human-readable text automatically, satisfying property (3) by design.
+  Second, generation provides privacy: rather than extracting examples from the original dataset, the surrogate consists of new, synthetic examples, minimizing the risk of direct data leakage.
+  Third, the generated pool can be large (thousands of samples), providing a rich candidate set before selection.
+  However, generation alone does not solve the selection problem; it shifts it.
+  A large synthetic candidate pool must still be distilled to a compact surrogate of size $K$, and the selection step must address two residual problems shared by all prior text \ac{DD} methods.
+  Property~(1), knowledge-informed weighting: naive importance scores (single-checkpoint gradient norms) are systematically biased toward noisy, hard-to-fit examples at convergence, not toward representative samples.
+  Property~(2), distributional coverage: greedy or clustering-based selection operates independently on each example, ignoring whether the overall selected set covers the importance-weighted distribution.
+  These two problems are orthogonal, and both must be solved to construct a complete method.
+\end{foldable}

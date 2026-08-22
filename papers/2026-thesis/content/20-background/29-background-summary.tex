@@ -1,0 +1,84 @@
+\section{Summary and Research Gaps} \label{sec:29-background-summary}
+\begin{foldable}
+  This chapter has built the technical foundation for the thesis along two parallel tracks.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Model Track (Sections~\ref{sec:23-background-modeldistill}--\ref{sec:24-background-kdrestricted}).}
+  Image knowledge distillation under restricted access: the standard \ac{KD} framework and soft-target signal; the increasingly restricted settings, few-shot and data-free, that arise in practice; and the diagnosis that distributional coverage is the binding constraint.
+  Section~\ref{sec:25-background-distribution} established generative and contrastive mechanisms for enforcing coverage when standard assumptions fail.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Dataset Track (Sections~\ref{sec:26-background-datasetdistill}--\ref{sec:28-background-ot}).}
+  Text dataset distillation: the language modelling foundations and \acl{NLP} task structure; the dataset distillation objective and why image synthesis methods do not transfer to discrete text; prior text \ac{DD} methods and their limitations; and the diagnosis of distributional coverage as the binding constraint.
+  Sections~\ref{sec:27-background-influence} and~\ref{sec:28-background-ot} then established the two tools the dataset track relies on: influence-based importance weighting and discrete optimal transport for distributional selection when independent ranking fails.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{The unifying thread: distributional fidelity.}
+  Whether distillation operates on the model (Model Track: Chapters~\ref{ch:30-research01}--\ref{ch:40-research02}) or the dataset (Dataset Track: Chapter~\ref{ch:50-research03}), the binding constraint is the same: the compact artefact must cover the distribution of its source.
+  Coverage failures manifest differently, mode collapse in GAN-based synthesis and coverage gaps in clustering-based corpus selection, but stem from the same root cause: the optimization objectives used to produce the artefact do not directly penalize distributional divergence.
+  The three contributions in Chapters~\ref{ch:30-research01}--\ref{ch:50-research03} each make direct divergence minimization tractable in its respective context.
+\end{foldable}
+
+\begin{table}[ht]
+  \centering
+  \begin{threeparttable}
+    \caption{Research gaps addressed by the three thesis contributions.}
+    \label{tab:research-gaps}
+    \begin{tabular}{l l l l}
+      \toprule
+      \textbf{Research}  & \textbf{Setting} & \textbf{Motivation} & \textbf{Contributions}  \\
+      \midrule
+      DivBFKD & \makecell[l]{Black-box teacher \\ Limited real data} & \makecell[l]{Enrich diversity} & \makecell[l]{High-confidence images \\ Adaptive adversarial training} \\
+      \midrule
+      DIPKD & \makecell[l]{Black-box teacher \\ No real data} & \makecell[l]{Domain coverage} & \makecell[l]{Diverse image priors \\ Contrastive optimization \\ Primer student} \\
+      \midrule
+      TAKE & \makecell[l]{Text dataset \\ Extreme compression} & \makecell[l]{Preserve fidelity} & \makecell[l]{Influence-based scoring \\ \ac{LLM}-based generation \\ Discrete OT distillation} \\
+      \bottomrule
+    \end{tabular}
+  \end{threeparttable}
+\end{table}
+
+\begin{foldable}
+  Three open problems follow directly from this analysis.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Gap 1 (Chapter~\ref{ch:30-research01}): Few-shot black-box knowledge distillation.}
+  In black-box few-shot \ac{KD}, the student trains on a small image set and receives only top-1 predictions from a black-box teacher.
+  Existing methods expand coverage via synthetic images but lack explicit diversity mechanisms.
+  BBKD uses MixUp (linear interpolation within the few-shot support), adding little novel signal.
+  FS-BBT employs a conditional VAE for out-of-distribution synthesis, but optimizes pixel reconstruction, not diversity, causing blurring and mode collapse.
+  Both methods apply standard GAN training without steering toward unexplored regions.
+  The binding constraint is diversity: synthetic samples must venture beyond the few-shot set's inherent modes to provide decision-boundary coverage.
+  Chapter~\ref{ch:30-research01} (DivBFKD) introduces a teacher-grounded feedback loop: adaptively filtering high-confidence synthetic images (with class-specific, dataset-agnostic thresholds), then feeding them back into WGAN training on-the-fly, allowing the teacher itself to guide which regions merit generation.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Gap 2 (Chapter~\ref{ch:40-research02}): Black-box data-free knowledge distillation.}
+  In black-box data-free \ac{KD}, no real training data exists and the teacher returns only top-1 labels, the narrowest information interface.
+  Existing methods use synthetic data but face two independent bottlenecks.
+  First, domain coverage: synthetic images fail to replicate the hierarchical structures and semantic variation of natural environments, resulting in distribution mismatch with the teacher's expertise.
+  Second, information loss: hard top-1 labels withhold the inter-class relationships (dark knowledge) that distinguish \ac{KD} from standard supervised learning.
+  Prior methods (ZSDB3, IDEAL, DFHL-RS) address one or the other but not both.
+  ZSDB3 explores decision boundaries but ignores information; IDEAL uses student feedback but inherits mode collapse; DFHL-RS adds stochasticity but does not recover soft targets.
+  Chapter~\ref{ch:40-research02} (\ac{DIPKD}) tackles both simultaneously via a three-phase pipeline: (1) Synthesis of diverse image priors using multi-scale noise; (2) Contrast via a primer student (white-box mediator) that enforces distinction via contrastive learning; (3) Distillation where the primer student recovers soft probabilistic signals, enabling dark-knowledge transfer despite hard-label teacher access.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Gap 3 (Chapter~\ref{ch:50-research03}): Text dataset distillation.}
+  Text dataset distillation requires three properties: (1) knowledge-informed weighting, (2) distributional coverage over the importance-weighted corpus, (3) human-readable output.
+  No prior method achieves all three: soft-embedding methods are architecture-locked and unreadable; clustering methods assign uniform weight per cluster, ignoring importance; importance-based methods optimize per-sample scores without joint coverage.
+  The binding constraint is dual: importance estimation suffers from what Chapter~\ref{ch:50-research03} names and formalizes as the \textit{hard-sample bias}, where single-checkpoint gradient norms favor noisy examples over representative ones.
+  Even with corrected scores, independent ranking cannot guarantee that the chosen set jointly covers the full importance-weighted distribution.
+  These failures are orthogonal and both must be solved.
+  Chapter~\ref{ch:50-research03} (TAKE) is the first method to address all three: (1) correcting hard-sample bias via trajectory-integrated influence scores; (2) leveraging \ac{LLM} fine-tuning to generate human-readable candidates; (3) applying discrete optimal transport to distill candidates into a compact surrogate minimising importance-weighted Wasserstein distance to the full corpus.
+\end{foldable}
+
+\begin{foldable}
+  Chapters~\ref{ch:30-research01}, \ref{ch:40-research02}, and~\ref{ch:50-research03} address Gaps~1, 2, and~3 respectively, each operationalising distributional fidelity under its specific constraint.
+  Despite their different modalities (images vs.\ text) and mechanisms (generation vs.\ distillation, soft targets vs.\ hard labels, continuous vs.\ discrete), all three contributions share a unifying design principle: distributional coverage must be actively enforced during training, not left as a byproduct of optimizing traditional objectives (generator loss, importance scores, gradient matching).
+  This principle, introduced in \S\ref{sec:25-background-distribution}, is the strategic through-line that unifies this thesis.
+\end{foldable}

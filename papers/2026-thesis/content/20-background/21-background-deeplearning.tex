@@ -1,91 +1,215 @@
 \section{Deep Learning Foundations} \label{sec:21-background-deeplearning}
-
-\subsection{Neural Networks and Supervised Learning}
-\label{sec:21-background-deeplearning-nn}
-
+\subsection{Neural Networks and Supervised Learning} \label{sec:21-background-deeplearning-nn}
 \begin{foldable}
-  A feedforward neural network maps an input vector $\mathbf{x} \in \mathbb{R}^{d}$ to an output $\hat{\mathbf{y}}$ through a sequence of parameterised transformations.
-  Each layer $l$ computes $\mathbf{h}^{(l)} = \sigma(W^{(l)}\mathbf{h}^{(l-1)} + \mathbf{b}^{(l)})$, where $W^{(l)}$ and $\mathbf{b}^{(l)}$ are learnable weight matrices and bias vectors, and $\sigma$ is a pointwise non-linearity.
-  Early networks used sigmoid or hyperbolic tangent activations, which suffer from vanishing gradients in deep architectures.
-  The rectified linear unit $\text{ReLU}(z) = \max(0, z)$ largely resolved this problem and became the default activation in modern networks.
+  A feedforward neural network maps an input vector $x \in \mathbb{R}^{d}$ to an output $\hat{\mathbf{y}}$ through a sequence of parameterised transformations.
+  Each layer applies an affine map followed by a pointwise non-linearity: $h = \sigma(Wh_{\text{prev}} + b)$, where $W$ and $b$ are learnable weight matrices and bias vectors, and $\sigma$ is the activation function~\cite{rumelhart1986learning}.
+  Stacking many such layers lets the network compose simple transformations into more abstract representations, a property that underlies the empirical success of deep architectures across vision, language, and beyond.
+  Early networks used sigmoid or hyperbolic tangent activations, both of which saturate for large input magnitudes and produce near-zero gradients that impede learning in deep stacks~\cite{bengio1994learning}.
+  The rectified linear unit $\text{ReLU}(z) = \max(0, z)$ largely resolved this issue: it is non-saturating for positive inputs, cheap to compute, and has become the default activation in modern networks~\cite{glorot2011deep}.
+  Variants such as Leaky ReLU~\cite{maas2013rectifier} and GELU~\cite{hendrycks2017gaussian} have since been introduced to handle the dying-neuron problem and improve performance in specific settings, but the core design principle remains unchanged.
 \end{foldable}
 
 \begin{foldable}
-  In supervised learning, a labelled dataset $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^{N}$ is used to minimise an empirical loss $\mathcal{L}(\theta) = \frac{1}{N}\sum_{i=1}^{N} \ell(f_{\theta}(\mathbf{x}_i), y_i)$ with respect to the network parameters $\theta$.
-  For classification tasks, $\ell$ is typically the cross-entropy loss between the network's predicted class probabilities and the ground-truth one-hot label.
-  Stochastic gradient descent (SGD) and its adaptive variants (e.g., Adam~\cite{kingma2014adam}) optimise $\mathcal{L}$ by computing gradients on randomly sampled mini-batches and updating $\theta$ in the direction of steepest descent.
+  In supervised learning, a labeled dataset $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^{N}$ is used to minimise an empirical loss with respect to the network parameters $\theta$:
+  \begin{equation}
+    \label{eq:21-background-deeplearning-loss-supervised}
+    \mathcal{L}(\theta) = \frac{1}{N}\sum_{i=1}^{N} \ell(f_{\theta}(x_i), y_i).
+  \end{equation}
+  For classification tasks, $\ell$ takes the form of the cross-entropy loss between the network's predicted class probabilities $\hat{\mathbf{p}} = \text{softmax}(f_\theta(x))$ and the ground-truth one-hot label $\mathbf{y}$: $\ell = -\sum_c y_c \log \hat{p}_c$.
+  Minimising this objective encourages the network to assign high probability to the correct class and low probability to all others.
+  Parameters are updated via backpropagation, which applies the chain rule to compute the gradient of $\mathcal{L}$ with respect to every parameter in the network.
+  Stochastic gradient descent~\cite{robbins1951stochastic} and its adaptive variants such as Adam~\cite{kingma2014adam} perform these updates on randomly sampled mini-batches rather than the full dataset, trading gradient accuracy for computational efficiency and often improving generalization through the implicit noise introduced by mini-batch sampling.
 \end{foldable}
 
 \begin{foldable}
-  Generalization --- the ability of a trained model to perform well on unseen data --- depends critically on the size and diversity of the training set.
-  A model with far more parameters than training examples easily memorises the training data without learning transferable representations, a failure known as overfitting.
-  Regularization techniques such as weight decay, dropout, and data augmentation partially mitigate this, but the dominant finding of the deep learning era is that scaling both model capacity and data simultaneously yields the most reliable accuracy gains.
-  LeCun et al.~\cite{lecun1998gradient} demonstrated this scaling principle with LeNet on handwritten digit recognition, and Krizhevsky et al.~\cite{krizhevsky2012imagenet} extended it dramatically with AlexNet on the large-scale ImageNet benchmark --- a result that marked the beginning of the modern deep learning era.
-  The practical consequence, relevant throughout this thesis, is that high-accuracy models are invariably large, and large models are costly to deploy.
+  Generalization does not follow automatically from fitting the training data well~\cite{zhang2017understanding}.
+  A model with insufficient capacity underfits: it cannot represent the true input-output mapping even on training data.
+  A model with excess capacity relative to the training set overfits: it memorizes training examples without learning transferable structure, and generalizes poorly.
+  This bias-variance trade-off means that capacity and data must scale together; increasing one without the other yields diminishing returns.
+  Regularization techniques such as weight decay, dropout, and data augmentation partially mitigate overfitting by constraining the hypothesis space or artificially inflating the effective training set, but they cannot substitute for real data diversity.
+  The dominant finding of the deep learning era is that scaling both model capacity and dataset size simultaneously yields the most reliable accuracy gains.
+  The empirical record is unambiguous: from LeNet~\cite{lecun1998gradient} on handwritten digits to AlexNet~\cite{krizhevsky2012imagenet} on large-scale images, each step change in performance has been accompanied by a corresponding increase in both model size and training data.
+  The practical consequence, relevant throughout this thesis, is that high-accuracy models are invariably large and data-hungry, and both the model and the data required to produce them are costly to acquire, store, and deploy.
 \end{foldable}
 
-\subsection{Convolutional Neural Networks for Image Classification}
-\label{sec:21-background-deeplearning-cnn}
-
+\subsection{Convolutional Neural Networks} \label{sec:21-background-deeplearning-cnn}
 \begin{foldable}
-  Convolutional neural networks (CNNs) are the standard architecture for image classification.
+  \Acp{CNN} are the standard architecture for image classification~\cite{lecun1998gradient}.
   Rather than applying fully connected transformations to the entire input, a convolutional layer applies a bank of small learnable filters that share weights across spatial positions.
-  This inductive bias --- translation equivariance and local connectivity --- dramatically reduces the parameter count relative to a fully connected layer of equivalent capacity, while also encoding the spatial structure of natural images.
-  Pooling layers subsample the resulting feature maps, progressively reducing spatial resolution and expanding the receptive field: the region of the input that influences a given feature.
-  As depth increases, early layers detect low-level features (edges, textures) and later layers compose them into higher-level semantic representations (object parts, categories).
+  This inductive bias, translation equivariance and local connectivity, substantially reduces the parameter count relative to a fully connected layer of equivalent capacity, while also encoding the spatial structure of natural images: nearby pixels are more informative about each other than distant ones, and the same edge detector is useful everywhere in the image, not only at one location.
+  Pooling layers subsample the resulting feature maps, progressively reducing spatial resolution while expanding the region of the input each subsequent filter can see.
+  The result is a hierarchy: early layers detect low-level features such as edges and textures; later layers compose these into semantic representations such as object parts and categories.
+  How far up the input this hierarchy reaches is governed by the receptive field.
 \end{foldable}
 
 \begin{foldable}
-  The architectures used in this thesis span roughly fifteen years of CNN development.
-  LeNet-5~\cite{lecun1998gradient} (two convolutional layers, $\sim$60k parameters) remains a standard benchmark on simple datasets such as MNIST and CIFAR-10.
-  AlexNet~\cite{krizhevsky2012imagenet} (five convolutional layers, $\sim$60M parameters) demonstrated that deep CNNs trained on GPUs with ReLU activations substantially outperformed prior hand-crafted feature approaches on ImageNet.
-  VGGNet~\cite{simonyan2014very} replaced large convolutional filters with stacks of $3 \times 3$ kernels, showing that depth with small filters is a more parameter-efficient route to accuracy than shallow networks with large filters; VGG-16 and VGG-19 ($\sim$138M parameters) became widely used feature extractors and teacher models.
-  ResNet~\cite{he2016deep} introduced skip connections that allow gradients to bypass non-linearities, making it possible to train networks of over a hundred layers stably.
-  ResNet-50 ($\sim$25M parameters) and ResNet-101 ($\sim$45M parameters) remain the most commonly used teacher architectures in the knowledge distillation literature and appear throughout Chapters~\ref{ch:30-research01} and~\ref{ch:40-research02}.
+  The receptive field of a neuron is the region of the input that can influence its activation.
+  In a network with only $3\times3$ convolutions and no pooling, the receptive field grows by two pixels per layer, one on each side, so reaching a large input region requires many layers.
+  Pooling and strided convolutions accelerate this growth geometrically: each pooling step doubles the spatial extent that subsequent filters cover, so a modest number of layers suffices to integrate information over the full image.
+  As illustrated in Figure~\ref{fig:21-background-deeplearning-cnn}, a single activation in a deep layer traces back to a progressively larger patch of the input, allowing the network to capture local texture at early layers and global spatial layout at late layers within a single end-to-end trained model.
+  Building this hierarchy therefore requires depth, and depth directly drives parameter and \ac{FLOP} counts: more layers mean more filters, more weights, and more multiply-accumulate operations per forward pass.
+\end{foldable}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.70\linewidth]{./figures/20-background/21-background-deeplearning-cnn-receptive.pdf}
+  \caption[Receptive field growth across convolutional layers.]{
+    Receptive field growth across convolutional layers.
+    A single cell in Layer~3 (red) corresponds to a $3{\times}3$ region in Layer~2 (orange), which in turn maps back to a larger $5{\times}5$ region in Layer~1 (orange).
+    Each additional layer expands the input region that influences any given activation, allowing deeper layers to integrate information over progressively larger spatial extents.
+  }
+  \label{fig:21-background-deeplearning-cnn}
+\end{figure}
+
+\begin{foldable}
+  The first practical realisation of this design was LeNet5~\cite{lecun1998gradient}, originally trained to classify handwritten digits.
+  Figure~\ref{fig:21-background-deeplearning-lenet5} shows its architecture: seven trainable layers alternating between convolutions and subsampling, beginning with 32$\times$32 input images and ending with 10 output units (one per digit class \texttt{0}--\texttt{9}).
+  The network hierarchy is evident: early layers capture low-level features (edges, corners), middle layers compose these into stroke fragments, and later layers recognise digit patterns.
+  LeNet5 was both a proof of concept and a practical success, demonstrating that the convolutional inductive bias is a fundamental choice to vision tasks over fully connected networks.
+\end{foldable}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.95\columnwidth]{./figures/20-background/21-background-deeplearning-lenet5.pdf}
+  \caption[LeNet5 architecture.]{
+    LeNet5 architecture for handwritten digit classification.
+    Input: 32$\times$32 image.
+    Alternating convolutions (C) and subsampling/pooling layers (S) progressively reduce spatial resolution while increasing feature map depth.
+    The final three layers (C5, F6, F) are fully connected and produce the 10-way classification output.
+    This architecture established the template for modern convolutional networks: local feature extraction followed by spatial hierarchy.
+  }
+  \label{fig:21-background-deeplearning-lenet5}
+\end{figure}
+
+\begin{foldable}
+  LeNet-5's success motivated researchers to push beyond its modest depth.
+  As larger datasets and more computational resources became available, and it was hypothesized that deeper networks could capture more abstract patterns and achieve higher accuracy on large-scale problems.
+  AlexNet~\cite{krizhevsky2012imagenet} and VGG~\cite{simonyan2014very} validated this hypothesis by pushing to much deeper architectures: AlexNet with 8 trainable layers and VGG with up to 19 layers.
+  Yet the deeper networks remained fundamentally harder to train: optimization slowed, convergence became fragile, and the network's ability to learn useful features in early layers degraded.
+  The root cause was the \textit{vanishing gradient} problem: the gradient of the loss with respect to early-layer parameters shrinks exponentially in depth for typical weight initialisations, leaving early layers with near-zero update signals and preventing them from learning.
+  Careful choice of initialisation and activation functions can reduce this effect, but do not eliminate it, and depth remained fundamentally limited.
 \end{foldable}
 
 \begin{foldable}
-  Deep networks without skip connections suffer from vanishing gradients: the gradient of the loss with respect to early-layer parameters is the product of many Jacobian matrices, which shrinks exponentially in depth for typical weight initializations.
-  Skip connections create additive shortcut paths through which gradients flow directly from the loss to early layers, bypassing the multiplicative chain.
-  The effective gradient magnitude at early layers depends on the depth of the shortest path to the loss, not the total network depth.
-  This is why ResNet can stably train 50, 101, or 152 layers while VGGNet degrades beyond approximately 19 layers --- the training failure is not a capacity problem but a gradient propagation problem that skip connections structurally resolve.
+  Skip connections, introduced in ResNets~\cite{he2016deep}, resolved this by creating additive shortcut paths that allow gradients to flow directly from the loss to early layers, bypassing the multiplicative chain through intermediate layers.
+  Each residual block learns only the residual $\mathcal{F}(\mathbf{x}) = \mathcal{H}(\mathbf{x}) - \mathbf{x}$ relative to its input, with the identity shortcut $\mathbf{x}$ added back at the output.
+  The effective gradient magnitude at early layers then depends on the shortest path to the loss, not on total network depth.
+  This structural change removed the depth bottleneck entirely: ResNet-152 (152 layers) trains successfully, and deeper variants continue to improve accuracy.
+  The training failure at depth is therefore not a capacity problem but a gradient propagation problem, and skip connections are its structural solution.
+\begin{foldable}
+
+\end{foldable}
+  Skip connections~\cite{he2016deep}, illustrated in Figure~\ref{fig:21-background-deeplearning-skipconnection}, resolve this structurally by creating additive shortcut paths through which gradients flow directly from the loss to early layers, bypassing the multiplicative chain.
+  Each residual block learns only the residual $\mathcal{F}(\mathbf{x}) = \mathcal{H}(\mathbf{x}) - \mathbf{x}$ relative to its input, with the identity shortcut $\mathbf{x}$ added back at the output; the effective gradient magnitude at early layers then depends on the length of the shortest path to the loss, not on total network depth.
+  The training failure at depth is therefore not a capacity problem but a gradient propagation problem, and skip connections are its structural solution.
+\end{foldable}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.75\linewidth]{./figures/20-background/21-background-deeplearning-cnn-skipconnection.pdf}
+  \caption[Residual block with identity skip connection.]{
+    Residual block with identity skip connection~\cite{he2016deep}.
+    The input $x$ bypasses two weight layers via an identity shortcut and is added to the residual output $\mathcal{F}(x)$ before the final activation.
+    This additive path allows gradients to flow directly to earlier layers, enabling stable training of very deep networks.
+  }
+  \label{fig:21-background-deeplearning-skipconnection}
+\end{figure}
+
+\begin{foldable}
+  With this foundation in place, the architectures used in this thesis can be read as a fifteen-year progression in which each generation pushes depth further and pays a higher parameter cost to do so.
+  LeNet5~\cite{lecun1998gradient} (two convolutional layers, 60\,K parameters) established the core template, convolutional feature extraction followed by fully connected classification, and remains a standard benchmark on simple datasets.
+  AlexNet~\cite{krizhevsky2012imagenet} scaled this template to five convolutional layers and 60\,M parameters, working on slightly harder datasets.
+  VGGNet~\cite{simonyan2014very} and ResNet~\cite{he2016deep} are deeper and larger, suited to more complex datasets.
+  These architectures remain the most widely used teacher architectures in the \ac{KD} literature and appear throughout Chapters~\ref{ch:30-research01} and~\ref{ch:40-research02}.
 \end{foldable}
 
 \begin{foldable}
-  The receptive field of a neuron in layer $l$ is the region of the input that can influence its activation.
-  In a network without pooling, receptive field grows linearly with depth (one pixel per layer for $3\times3$ convolutions); pooling and strided convolutions make it grow geometrically.
-  A ResNet-50 final convolutional layer has a theoretical receptive field covering the entire image, enabling it to integrate evidence from both local texture (early layers) and global layout (late layers).
-  This hierarchical receptive field growth is what enables \acp{CNN} to learn both low-level features (edges, textures) and high-level semantic representations (object parts, categories) within a single end-to-end trained network.
-  The depth required to build this hierarchy is directly responsible for the parameter and \ac{FLOP} counts that motivate compression.
+  Accuracy scales smoothly with depth, width, and input resolution across the \ac{CNN} family, but parameter and compute costs scale faster than accuracy gains.
+  Doubling depth increases parameter count roughly linearly, yet the representational gains and the compute required to realise them grow more than proportionally for many architectures, so the gap between what accuracy demands and what deployment allows widens as task difficulty increases.
+  The need for more efficient deployable models holds regardless of where a model sits on this spectrum.
+  This is the fundamental motivation for model compression, taken up in \S\ref{sec:22-background-compression}.
+\end{foldable}
+
+\subsection{Foundational Natural Language Processing} \label{sec:21-background-deeplearning-foundationalnlp}
+\begin{foldable}
+  Just as vision progressed from hand-crafted filters to learned convolutional hierarchies, language processing followed a parallel arc, from hand-crafted rules through statistical learning to distributed neural representations.
+  These are driven by the same underlying force: scale and data consistently outperform manual design.
 \end{foldable}
 
 \begin{foldable}
-  Accuracy scales smoothly with depth, width, and input resolution across the \ac{CNN} family, but parameter and compute costs scale super-linearly --- doubling depth increases parameters roughly linearly but increases representational capacity and associated compute more than proportionally for many architectures.
-  This means the gap between what is needed for accuracy and what is deployable widens as task difficulty increases.
-  The teacher models used in Chapters~\ref{ch:30-research01} and~\ref{ch:40-research02} (ResNet-50, ResNet-101) sit at the high end of this curve --- accurate but expensive.
-  The student models (ResNet-18, MobileNet variants) are at the low end --- cheap but insufficient without knowledge transfer.
-  Knowledge distillation is the mechanism that bridges this gap without retraining the teacher or degrading its accuracy.
+  Early \ac{NLP} was built on hand-crafted rules~\cite{chomsky1956three}.
+  Symbolic systems encoded linguistic knowledge as explicit grammars, lexicons, and inference rules, producing interpretable pipelines capable of handling carefully scoped tasks such as syntactic parsing or limited-domain question answering~\cite{winograd1971procedures}.
+  The core limitation was scalability: every new domain or linguistic phenomenon required manual engineering, and the resulting systems were brittle outside the narrow conditions they were designed for~\cite{manning1999foundations}.
+  The coverage that real language understanding demands cannot be manually encoded.
 \end{foldable}
 
 \begin{foldable}
-  The trend is clear: each generation of CNN achieves higher accuracy by increasing depth, width, or both, at the cost of proportionally more parameters and floating-point operations.
-  ResNet-50, for instance, requires $\sim$4~GFLOPs per forward pass --- acceptable on a server GPU but prohibitive on a mobile processor or microcontroller.
-  This deployment-versus-accuracy tension is the fundamental motivation for model compression, and is taken up in \S\ref{sec:22-background-compression}.
-\end{foldable}
-
-\subsection{Language Models and Natural Language Understanding}
-\label{sec:21-background-deeplearning-lm}
-
-\begin{foldable}
-  The scale problem that affects image models applies with equal force to language models.
-  The Transformer architecture~\cite{vaswani2017attention}, built around multi-head self-attention and feed-forward sublayers, became the foundation of modern natural language processing by replacing recurrence with a mechanism that relates all positions in a sequence directly.
-  BERT~\cite{devlin2019bert} showed that pre-training a deep Transformer on large unlabelled corpora (masked language modelling and next-sentence prediction) and then fine-tuning on task-specific data achieves strong performance across a wide range of language understanding benchmarks.
-  BERT-base has $\sim$110M parameters; BERT-large has $\sim$340M --- comparable in scale to the largest CNNs, and increasingly impractical to deploy or fine-tune under resource constraints.
+  The shift to statistical methods replaced hand-crafted rules with data-driven models.
+  Language models based on $n$-gram statistics~\cite{shannon1948mathematical}, sequence labelers based on hidden Markov models~\cite{rabiner2002tutorial}, and structured predictors based on conditional random fields~\cite{lafferty2001conditional} each brought a different inductive bias.
+  They shared a common workflow: hand-engineered features were extracted from text and fed to a probabilistic model trained to maximise likelihood on labeled corpora.
+  Performance improved substantially over symbolic baselines, and the data-driven approach proved far more portable across domains.
+  The persistent limitation, however, was representation: features were sparse, high-dimensional, and task-specific, so each new task required a fresh feature-engineering effort and no knowledge transferred between tasks~\cite{bengio2003neural}.
 \end{foldable}
 
 \begin{foldable}
-  The language modelling foundations relevant to dataset distillation --- tokenisation, attention mechanisms, and the specific task definitions used in Chapter~\ref{ch:50-research03} --- are revisited in
-  \S\ref{sec:26-background-datasetdistillation}, where they are immediately needed in context.
-  Both image models and language models therefore face the same core tension: the architectures that achieve the best accuracy are too large to deploy efficiently, and both the model and the training data required to produce them are often inaccessible in practice.
-  Model compression, introduced in the following section, is the primary engineering response to the first constraint; dataset distillation, introduced in \S\ref{sec:26-background-datasetdistillation}, addresses the second.
+  Neural methods dissolved this limitation by learning representations directly from raw text.
+  Word2Vec~\cite{mikolov2013distributed} and GloVe~\cite{pennington2014glove} showed that dense, low-dimensional word embeddings trained on large unlabeled corpora encode meaningful semantic and syntactic relationships, transferring usefully to downstream tasks without task-specific feature design.
+  \Acp{RNN} and later long-short term memory networks~\cite{hochreiter1997long}, extended this to variable-length sequences, enabling models to read a sentence left to right and accumulate a hidden state.
+  Seq2Seq architectures~\cite{sutskever2014sequence} added a decoder, producing the encoder-decoder template used for machine translation and summarisation.
+  Two limitations remained: vanishing gradients over long sequences caused the hidden state to lose early context, and the fixed-length encoder vector was forced to compress an entire input sentence into a single representation regardless of length, a design that degraded on long inputs.
+\end{foldable}
+
+\begin{foldable}
+  All of these models operate on discrete token sequences, making the choice of tokenization a foundational design decision.
+  Early systems tokenized on whitespace or characters; modern systems use subword methods such as byte-pair encoding~\cite{sennrich2016neural} and WordPiece~\cite{wu2016google}, which segment words into frequent subword units and thereby handle rare and out-of-vocabulary words gracefully.
+  The choice of tokenizer is not neutral: different segmentations partition the vocabulary differently, and any method that operates on token-level statistics, including the importance-scoring procedure in Chapter~\ref{ch:50-research03}, inherits the systematic biases of the tokenizer it is applied to.
+  The trajectory of this era traces a clear arc: from manually encoded rules, through hand-crafted statistical features, to fully learned distributed representations. Yet every model in this lineage remained task-specific, and no unified architecture capable of general-purpose language understanding had appeared.
+  That unification came with the Transformer.
+\end{foldable}
+
+\subsection{The Transformer Era} \label{sec:21-background-deeplearning-transformer}
+\begin{foldable}
+  The Transformer~\cite{vaswani2017attention} resolved the sequential limitation of recurrent models by replacing recurrence entirely with self-attention.
+  Rather than reading a sequence token by token, self-attention computes pairwise interactions between all positions simultaneously: each token attends to every other token, weighted by a learned compatibility score, and aggregates their representations accordingly.
+  Multi-head attention runs several such attention functions in parallel, allowing the model to jointly attend to information from different representation subspaces.
+  Positional encodings are added to the input embeddings to supply the order information that recurrence formerly provided implicitly.
+  Each Transformer block pairs multi-head attention with a feed-forward network (two fully-connected layers with a nonlinearity between them), and residual connections around both sub-layers stabilise training and preserve gradient flow.
+  The result is a model that processes sequences in parallel, eliminates the vanishing-gradient-over-distance problem, and scales far more efficiently on modern hardware than any recurrent alternative.
+  Figure~\ref{fig:21-background-deeplearning-attention} illustrates the full encoder-decoder architecture with these components stacked in sequence.
+\end{foldable}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.5\columnwidth]{./figures/20-background/21-background-deeplearning-attention.png}
+  \caption[The Transformer model architecture]{
+    Transformer encoder-decoder architecture showing multi-head attention blocks, feed-forward networks, positional encodings, and residual connections (Add \& Norm) stacked in sequence.
+  }
+  \label{fig:21-background-deeplearning-attention}
+\end{figure}
+
+\begin{foldable}
+  The Transformer's parallelism made large-scale pre-training practical, and pre-training transformed the field.
+  Rather than training a model from scratch for each task, the paradigm trains a single large model on a massive unlabeled corpus and then fine-tunes it on a small task-specific dataset.
+  Three architecture families followed, distinguished by the attention mask used during pre-training.
+  Encoder-only models such as BERT~\cite{devlin2019bert} apply bidirectional attention and are pre-trained via masked language modelling, making them well-suited to understanding tasks such as classification and named entity recognition.
+  Decoder-only models such as GPT~\cite{radford2018improving} apply causal (left-to-right) attention and are pre-trained via next-token prediction, making them natural generators.
+  Encoder-decoder models such as T5~\cite{raffel2020exploring} combine both, handling sequence-to-sequence tasks such as translation and summarisation.
+  This distinction is not merely taxonomic: Chapter~\ref{ch:50-research03} operates on encoder-only models fine-tuned for classification, and the dataset distillation method it proposes is designed specifically around token-level statistics produced by this architecture class.
+\end{foldable}
+
+\begin{foldable}
+  Fine-tuned pre-trained models are evaluated across a range of downstream tasks that probe different aspects of language understanding.
+  Text classification assigns a label to a document or sentence; question answering requires locating or generating an answer given a passage.
+  Whereas, \ac{NLI} asks whether a hypothesis is entailed by, contradicts, or is neutral with respect to a premise.
+  \ac{NLI} is particularly useful as an evaluation task because it requires the model to represent semantic relationships between sentence pairs rather than individual sentences, and its three-way label space provides a discriminative test of fine-grained understanding.
+  These tasks appear in Chapter~\ref{ch:50-research03} as the benchmarks on which dataset distillation for text is evaluated.
+\end{foldable}
+
+\begin{foldable}
+  Neural scaling laws showed that Transformer loss decreases smoothly and predictably as model size, dataset size, and compute increase together~\cite{kaplan2020scaling}.
+  GPT-2~\cite{radford2019language} demonstrated coherent long-form generation at 1.5\,B parameters, and GPT-3~\cite{brown2020language} solved many tasks from in-context examples alone at 175\,B.
+  At sufficient scale, models began exhibiting qualitatively new behaviours (in-context learning, multi-step reasoning, and few-shot task adaptation) that were absent in smaller counterparts and not predictable by extrapolation, often called emergent abilities~\cite{wei2022emergent}.
+  Models soon crossed the 1\,T mark with the help of mixture-of-experts architectures~\cite{fedus2022switch}, but each step up this ladder multiplied training and serving costs, making frontier models accessible only to a small number of organisations.
+  The practical response has been to train a large model and distil it into a compact, deployable variant.
+  This workflow places distillation, not scale itself, at the centre of the deployment problem this thesis addresses.
 \end{foldable}

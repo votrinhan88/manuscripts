@@ -1,7 +1,14 @@
-\chapter{DivBFKD: Diversity in Black-box Few-shot Knowledge Distillation} \label{ch:30-research01}
+\acresetall
+
+\chapter[Diversity in Black-box Few-shot Knowledge Distillation]{Diversity in Black-box Few-shot \\ Knowledge Distillation} \label{ch:30-research01}
+
+\begin{foldable}
+  The background section on model distillation under restricted access (\S\ref{sec:24-background-kdrestricted}) identifies a fundamental bottleneck: standard augmentation and generative augmentation both operate inside the information horizon defined by the few-shot training set.
+  Addressing the coverage deficit requires a signal that comes from outside this few-shot set---one that can anchor synthesis to regions of the teacher's distribution that the few-shot examples do not represent.
+  This chapter answers the open problem by treating the teacher as precisely this external signal: high-confidence synthetic images, selected under the teacher's supervision, inject information from outside the few-shot support into the generator's training loop.
+\end{foldable}
 
 \input{./content/30-research01/31-research01-introduction}
-\input{./content/30-research01/32-research01-related}
-\input{./content/30-research01/33-research01-framework}
-\input{./content/30-research01/34-research01-experiments}
-\input{./content/30-research01/35-research01-conclusion}
+\input{./content/30-research01/32-research01-framework}
+\input{./content/30-research01/33-research01-experiments}
+\input{./content/30-research01/34-research01-conclusion}

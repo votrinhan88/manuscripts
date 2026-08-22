@@ -1,0 +1,41 @@
+\section{Summary of Contributions} \label{sec:61-conclusion-summary}
+
+\begin{foldable}
+  The three contributions trace a progression of increasingly tight constraints, each answered by a more principled form of active fidelity enforcement.
+  What unifies them is not a shared architecture but a shared design stance: when data is scarce, access is restricted, or tokens are discrete, fidelity to the source distribution must be built in, not assumed.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{DivBFKD} (Chapter~\ref{ch:30-research01}) addresses the few-shot black-box \ac{KD} problem, where the student has access to only a small unlabeled image set and may query the teacher solely for top-1 predictions.
+  The key observation is that diversity of the training distribution---not merely its size---determines whether WGAN-synthesised samples can provide useful gradient signal.
+  DivBFKD enforces fidelity by introducing high-confidence images, those the teacher classifies with high certainty, as real-image exemplars in the WGAN discriminator loop on-the-fly.
+  Adaptive per-class confidence thresholds prevent the teacher's class-wise accuracy bias from skewing which images are admitted, ensuring that the selected exemplars represent the teacher's decision boundaries rather than its easiest cases.
+  An ablation study confirms that removing adaptive thresholds---reverting to a global cutoff---degrades performance, validating that class-wise calibration of the filtering criterion is load-bearing, not incidental.
+  DivBFKD achieves state-of-the-art performance among few-shot black-box \ac{KD} methods across multiple image classification datasets and architectures.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{DIPKD} (Chapter~\ref{ch:40-research02}) addresses the extreme case of access restriction: no real data at all, and a teacher that returns only top-1 labels.
+  The fidelity problem becomes entirely generative---the student must be trained on a synthetic distribution that covers the teacher's decision surface without any real-image anchor.
+  DIPKD addresses this through a three-phase pipeline where each phase serves a distinct purpose.
+  The Synthesis phase constructs hierarchical multi-scale image priors from uniform noise with geometric transforms and semantic cutmixing, producing structural diversity before any teacher query.
+  The Contrast phase passes these priors through a primer student backbone and applies a contrastive objective that optimises the synthetic dataset directly, pushing candidates apart in embedding space to prevent mode collapse.
+  The Distillation phase then recovers soft probabilistic labels from the primer student---approximating the dark knowledge the black-box teacher withholds---and uses them alongside hard teacher labels to train the final student.
+  DIPKD achieves state-of-the-art performance across twelve benchmarks, with the largest gains in fine-grained and domain-specific settings where synthetic diversity is most constrained.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{TAKE} (Chapter~\ref{ch:50-research03}) shifts the problem domain from image model compression to text dataset distillation~(\ac{DD}), and with it the distributional fidelity problem shifts from generation to selection.
+  The goal is to replace a large labeled text corpus with a compact surrogate that preserves downstream task performance.
+  TAKE is the first text \ac{DD} method to simultaneously satisfy three desiderata: knowledge-based weighting of samples by their task-aligned contribution, a dataset-level distillation objective that aligns the selected corpus with the full source distribution, and human-readable output that is auditable and transferable across architectures.
+  Trajectory-aware influence scoring computes importance weights from reciprocal gradient norms accumulated across the training trajectory, correcting the hard-sample bias that convergence-point scoring introduces by assigning inflated importance to noisy or boundary examples.
+  An \ac{LLM} generation pool produces diverse textual candidates, and discrete \ac{OT} via the Sinkhorn algorithm selects the subset that globally minimises the entropically regularised transport cost between the candidate pool and the source distribution.
+  The importance-weighted \ac{OT} objective combines task alignment and distributional coverage as complementary objectives: importance alone directs the budget but ignores global structure; coverage alone ensures spread but ignores contribution; together they close failure modes that neither addresses individually.
+  TAKE matches or exceeds prior text \ac{DD} baselines across six language benchmarks at extreme compression, establishing the first end-to-end text \ac{DD} method with theoretical guarantees.
+\end{foldable}
+
+\begin{foldable}
+  Across all three contributions, the fidelity-first design stance enables deployment in regimes that scale-dependent assumptions foreclose: edge and embedded devices for DivBFKD and DIPKD, and low-resource, privacy-constrained, and carbon-sensitive language model development for TAKE.
+  Model compression reduces inference cost and latency; dataset distillation reduces training expenditure, data-governance risk, and cumulative carbon footprint across full development lifecycles.
+  The practical impact scales with the tightness of the constraint: the more restricted the access regime, the larger the relative gain from enforcing fidelity actively rather than assuming it.
+\end{foldable}

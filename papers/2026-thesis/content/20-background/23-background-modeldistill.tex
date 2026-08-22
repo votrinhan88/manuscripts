@@ -1,0 +1,178 @@
+\section{Model Distillation} \label{sec:23-background-modeldistill}
+\subsection{The Original Formulation} \label{sec:23-background-modeldistill-hinton}
+\begin{foldable}
+  The idea of training a smaller student network to mimic a larger teacher originated with model compression~\cite{bucila2006model}.
+  This was formalized as \textit{knowledge distillation} (\ac{KD})~\cite{hinton2015distilling}, proposing that students learn not from hard labels but from soft probabilistic targets that encode the teacher's learned structure.
+  Model distillation trains a compact \textit{student} network $S$ to replicate the behaviour of a large, pre-trained \textit{teacher} network $T$, illustrated in Figure~\ref{fig:23-background-modeldistill-overview}.
+  The goal is to transfer the teacher's learned \textit{decision-boundary structure} and relational knowledge, the structured understanding of the task and its geometry acquired over the full training budget, rather than requiring pointwise input-output fidelity on a fixed set of training examples.
+  This distinguishes distillation from model approximation, which targets pointwise structural matching, and from label smoothing, which perturbs labels uniformly without reference to the teacher's learned geometry.
+\end{foldable}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.80\linewidth]{./figures/20-background/23-background-modeldistill-overview.pdf}
+  \caption[The original knowledge distillation formulation.]{
+    The original knowledge distillation formulation: a student network is trained on the same input data as the teacher, learning to match the teacher's soft output distribution in addition to the hard labels alone.
+  }
+  \label{fig:23-background-modeldistill-overview}
+\end{figure}
+
+\begin{foldable}
+  The obstacle is that standard supervised training discards the very information distillation needs.
+  A one-hot label records which class won the annotation decision and assigns zero probability to every other class.
+  A large network trained on such labels does not merely learn to classify correctly; it implicitly acquires a structured posterior over the class space, shaped by the statistical regularities of the full training distribution.
+  When such a network evaluates an image of a cat, it assigns high probability to \texttt{cat}, a smaller amount to \texttt{dog}, and a trace to \texttt{leopard}, while assigning essentially nothing to \texttt{car}, encoding which classes share visual structure and which do not.
+  Similarly, a digit \texttt{8} receives non-trivial mass on \texttt{3} and near-zero on \texttt{1}, reflecting the perceptual similarity the training data induced.
+  This inter-class relational structure, termed \textit{dark knowledge}~\cite{hinton2015distilling}, is present in every forward pass of the teacher yet discarded by hard-label supervision.
+\end{foldable}
+
+\begin{foldable}
+  \Acl{KD} recovers dark knowledge by training the student to minimise the \ac{KL} divergence between the teacher's output distribution $q$ and the student's $p$:
+  \begin{equation}
+    \mathcal{L}_{\text{KD}} = \mathcal{L}_\text{KL}(q \| p).
+    \label{eq:kd-loss-core}
+  \end{equation}
+  In practice, a highly confident teacher concentrates nearly all mass on the correct class, making dark knowledge numerically invisible even though it exists.
+  \textit{Temperature scaling} addresses this: a parameter $\tau \geq 1$ applied to the pre-softmax logits softens the distribution and amplifies inter-class structure:
+  \begin{equation}
+    q_k^{(\tau)} = \frac{\exp(z_k^{T} / \tau)}{\sum_{j=1}^{K} \exp(z_j^{T} / \tau)}.
+    \label{eq:softmax-temperature}
+  \end{equation}
+  A hard-label cross-entropy term is added to keep the student anchored to ground truth, yielding the full objective~\cite{hinton2015distilling}:
+  \begin{equation}
+    \mathcal{L}_{\text{KD}}
+    = \alpha \tau^{2} \mathcal{L}_\text{KL}(q^{(\tau)} \| p^{(\tau)})
+    + (1 - \alpha) \mathcal{L}_{\text{CE}}(p^{(1)}, y),
+    \label{eq:kd-loss}
+  \end{equation}
+  where $\alpha \in [0,1]$ balances the two terms and $\tau^{2}$ restores gradient scale after softening.
+\end{foldable}
+
+\begin{foldable}
+  The teacher's output is not merely a prediction: it is a compressed summary of everything the teacher learned from the full training distribution, encoded in a probability vector.
+  Training the student against this posterior transfers the teacher's generalization directly: its responses on hard examples, its calibrated uncertainty, and its implicit encoding of class relationships.
+  Empirically, a student of identical architecture to the teacher consistently outperforms the same model trained on hard labels alone~\cite{hinton2015distilling}, confirming that the gain comes from signal quality rather than capacity.
+  Subsequent work has shown that the teacher's intermediate representations and the relational structure among samples carry additional signal, motivating a broader taxonomy of distillation methods.
+\end{foldable}
+
+\subsection{Taxonomy of Model Distillation Methods} \label{sec:23-background-modeldistill-taxonomy}
+\begin{foldable}
+  The original formulation transfers knowledge through the teacher's output distribution, but the field has since expanded to exploit richer sources of teacher signal.
+  The design space of \ac{KD} decomposes along two orthogonal dimensions: (1) the \textit{source of knowledge} transferred (response-based, feature-based, or relation-based methods), and (2) the \textit{training scheme} that structures the teacher-student relationship (offline, online, self, or co-distillation).
+  We first inventory the knowledge sources by examining what each family transfers and what teacher access is required, then discuss training schemes.
+  Together they characterise the full design space.
+\end{foldable}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.70\linewidth]{./figures/20-background/23-background-modeldistill-responsekd.pdf}
+  \caption[Response-based knowledge distillation.]{
+    Response-based distillation matches the teacher's output distribution, requiring only output-level access.
+  }
+  \label{fig:23-background-modeldistill-responsekd}
+\end{figure}
+
+\begin{foldable}
+  \textbf{Response-based distillation}~\cite{hinton2015distilling} trains the student to match the teacher's output class distribution:
+  \begin{equation}
+    \mathcal{L}_{\text{KD}}^{\text{response}} = \alpha \tau^2 \mathcal{L}_{\text{KL}}(q^{(\tau)} \| p^{(\tau)}) + (1-\alpha) \mathcal{L}_{\text{CE}}(p, y),
+    \label{eq:kd-response}
+  \end{equation}
+  as formalized in Equation~\ref{eq:kd-loss}.
+  Variants include regression on the raw un-softened logit vector and born-again networks, in which a same-architecture student is sequentially re-distilled from the previous generation, yielding ensembles that outperform the original teacher~\cite{ba2014deep}.
+  Response-based methods require only the teacher's output probability vector and are therefore compatible with any setting in which that vector is accessible, including black-box \acp{API}.
+\end{foldable}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.65\linewidth]{./figures/20-background/23-background-modeldistill-featurekd.pdf}
+  \caption[Feature-based knowledge distillation.]{
+    Feature-based distillation matches intermediate layer representations via a learned projector, requiring internal teacher access.
+  }
+  \label{fig:23-background-modeldistill-featurekd}
+\end{figure}
+
+\begin{foldable}
+  \textbf{Feature-based distillation} transfers knowledge from the teacher's intermediate representations by matching aligned feature maps at selected layers:
+  \begin{equation}
+    \mathcal{L}_{\text{KD}}^{\text{feature}} = \left\| W f^T - f^S \right\|^2,
+    \label{eq:kd-feature}
+  \end{equation}
+  where $f^T$ and $f^S$ are teacher and student feature maps at a chosen intermediate layer, and $W$ is a learned projection matrix.
+  This loss can be summed over multiple selected layer pairs.
+  FitNets~\cite{romero2015fitnets} introduced matching intermediate hidden layers via a thin regressor, enabling students deeper and thinner than the teacher.
+  Attention Transfer~\cite{zagoruyko2016paying} distils spatial attention maps, capturing \textit{where} the teacher focuses rather than \textit{what} it predicts.
+  PKT~\cite{passalis2018learning} matches kernel density estimates of teacher and student feature distributions, encoding distributional geometry rather than individual activation values.
+  Feature-based methods consistently improve on response-based baselines, but their incompatibility with opaque \acp{API} is fundamental.
+  Without access to the teacher's activation dimensionality and representation geometry, the projector bridging teacher and student spaces is entirely ill-posed: there is no anchor in the teacher's representation space to which the student can be steered.
+\end{foldable}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.85\linewidth]{./figures/20-background/23-background-modeldistill-relationkd.pdf}
+  \caption[Relation-based knowledge distillation.]{
+    Relation-based distillation preserves pairwise distance and angle relationships between samples in the teacher's embedding space.
+  }
+  \label{fig:23-background-modeldistill-relationkd}
+\end{figure}
+
+\begin{foldable}
+  \textbf{Relation-based distillation} transfers higher-order structure: pairwise or group-wise relationships among samples in the teacher's embedding space:
+  \begin{equation}
+    \mathcal{L}_{\text{KD}}^{\text{rel}} = \sum_{i,j} \left[ (d_T(f_i^T, f_j^T) - d_S(f_i^S, f_j^S))^2 + (\Delta\theta_T - \Delta\theta_S)^2 \right],
+    \label{eq:kd-relation}
+  \end{equation}
+  where $f_i^T$ and $f_i^S$ are feature vectors for samples $i$ and $j$ extracted from an intermediate layer, $d$ measures pairwise Euclidean distance, and $\Delta\theta$ is the angle between feature vectors, with subscripts $T$ and $S$ denoting teacher and student respectively.
+  RKD~\cite{park2019relational} penalizes discrepancies in distance and angle relationships between sample pairs, arguing that relational information is more transferable across architectures than pointwise feature values.
+  Contrastive distillation methods extend this by using self-supervised objectives to preserve the teacher's instance discrimination structure.
+  Relation-based methods therefore share the access problem of feature-based methods, as pairwise statistics require intermediate-level teacher outputs.
+  Beyond access, a student trained solely on hard labels develops an embedding geometry incommensurable with the teacher's, making the relational target unreachable.
+\end{foldable}
+
+\begin{foldable}
+  The second axis organises methods by the \textit{training scheme}: the relationship between teacher and student during training, illustrated in Figure~\ref{fig:23-background-modeldistill-schemes}.
+  \textit{Offline distillation} uses a fixed, pre-trained teacher queried through its outputs; the student is trained entirely from the teacher's frozen predictions.
+  \textit{Online distillation} trains teacher and student simultaneously, allowing the teacher to evolve during the student's training.
+  \textit{Self-distillation} requires no separate teacher: the student distils knowledge from its own earlier or shallower representations.
+  \textit{Co-distillation} extends this to an ensemble of students that mutually supervise one another.
+  All work in this thesis operates in the offline regime.
+\end{foldable}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.99\linewidth]{./figures/20-background/23-background-modeldistill-schemes.pdf}
+  \caption[Knowledge distillation training schemes.]{
+    Knowledge distillation training schemes: offline (frozen pre-trained teacher), online (jointly trained), self-distillation, and co-distillation.
+  }
+  \label{fig:23-background-modeldistill-schemes}
+\end{figure}
+
+\begin{foldable}
+  Across all three source-of-knowledge families, two conditions are implicit: the full training dataset $\mathcal{D}$ is available to supply inputs to the teacher, and the teacher exposes at least its output probability vector.
+  When either condition fails, the picture changes dramatically.
+  Response-based methods' black-box compatibility becomes their sole advantage when these assumptions break: feature-based and relation-based methods become inaccessible, while response-based distillation survives, albeit degraded, under hard-label-only settings.
+  The next subsection formalizes these two assumptions and characterises what happens when they fail.
+\end{foldable}
+
+\subsection{Standard Assumptions and Their Limitations} \label{sec:23-background-modeldistill-assumptions}
+\begin{foldable}
+  \textbf{Assumption 1: the full training dataset is available.}
+  In many realistic settings, the original training data is inaccessible: it may contain private records (medical imaging, financial transactions), it may be proprietary to the model provider, or it may have been discarded after training to reduce storage costs.
+  Data regulations such as \ac{GDPR}~\cite{eu2016gdpr} or \ac{HIPAA}~\cite{us1996hipaa} further restrict the retention and transfer of training sets across organizational boundaries.
+  When $\mathcal{D}$ is unavailable, the student must be trained on a surrogate: a small held-out subset, synthetic data from a generative model, or public proxy data from a related domain.
+  This constraint exists on a spectrum, from \textit{few-shot} settings in which only a handful of samples are available to fully \textit{data-free} settings in which no original data exists; the data-free end is strictly harder, as no real distribution signal remains.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Assumption 2: the teacher is accessible at the logit level or deeper.}
+  All three \ac{KD} families require at minimum the teacher's output probability vector over all $K$ classes; feature-based and relation-based methods additionally require internal activations.
+  Modern production models are routinely deployed behind \acp{API} that return only a top-1 predicted label, or with associated confidence scores, to protect proprietary model internals and limit adversarial probing.
+  In this setting, the access restrictions eliminate two of the three families outright: feature-based and relation-based methods are impossible without internal activations.
+  Response-based methods remain the sole viable family, though they are severely degraded by the loss of soft probability distributions: a single hard label carries $\log_2 K$ bits per query, whereas the teacher's full soft target encodes the inter-class similarity structure it learned.
+\end{foldable}
+
+\begin{foldable}
+  Together, these two failures characterise the landscape of practical \ac{KD}.
+  Absent original data, the distillation signal loses coverage of the true input distribution; absent soft targets, it loses the relational structure that distinguishes \ac{KD} from ordinary supervised training.
+  \S\ref{sec:24-background-kdrestricted} surveys these two restriction axes, frames distributional fidelity as the binding constraint, and identifies the structural gaps that motivate Chapters~\ref{ch:30-research01}--\ref{ch:50-research03}.
+\end{foldable}

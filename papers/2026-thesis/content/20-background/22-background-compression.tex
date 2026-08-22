@@ -1,82 +1,146 @@
-\section{Model Compression} \label{sec:22-background-compression}
-
-\subsection{The Compression Landscape}
-\label{sec:22-background-compression-landscape}
-
+\section{From Compression to Distillation} \label{sec:22-background-compression}
+\subsection{Model Compression} \label{sec:22-background-compression-model}
 \begin{foldable}
   The gap between the accuracy achievable by large neural networks and the computational budget available at deployment has motivated a substantial body of work on model compression.
-  The field broadly divides into four families: pruning, quantization, low-rank factorization, and architecture search.
-  Each makes a different trade-off between compression ratio, hardware portability, and the degree of access required to the original model.
+  The field broadly divides into four families: pruning, quantization, low-rank factorization, and \acl{KD}.
+  Each makes a different trade-off between compression ratio, hardware portability, and the degree of access required to the teacher model, and this last dimension turns out to be the most consequential in practice.
+  Figure~\ref{fig:22-background-compression-modelcompress} illustrates these four families and their relationship to the original teacher.
 \end{foldable}
 
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.85\columnwidth]{./figures/20-background/22-background-compression-modelcompress.pdf}
+  \caption[Four model compression families.]{
+    Four model compression families.
+    (Left) Teacher network: the original large model.
+    (Top middle) Pruning: removes nodes and connections, indicated by dashed circles.
+    (Top right) Quantization: reduces numerical precision, represented by square nodes.
+    (Bottom middle) Low-rank adaptation: factors weight matrices into lower-rank components, shown as trapezoidal modules.
+    (Bottom right) Knowledge distillation: trains a separate compact student network (blue) to match teacher outputs.
+  }
+  \label{fig:22-background-compression-modelcompress}
+\end{figure}
+
 \begin{foldable}
-  \textbf{Pruning} removes parameters or entire structural units from a trained network.
-  Unstructured pruning zeros individual weights below a magnitude threshold, yielding sparse weight tensors; Han et al.~\cite{han2015learning} showed that over 90\% of parameters in
-  AlexNet and VGG can be pruned with negligible accuracy loss when combined with retraining.
+  \textbf{Pruning} removes parameters or entire structural units from a trained network~\cite{han2015learning}.
+  Unstructured pruning zeros individual weights below a magnitude threshold, yielding sparse weight tensors.
+  Over 90\% of parameters in AlexNet and VGG can be pruned with negligible accuracy loss when combined with retraining.
   However, irregular sparsity does not translate directly to wall-clock speedups without specialised sparse hardware or libraries.
-  Structured pruning removes whole filters, channels, or layers, producing dense sub-networks that accelerate inference on commodity hardware~\cite{molchanov2016pruning}, but the coarser granularity typically requires a larger pruning ratio to achieve the same compression.
-  Both variants require access to the network's weight matrices and at least one pass of retraining, placing them in the white-box compression category.
+  Structured pruning removes whole filters, channels, or layers, producing dense sub-networks that accelerate inference on commodity hardware~\cite{molchanov2016pruning}.
+  The coarser granularity typically requires a larger pruning ratio to achieve the same compression as unstructured pruning.
+  Pruning requires direct access to the network's weight matrices and structure.
 \end{foldable}
 
 \begin{foldable}
-  \textbf{Quantization} reduces the numerical precision of weights and/or activations.
-  Fixed-point (INT8) quantization~\cite{jacob2018quantization} is now standard in production inference pipelines and is directly supported by most modern hardware accelerators; it typically recovers near-full-precision accuracy with a four-fold memory reduction.
+  \textbf{Quantization} reduces the numerical precision of weights and activations~\cite{jacob2018quantization}.
+  Fixed-point (\texttt{INT8}) quantization is now standard in production inference pipelines and is directly supported by most modern hardware accelerators.
+  It typically recovers near-full-precision accuracy with a four-fold memory reduction.
   Extreme approaches such as binary neural networks represent each weight as a single bit~\cite{hubara2018quantized}, achieving large memory savings at the cost of accuracy on complex tasks.
-  Quantization operates on the model's internal weight representation and generally requires calibration data and access to layer statistics, making it incompatible with black-box settings.
+  Quantization demands access to internal weight representations and activation statistics.
 \end{foldable}
 
 \begin{foldable}
-  \textbf{Low-rank factorization} decomposes weight matrices into products of smaller matrices (e.g., $W \approx UV^{\top}$ with $\text{rank}(U) \ll \min(m,n)$), reducing parameter count and arithmetic at the cost of an approximation error that is difficult to control across layers.
-  The technique is most effective for fully connected and embedding layers where matrices are large and relatively low-rank, but scales poorly to the large convolutional filters in modern CNNs.
+  \textbf{Low-rank factorization} decomposes weight matrices into products of smaller matrices~\cite{hu2022lora}.
+  For example, $W \approx UV^{\top}$ where $\text{rank}(U) \ll \min(m,n)$.
+  This reduces parameter count and arithmetic cost at the price of an approximation error.
+  The technique is most effective for large fully connected and embedding layers, where a low-rank approximation captures most of the variance.
+  It is less suitable for the many small convolutional filters in modern CNNs, where the weight tensors are not well approximated by low-rank structures and the approximation error accumulates across layers.
+  Low-rank factorization, like the two preceding methods, requires full access to the model's weight matrices.
 \end{foldable}
 
 \begin{foldable}
-  \ac{NAS} uses automated search to find efficient architectures directly, rather than compressing an existing one~\cite{zoph2018learning}.
-  \ac{NAS} methods can produce models that outperform hand-designed compressed networks, but the search itself is computationally expensive and yields architectures that are task- and hardware-specific.
-  \ac{NAS} is better understood as a design-time tool than a post-training compression technique, and it does not address the case where the model to be compressed is already deployed and inaccessible.
+  \textbf{\Acl{KD}} takes quite a different approach~\cite{hinton2015distilling}.
+  Rather than modifying the teacher's parameters, it trains a separate, compact student network to reproduce the teacher's output predictions.
+  The student is initialised independently and never reads the teacher's weights, gradients, or internal activations.
+  The only interface it uses is the teacher's output, which is a vector of class probabilities for each input query.
+  This output-only interface is what makes \ac{KD} compatible with settings where the teacher is accessible only as a black-box \ac{API}.
 \end{foldable}
 
 \begin{foldable}
-  Reviewing the four families together reveals a shared structural requirement that is easy to overlook when the methods are considered in isolation.
-  Pruning, quantization, and low-rank factorization all operate on the internal weight representation of the model: they read weight matrices, modify them, and require at least one subsequent pass of calibration or retraining against task data.
-  This is not an incidental implementation detail but a fundamental prerequisite---without direct access to parameters and activations, none of these transformations can be applied.
-  \ac{NAS} imposes a different kind of constraint: rather than requiring access to an existing model's internals, it requires that a new architecture be trained from scratch, making it a design-time tool rather than a post-deployment compression technique.
-  The boundary this draws is consequential.
-  Any setting in which a trained model is accessible only as an opaque input-output function---a black-box \ac{API} that accepts queries and returns predictions---rules out all four families simultaneously: pruning and quantization because they cannot read or write weights; low-rank factorization for the same reason; and \ac{NAS} because the model to be compressed already exists and retraining it from a different architecture is not an option.
-  \ac{KD} is the one compression paradigm that does not cross this boundary.
-  A distillation procedure queries the deployed model, collects its output predictions, and trains a separate student network on those predictions; at no point does it require access to the teacher's weights, gradients, or internal activations.
-  This compatibility with the black-box deployment setting is what motivates the following analysis.
+  The access requirements of the four families draw a sharp boundary.
+  Pruning, quantization, and low-rank factorization all operate on the model's internal weight representation: they read weight matrices, modify them, and require at least one subsequent pass of calibration or retraining.
+  This is not an incidental implementation detail but a fundamental prerequisite: without direct access to parameters and activations, none of these transformations can be applied.
+  Any deployment setting in which the model is accessible only as an opaque input-output function rules out all three simultaneously.
+  Yet \ac{KD} does not cross this boundary: it queries the teacher, observes its outputs, and trains the student entirely from those observations.
+  When the teacher is a black-box, \ac{KD} is not a preference; it is the only viable path.
 \end{foldable}
 
-\subsection{Why Knowledge Distillation?}
-\label{sec:22-background-compression-why-kd}
-
+\subsection{Dataset Compression} \label{sec:22-background-compression-dataset}
 \begin{foldable}
-  Knowledge distillation~\cite{hinton2015distilling}, reviewed in detail in \S\ref{sec:23-background-kdfoundations}, occupies a distinct position in the compression landscape for three reasons.
+  Meanwhile, dataset compression takes the complementary route, reducing the volume of training data required to reach a given model quality while leaving the model architecture unchanged.
+  Three families of dataset compression have been proposed, distinguished by whether they retain real samples and how they measure representativeness.
+  Figure~\ref{fig:22-background-compression-datasetcompress} illustrates these three families.
 \end{foldable}
 
-\begin{foldable}
-  First, it is \textbf{architecture-agnostic}.
-  The student network is designed independently of the teacher: it can be a smaller version of the same architecture, a fundamentally different design (e.g., a \ac{CNN} student learning from a
-  Transformer teacher), or even a non-neural model.
-  Pruning and quantization, by contrast, operate on the teacher's existing structure and produce compressed variants of it.
-\end{foldable}
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.99\columnwidth]{./figures/20-background/22-background-compression-datasetcompress.pdf}
+  \caption[Three dataset compression families.]{
+    Three dataset compression families.
+    (Left) Prototype centroids (orange) summarize each cluster from original dataset (blue).
+    (Middle) Coreset selects only a subset of representative real samples.
+    (Right) Dataset distillation optimizes synthetic samples to match the original distribution.
+  }
+  \label{fig:22-background-compression-datasetcompress}
+\end{figure}
 
 \begin{foldable}
-  Second, it requires \textbf{no modification of the teacher}.
-  The teacher is treated as a fixed oracle that responds to queries; its weights, activations, and gradients are never modified.
-  This is a practical requirement in many real-world settings where the teacher is a third-party model accessible only through an API, an arrangement that rules out all weight-based compression methods.
-\end{foldable}
-
-\begin{foldable}
-  Third, it \textbf{leverages richer information than hard labels}.
-  A teacher's class probability vector for a given input encodes not only the predicted class but also the relative similarity structure among classes --- the so-called dark knowledge that Hinton et al.\ identified as the principal source of KD's effectiveness.
-  This soft supervision signal is strictly more informative than the one-hot ground-truth label, and is available at no additional annotation cost.
+  \textbf{Prototype and clustering methods} summarize the dataset by a set of representative centroids.
+  Algorithms such as $k$-means~\cite{macqueen1967some} and Gaussian mixture models~\cite{dempster1977maximum} partition the training data and represent each partition by a single centroid.
+  Training proceeds on these centroids rather than the original data, yielding a compact surrogate that captures the global cluster structure.
+  The approach is computationally cheap and scales to large datasets, but it treats each sample as interchangeable within its cluster and therefore ignores which samples are most informative for the learning objective.
 \end{foldable}
 
 \begin{foldable}
-  The output-only interface that KD requires is both its key strength and, in the most constrained settings, its limiting factor.
-  When the API returns only a top-1 hard label rather than a full probability vector, even the soft supervision signal is lost.
-  \S\ref{sec:23-background-kdfoundations} defines the KD framework precisely and maps out the family of assumptions under which each variant operates;
-  \S\ref{sec:24-background-kdrestricted} then traces what happens as those assumptions are progressively relaxed.
+  \textbf{Coreset selection} retains a subset of real training samples chosen so that a model trained on the subset closely approximates one trained on the full dataset.
+  Selection criteria are grounded in the learning objective: geometry-based methods select samples that span the input space~\cite{sener2018active}, while gradient-based methods select samples whose gradients collectively best approximate the full-data gradient~\cite{mirzasoleiman2020coresets}.
+  Because coresets consist of original samples, they preserve the distributional properties of the data and require no generative process.
+  The principal limitation is that the selected subset is constrained to what already exists in the dataset; no sample can be more informative than the most informative real example.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Dataset distillation}~\cite{wang2018dataset} takes a different approach.
+  Rather than selecting or summarising existing samples, it optimizes a small set of synthetic samples end-to-end so that models trained on the distilled set match the performance of models trained on the full dataset.
+  The synthetic samples are not drawn from any real distribution; they are free parameters jointly optimized with a surrogate training objective, typically by matching model parameters or gradients~\cite{zhao2021dataset} between the distilled set and the full dataset.
+  Because the distilled set is not constrained to the support of the original data, it can be far more compact than any coreset.
+\end{foldable}
+
+\begin{foldable}
+  The three families differ not only in mechanism but in what they preserve.
+  Prototype methods preserve cluster geometry; coreset methods preserve the loss or gradient surface of the full dataset; dataset distillation preserves model behaviour, specifically end-to-end performance on the target task.
+  All three act on the training signal rather than the learned parameters, distinguishing them collectively from model compression.
+  Prototype and coreset methods are bounded by the real samples that exist: no selected or summarized sample can carry more knowledge than the most informative real example.
+  When the corpus is insufficient or biased, selection alone cannot recover coverage; dataset distillation, unconstrained to the original data support, is the only family that can.
+\end{foldable}
+
+\subsection{Why Distillation?} \label{sec:22-background-compression-whydistill}
+\begin{foldable}
+  This thesis adopts a distillation approach to both compression axes.
+  Throughout, the term \textbf{\acl{KD}} serves as an umbrella encompassing both model distillation (compressing a learned model) and dataset distillation (compressing a training corpus): both solve compression by transferring knowledge from a richer source to a more constrained target, one on the model axis and one on the data axis.
+  The explicit distinction between model and dataset distillation will be invoked where the two paradigms diverge mechanically or in scope; where context renders it unambiguous, the umbrella term is used.
+\end{foldable}
+
+\begin{foldable}
+  Within model compression, model distillation is uniquely \textit{architecture-agnostic}: the student is designed independently and can differ from the teacher in architecture, depth, or model family, whereas pruning and quantization operate on the teacher's existing weight structure and produce compressed variants of it.
+  Beyond this, model distillation \textit{does not require internal access to the source}: the teacher is a fixed oracle queried through its outputs alone, and its weights, activations, and gradients are never read.
+  Pruning, quantization, and low-rank factorization each depend on exactly this access (reading weight matrices, computing activation statistics, calibrating layer-wise ranges), so any setting where the teacher is exposed only as an \ac{API} eliminates all three simultaneously.
+  Most importantly, model distillation \textit{preserves learned knowledge} rather than surface proxies: the teacher's output probability vector encodes not only the predicted class but the relational structure among all classes, the so-called dark knowledge~\cite{hinton2015distilling} absent from a hard label.
+  A one-hot label records which class won; a soft output records by how much and how every other class ranked, a signal that hard-label training permanently discards at no savings in annotation cost.
+\end{foldable}
+
+\begin{foldable}
+  On the data axis, the alternatives fail for analogous reasons.
+  Prototype methods summarize the dataset by geometric centroids in input space: a centroid may be Euclidean-representative while bearing no relationship to the decision boundary, the analogue of a hard label that records position without recording importance.
+  Coreset selection grounds selection in the learning objective and is strictly more informative, but remains bounded by the existing data: no selected sample can carry more knowledge than the most informative real example, and selection can only redistribute importance across the existing support, not extend it.
+  Dataset distillation addresses both shortcomings: synthetic parameters are \textit{not bounded by the original data}, extending beyond the existing support.
+  Optimising against the training objective \textit{preserves learned knowledge} rather than surface proxies.
+  Both failures thus have a common cause: compression that ignores the learning objective cannot faithfully represent the original distribution.
+\end{foldable}
+
+\begin{foldable}
+  Both verdicts compound into a single principle.
+  Model and dataset distillation survive their respective access restrictions (black-box \acp{API} on the model axis, insufficient or biased corpora on the data axis) because they treat compression as a \textbf{knowledge transfer} problem rather than a parameter reduction problem.
+  The non-distillation alternatives fail for the same structural reason: hard labels discard inter-class relational structure; geometric summaries discard task-relevant importance; coreset selection is bounded by the existing distribution.
+  The shared failure mode, and the shared design objective, is \textbf{distributional fidelity}: whether the compact artefact, a student model or surrogate corpus, faithfully represents the original distribution under practical constraints.
+  The practical constraints this thesis addresses, limited real data, black-box teacher access, and discrete token modality, each degrade distributional fidelity in a specific way, and recovering it under each is the unifying objective of Chapters~\ref{ch:30-research01} through~\ref{ch:50-research03}.
 \end{foldable}

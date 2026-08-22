@@ -1,0 +1,261 @@
+\section{Methodology} \label{sec:53-research03-method}
+
+\subsection{Problem Setup and Framework Overview} \label{sec:53-research03-method-setup}
+\begin{foldable} % Setup + overview merged
+  TAKE instantiates the \ac{RDM} objective (Eq.~\ref{eq:reweighted-distribution-matching}) by solving the two open problems from \S\ref{sec:52-research03-theory-failures}.
+  Let $\mathcal{D} = \{z_n\}_{n=1}^{N}$ denote the training corpus, $\mathcal{D}_\text{synth} = \{\tilde{z}_c\}_{c=1}^{M}$ the synthetic candidate pool, and $\tilde{\mathcal{D}} \subset \mathcal{D}_\text{synth}$ the distilled set of budget $K$.
+  Indices $n \in [N]$ and $t \in [T]$ range over training samples and checkpoints respectively.
+  TAKE proceeds in three stages:
+  \begin{enumerate}
+    \item \textbf{Score}---train a logistic probe on $\mathcal{D}$ across $T$ checkpoints, compute influence matrix $I \in \mathbb{R}^{N \times T}$, apply reciprocal reweighting and temporal weighting to obtain trajectory-aware knowledge scores $\kappa_n$.
+    \item \textbf{Generate}---fine-tune a small language model on $\mathcal{D}$ and sample to produce the synthetic candidate pool $\mathcal{D}_\text{synth}$.
+    \item \textbf{Distill}---solve discrete \ac{OT} with source weights $\kappa_n$ over $\mathcal{D}_\text{synth}$ to obtain the distilled corpus $\tilde{\mathcal{D}}$ of budget $K$.
+  \end{enumerate}
+  The three stages are decoupled and independently replaceable, with $\phi$ shared across Stages 1 and 3 as a natural consistency choice. The following sections detail each in turn.
+\end{foldable}
+
+\subsection{Gradient-Based Influence Along the Trajectory} \label{sec:53-research03-method-gradient}
+\begin{foldable} % Motivation for trajectory-aware estimation
+  The \acl{HSB} (\S\ref{sec:52-research03-theory-failures}) arises because single-checkpoint influence scores overemphasize noisy or difficult samples, whose gradients remain large at convergence.
+  The fix is to integrate gradient information across the full training trajectory, producing a trajectory-aware knowledge score $\kappa_n$ per sample.
+  We build $\kappa_n$ in two steps: constructing the influence matrix $I$ (\S\ref{sec:53-research03-method-gradient-influence}), then collapsing it into a per-sample scalar score via reciprocal reweighting and temporal weighting (\S\ref{sec:53-research03-method-gradient-knowledge}).
+  The resulting $\kappa_n$ provides a task-aligned, bias-corrected weight for $P^w$.
+\end{foldable}
+
+\subsubsection{Influence Matrix} \label{sec:53-research03-method-gradient-influence}
+\begin{foldable} % Definition and construction of I
+  Our goal is to construct $I \in \mathbb{R}^{N \times T}$ whose entry $I_{(n,t)}$ reflects how much sample $z_n$ contributes to learning at checkpoint $\theta_t$.
+  The influence self-score (\S\ref{sec:52-research03-theory-failures}, Eq.~\ref{eq:influence-self}) is the natural candidate, but requires Hessian inversion at a converged checkpoint and is undefined mid-trajectory.
+  We address both limitations by adapting the per-sample gradient norm from TracIn~\cite{pruthi2020estimating} to the self-influence setting, querying training points instead of test points:
+  \begin{equation}
+    I_{(n,t)} = \|\nabla_\theta \ell(z_n; \theta_t)\|.
+    \label{eq:influence-matrix}
+  \end{equation}
+  As the $H=I$ special case of the influence self-score (Remark~\ref{rem:grad-norm}), $I_{(n,t)}$ exhibits the same \ac{HSB} structure---the bias that $\kappa_n$ corrects via reciprocal inversion and trajectory integration (Proposition~\ref{prop:traj}).
+  Scores are column-wise normalized $I_{(n,t)} \leftarrow I_{(n,t)} / \sum_{n'} I_{(n',t)}$ for comparability across checkpoints.
+\end{foldable}
+
+\begin{foldable} 
+  In practice, we score samples with a linear head $W$ atop a pre-trained, frozen sentence encoder $\phi$, giving $\theta = (W, \phi)$.
+  The signal quality comes not from the linear head but from $\phi(x_n)$: $\phi$ is pre-trained on large-scale corpora and $W$ is fine-tuned on the full task corpus, so the representations, and hence the gradient norms, are both semantically rich and task-aligned by construction.
+  Following the standard practice in scalable influence estimation~\cite{guo2021fastif}, we approximate full-model influence via the last layer---here, the linear head $W$:
+  \begin{equation}
+    \nabla_\theta \ell(z_n; \theta_t) \approx \nabla_W \ell(z_n; \theta_t),
+    \label{eq:last-layer}
+  \end{equation}
+  trading a small bias for tractability.
+  By the Goodfellow outer-product identity~\cite{goodfellow2015efficient}, $\nabla_W \ell = g_n \phi(x_n)^\top$ where $g_n$ is the output gradient.
+  The Goodfellow trick vectorizes the batch backward pass, avoiding per-sample loops.
+  Adapting to a new task is trivial: retrain $W$ on the new corpus; $\phi$ and the influence pipeline are unchanged.
+\end{foldable}
+
+\subsubsection{Knowledge Score and Temporal Weighting} \label{sec:53-research03-method-gradient-knowledge}
+\begin{foldable} % Inversion and temporal weighting to produce kappa
+  To correct the \ac{HSB}, we require a score that is high for well-fitted samples and low for noisy ones---the opposite of what $I_{(n,t)}$ directly provides.
+  Since a well-fitted sample has a small gradient norm, taking the reciprocal naturally inverts this ranking.
+  We further weight each checkpoint by a decreasing temporal kernel $k : \{0,\ldots,T-1\} \to \mathbb{R}_{>0}$, giving:
+  \begin{equation}
+    \kappa_n = \sum_{t=0}^{T-1} \frac{k(t)}{I_{(n,t)}},
+    \label{eq:kappa}
+  \end{equation}
+\end{foldable}
+
+\begin{foldable}
+  A decreasing kernel is the natural choice: early checkpoints capture easy samples fitting rapidly, mid checkpoints offer the strongest signal, and late checkpoints show narrowing as memorization sets in~\cite{arpit2017closer}.
+  Thus, concentrating mass on the early-to-mid phase and discounting late memorization directly corrects the \ac{HSB} structure identified in Proposition~\ref{prop:hsb}.
+  By default we use the exponential kernel $k(t) = e^{-\lambda t / T}$ ($\lambda > 0$), with $\lambda$ treated as a hyperparameter.
+  Alternative kernels (linear, cosine) are drop-in replacements, and Proposition~\ref{prop:traj} guarantees bias reduction holds for any strictly decreasing $k$.
+  The resulting $\kappa_n$ summarizes each sample's cumulative, bias-corrected learning contribution across the full trajectory, resolving open problem~\ref{open-problem-weight}.
+  Normalized source weights $w_n = \kappa_n / \sum_{n'} \kappa_{n'}$ define the reweighted distribution $P^w$ and serve as input to the \ac{OT} selection step (\S\ref{sec:53-research03-method-ot}).
+\end{foldable}
+
+\begin{foldable}
+  \begin{proposition}[Trajectory Integration Reduces HSB] \label{prop:traj}
+    Let $T_m$ be the memorization onset, the first checkpoint at which noisy-sample gradient norms begin to decrease:
+    \begin{equation*}
+      T_m := \inf\{t : \mathbb{E}_{z \sim \mathcal{D}_\textup{noisy}}[\|\nabla_\theta \ell(z;\theta_t)\|] < \mathbb{E}_{z \sim \mathcal{D}_\textup{noisy}}[\|\nabla_\theta \ell(z;\theta_0)\|]\}.
+    \end{equation*}
+    Assume:
+    \begin{enumerate}[label=\textbf{(A\arabic*)},leftmargin=*]
+      \item \textit{Monotone clean decay.} For $z \in \mathcal{D}_\textup{clean}$, $I_{(n,t)}$ is non-increasing in $t$ and converges to zero (holds under $L$-smooth loss and a sufficiently small learning rate).
+      \item \textit{Bounded noisy gradients up to memorization.} For $z \in \mathcal{D}_\textup{noisy}$, $I_{(n,t)} \geq \delta > 0$ for all $t \leq T_m$.
+      \item \textit{Post-memorization baseline inflation.} At $t = T-1 > T_m$, noisy reciprocals exceed clean reciprocals, so $\Delta_{T-1} := \mathbb{E}_\textup{noisy}[1/I_{(n,T-1)}] - \mathbb{E}_\textup{clean}[1/I_{(n,T-1)}] > 0$.
+      \item \textit{Positive decreasing kernel.} $k(t) > 0$ for all $t$, with $k(t^*) > k(T-1)$ for any $t^* < T-1$.
+    \end{enumerate}
+    Then $\kappa_n$ produces a strictly smaller noisy-over-clean gap than the single last-checkpoint baseline $\kappa^\dagger_n = 1/I_{(n,T-1)}$:
+    \begin{equation}
+      \mathbb{E}_{z \sim \mathcal{D}_\textup{noisy}}[\kappa_n] - \mathbb{E}_{z \sim \mathcal{D}_\textup{clean}}[\kappa_n]
+      < \mathbb{E}_{z \sim \mathcal{D}_\textup{noisy}}[\kappa^\dagger_n] - \mathbb{E}_{z \sim \mathcal{D}_\textup{clean}}[\kappa^\dagger_n].
+      \label{eq:prop2}
+    \end{equation}
+  \end{proposition}
+  \begin{proof}
+    The strategy is to track the per-checkpoint noisy-versus-clean gap $\Delta_t$ across the trajectory and show that the kernel-weighted sum on the left of \eqref{eq:prop2} is negative, while the last-checkpoint baseline on the right is positive.
+    Define $\Delta_t := \mathbb{E}_\textup{noisy}[1/I_{(n,t)}] - \mathbb{E}_\textup{clean}[1/I_{(n,t)}]$, so the left-hand side of \eqref{eq:prop2} expands as:
+    \begin{equation*}
+      \mathbb{E}_\textup{noisy}[\kappa_n] - \mathbb{E}_\textup{clean}[\kappa_n] = \sum_{t=0}^{T-1} k(t) \cdot \Delta_t.
+    \end{equation*}
+
+    \textit{Step 1 (sign structure).}
+    For $1 \leq t \leq T_m$: (A1) gives clean gradients decaying so $1/I_{(n,t)}$ grows for clean samples; (A2) bounds noisy gradients away from zero, so $1/I_{(n,t)} \leq 1/\delta$ for noisy samples.
+    Once $t$ is late enough in the window $[1, T_m]$ that the clean reciprocal exceeds $1/\delta$ on average, $\Delta_t \leq 0$, strictly at some $t^*$ in that range; assumption (A1)'s convergence-to-zero clause guarantees such a $t^*$ exists.
+    For $t > T_m$: $\Delta_t$ may be positive since noisy gradients decay after memorization.
+
+    \textit{Step 2 (weighted sum).}
+    Split the sum at $T_m$:
+    \begin{equation*}
+      S_1 = \sum_{t=1}^{T_m} k(t) \cdot \Delta_t \;<\; 0,
+      \qquad
+      S_2 = \sum_{t=T_m+1}^{T-1} k(t) \cdot \Delta_t \;\geq\; 0.
+    \end{equation*}
+    By (A4), $S_1 \leq -k(t^*) \cdot |\Delta_{t^*}|$ (single strictly negative term) and $S_2 \leq k(T_m+1) \cdot \sum_{t > T_m} \Delta_t$.
+    Take the kernel $k(t) = e^{-\lambda^* t / T}$ with $\lambda^* = T/T_m$; the ratio $k(T_m+1)/k(t^*) = e^{-\lambda^*(T_m+1-t^*)/T}$ shrinks as $\lambda^*$ grows, so $S_2 / |S_1| \to 0$.
+    For sufficiently large $\lambda^*$, $|S_1| > S_2$ and therefore $\sum_t k(t) \cdot \Delta_t = S_1 + S_2 < 0$.
+
+    \textit{Step 3 (baseline gap).}
+    By (A3), the single-checkpoint baseline satisfies $\mathbb{E}_\textup{noisy}[\kappa^\dagger_n] - \mathbb{E}_\textup{clean}[\kappa^\dagger_n] = \Delta_{T-1} > 0$.
+
+    Combining Steps 2 and 3:
+    \begin{equation*}
+      \mathbb{E}_\textup{noisy}[\kappa_n] - \mathbb{E}_\textup{clean}[\kappa_n] \;<\; 0 \;<\; \Delta_{T-1} = \mathbb{E}_\textup{noisy}[\kappa^\dagger_n] - \mathbb{E}_\textup{clean}[\kappa^\dagger_n].
+    \end{equation*}
+  \end{proof}
+  Operationally, this means trajectory-integrated scores favor clean and moderate samples over noisy ones, which is the ranking TAKE's selection step requires.
+\end{foldable}
+
+\subsection{Synthetic Candidate Pool Generation} \label{sec:53-research03-method-synthetic}
+
+\begin{foldable} % Why a synthetic pool
+  Rather than selecting directly from $\mathcal{D}$, TAKE draws $\tilde{\mathcal{D}}$ from a synthetic candidate pool $\mathcal{D}_\text{synth}$.
+  Direct subsampling has two problems: at extreme compression, verbatim records raise privacy concerns, and the budget $K$ is too small to cover the full training support.
+  We generate $\mathcal{D}_\text{synth}$ by fine-tuning a small language model on $\mathcal{D}$ and sampling from it.
+  The fine-tuned LM generalizes beyond memorized training instances, and stochastic sampling produces a diverse pool that extends beyond the training support.
+  $\mathcal{D}_\text{synth}$ serves solely as the selection pool and is never appended to downstream training data.
+\end{foldable}
+
+\begin{foldable} % Distribution mismatch is beneficial
+  TAKE does \textit{not} assume $P_{\mathcal{D}_\text{synth}} = P_{\mathcal{D}}$; this distributional gap is \textit{beneficial}.
+  First, coverage expansion fills undersampled regions of $\mathcal{D}$, improving generalization of the distilled corpus.
+  Second, model fluency bias suppresses noisy samples that \ac{HSB} would otherwise over-select, yielding a cleaner candidate pool.
+  Third, the distribution mismatch physically decouples $\tilde{\mathcal{D}}$ from original records, reducing verbatim exposure risk.
+  \Acl{OT} handles the distributional gap gracefully: it routes mass toward $P^w$ regardless of pool distribution, so $P_{\tilde{\mathcal{D}}}$ approximates $P^w$ provided $\mathcal{D}_\text{synth}$ covers the support of $P_{\mathcal{D}}$ (Assumption~\ref{ass:coverage}):
+  \begin{assumption}[Pool Coverage] \label{ass:coverage}
+    For every training sample $z_n \in \mathcal{D}$, there exists a synthetic sample $\tilde{z}_c \in \mathcal{D}_\text{synth}$ within embedding distance $r$:
+    $\min_c \|\phi(z_n) - \phi(\tilde{z}_c)\| \leq r$.
+  \end{assumption}
+  Under Assumption~\ref{ass:coverage}, $W_1(P^w, P_{\mathcal{D}_\text{synth}}) \leq r$, so the optimal transport cost is at most $r$ before any prototype selection.
+  A practitioner can monitor coverage directly by reporting the mean nearest-neighbor distance $\bar{r} = \frac{1}{N}\sum_n \min_c \|\phi(z_n) - \phi(\tilde{z}_c)\|$.
+\end{foldable}
+
+\subsection{Distributional Prototype Selection} \label{sec:53-research03-method-ot}
+
+\begin{foldable} % Why discrete OT
+  Both $\mathcal{D}$ and $\mathcal{D}_\text{synth}$ are finite sample sets, so the matching problem is naturally over empirical measures.
+  Discrete \ac{OT} operates directly on $\mu = \sum_n w_n \delta_{z_n}$ and $\nu = \frac{1}{|\mathcal{D}_\text{synth}|}\sum_c \delta_{\tilde{z}_c}$, requiring no density estimation and yielding an explicit transport plan with direct prototype-level assignments.
+\end{foldable}
+
+\begin{foldable} % Formulation and entropic regularization
+  Let $C_{nc} = \|\phi(z_n) - \phi(\tilde{z}_c)\|^2$ be the cost matrix in a task-relevant embedding space.
+  Bare Kantorovich \ac{OT}, $\min_{\gamma \in \Pi(\mu,\nu)} \langle C, \gamma \rangle$, produces a sparse, non-differentiable plan and scales as $O(N^3)$.
+  We add entropic regularization to obtain a convex, smooth objective solvable via Sinkhorn--Knopp iterations at $O(N \cdot |\mathcal{D}_\text{synth}|)$ per step:
+  \begin{equation}
+    \gamma^* = \arg\min_{\gamma \in \Pi(\mu,\nu)} \langle C, \gamma \rangle + \varepsilon \cdot \text{KL}(\gamma \| \mu \otimes \nu).
+    \label{eq:ot}
+  \end{equation}
+  The soft coupling distributes mass across nearby candidates rather than hard one-to-one assignment, reducing sensitivity to embedding errors and encouraging diversity in $\tilde{\mathcal{D}}$.
+  As an extension, the independence reference $\mu \otimes \nu$ can be replaced with a task-specific prior coupling $\alpha(z, \tilde{z})$ (\eg, a topic-conditional measure) to regularize the transport plan toward domain knowledge.
+  The $K$ candidates with highest received mass $\sum_n \gamma^*_{nc}$ are selected as $\tilde{\mathcal{D}}$, resolving open problem~\ref{open-problem-select}.
+  The following theorem closes the theoretical chain from \ac{RDM} (Eq.~\ref{eq:reweighted-distribution-matching}) back to \ac{DD} (Eq.~\ref{eq:dataset-distillation}), bounding the downstream loss gap in terms of the \ac{OT} cost.
+
+  \begin{theorem}[Distribution Matching Gap Bound] \label{thm:gap}
+    Let $f^*_{\mathcal{S}}$ denote the model trained on $\mathcal{S}$, and let $\mathcal{L}(\mathcal{S}) = \mathbb{E}_{z \sim P^w}[\ell(z; f^*_{\mathcal{S}})]$.
+    Assume:
+    \begin{enumerate}[label=\textbf{(A\arabic*)},leftmargin=*]
+      \item $\ell(\cdot; f)$ is $L$-Lipschitz in the embedding metric for all $f$;
+      \item the learning algorithm satisfies uniform stability: $\sup_z |\ell(z; f^*_{\tilde{\mathcal{D}}}) - \ell(z; f^*_\mathcal{D})| \leq \beta_K$ with $\beta_K = O(1/K)$~\cite{bousquet2002stability};
+      \item the ground metric for $W_1$ is the embedding distance $c(z, z') = \|\phi(z) - \phi(z')\|$.
+    \end{enumerate}
+    Then:
+    \begin{equation}
+      \bigl|\mathcal{L}(\tilde{\mathcal{D}}) - \mathcal{L}(\mathcal{D})\bigr|
+      \;\leq\; 2L \cdot W_1(P^w, P_{\tilde{\mathcal{D}}}) + \beta_K,
+      \label{eq:gap-bound}
+    \end{equation}
+    where $W_1$ is the Wasserstein-1 distance under the embedding metric.
+    As $K \to \infty$, $\beta_K \to 0$, and the bound is dominated by the $W_1$ term controlled by the \ac{OT} objective.
+  \end{theorem}
+  \begin{proof}
+    The proof inserts the surrogate distribution $P_{\tilde{\mathcal{D}}}$ as a triangulation pivot between $P^w$ and the model-difference term, then bounds the two distribution-shift pieces by Wasserstein duality and the model-difference piece by uniform stability.
+
+    \textit{Step 1 (Kantorovich--Rubinstein bound for a fixed model).}
+    By Kantorovich--Rubinstein duality~\cite{villani2008optimal} under (A3), for any fixed $f$:
+    \begin{equation*}
+      \bigl|\mathbb{E}_{z \sim P^w}[\ell(z; f)] - \mathbb{E}_{z \sim P_{\tilde{\mathcal{D}}}}[\ell(z; f)]\bigr|
+      \;\leq\; L \cdot W_1(P^w, P_{\tilde{\mathcal{D}}}).
+    \end{equation*}
+
+    \textit{Step 2 (triangle inequality decomposition).}
+    $\mathcal{L}(\tilde{\mathcal{D}})$ uses $f^*_{\tilde{\mathcal{D}}}$ while $\mathcal{L}(\mathcal{D})$ uses $f^*_\mathcal{D}$; both are evaluated under $P^w$ but with different models, so Step 1 does not apply directly.
+    Inserting two intermediates and applying the triangle inequality twice:
+    \begin{align*}
+      |\mathcal{L}(\tilde{\mathcal{D}}) - \mathcal{L}(\mathcal{D})|
+      &\leq \underbrace{\bigl|\mathbb{E}_{P^w}[\ell(z;f^*_{\tilde{\mathcal{D}}})] - \mathbb{E}_{P_{\tilde{\mathcal{D}}}}[\ell(z;f^*_{\tilde{\mathcal{D}}})]\bigr|}_{\text{(I) distribution shift, fixed }f^*_{\tilde{\mathcal{D}}}} \\
+      &\quad + \underbrace{\bigl|\mathbb{E}_{P_{\tilde{\mathcal{D}}}}[\ell(z;f^*_{\tilde{\mathcal{D}}})] - \mathbb{E}_{P_{\tilde{\mathcal{D}}}}[\ell(z;f^*_\mathcal{D})]\bigr|}_{\text{(II) model difference, fixed }P_{\tilde{\mathcal{D}}}} \\
+      &\quad + \underbrace{\bigl|\mathbb{E}_{P_{\tilde{\mathcal{D}}}}[\ell(z;f^*_\mathcal{D})] - \mathbb{E}_{P^w}[\ell(z;f^*_\mathcal{D})]\bigr|}_{\text{(III) distribution shift, fixed }f^*_\mathcal{D}}.
+    \end{align*}
+    Terms (I) and (III) each satisfy Step 1 (with $f = f^*_{\tilde{\mathcal{D}}}$ and $f = f^*_\mathcal{D}$ respectively), so each is bounded by $L \cdot W_1(P^w, P_{\tilde{\mathcal{D}}})$.
+    Term (II) is bounded pointwise by (A2): $\text{(II)} \leq \beta_K = O(1/K)$.
+
+    Combining the three: $|\mathcal{L}(\tilde{\mathcal{D}}) - \mathcal{L}(\mathcal{D})| \leq 2L \cdot W_1(P^w, P_{\tilde{\mathcal{D}}}) + \beta_K$.
+  \end{proof}
+  The bound is stated with respect to $P^w$ rather than the uniform $P_\mathcal{D}$ --- this is intentional, as $P^w$ is the designed optimization target of the \ac{RDM} objective; since $P^w$ reweights $P_\mathcal{D}$ over the same support, minimizing $W_1(P^w, P_{\tilde{\mathcal{D}}})$ controls coverage of $P_\mathcal{D}$ up to the reweighting gap bounded in Remark~\ref{rem:double-gap}.
+\end{foldable}
+
+\begin{foldable} % Method wrap-up
+  Together, Propositions~\ref{prop:hsb}--\ref{prop:traj} and Theorem~\ref{thm:gap} establish the full theoretical basis for \ac{TAKE}: \ac{HSB} is structural and unavoidable at a single checkpoint (Proposition~\ref{prop:hsb}); trajectory integration strictly reduces it (Proposition~\ref{prop:traj}); and minimizing the \ac{OT} cost directly controls the downstream loss gap under $P^w$ (Theorem~\ref{thm:gap}; the gap to $P_\mathcal{D}$ is bounded by Remark~\ref{rem:double-gap}).
+  Algorithm~\ref{alg:take} consolidates the full \ac{TAKE} pipeline.
+\end{foldable}
+
+\begin{center}
+  \begin{minipage}{0.99\linewidth}
+    \begin{algorithm}[H]
+      \SetKwInOut{KwIn}{Input}
+      \SetKwInOut{KwOut}{Output}
+      \SetKwComment{Comment}{}{}
+
+      \caption{Trajectory-Aware Knowledge Estimation (\textbf{TAKE}).}
+      \label{alg:take}
+
+      \KwIn{corpus $\mathcal{D} = \{z_n\}_{n=1}^{N}$; budget $K$; checkpoints $T$; kernel $k(\cdot)$; $\varepsilon$; pool size $M$}
+      \KwOut{distilled corpus $\tilde{\mathcal{D}}$, $|\tilde{\mathcal{D}}| = K$}
+
+      \vspace{-0.5\baselineskip}
+      \Comment{\noindent\hrulefill}
+
+      \vspace{0.5\baselineskip}
+      \Comment{$\triangleright$ \textbf{\textit{Stage 1: Score}}}
+      Train logistic probe on $\mathcal{D}$, saving checkpoints $\theta_0, \ldots, \theta_{T-1}$ \\
+      \For{$t = 0, \ldots, T-1$}{
+        Compute $I_{(n,t)} \leftarrow \|\nabla_W \ell(z_n; \theta_t)\|$ for all $n$ \hfill\textit{(Goodfellow trick)} \\
+        Normalize $I_{(\cdot,t)} \leftarrow I_{(\cdot,t)} / \sum_{n'} I_{(n',t)}$ \hfill\textit{(column-wise)}
+      }
+      Compute $\kappa_n \leftarrow \textstyle\sum_{t=0}^{T-1} k(t) / I_{(n,t)}$ for all $n$ \hfill via Eq.~\ref{eq:kappa} \\
+      Normalize $w_n \leftarrow \kappa_n / \sum_{n'} \kappa_{n'}$ for all $n$ \hfill\textit{(defines $P^w$)}
+
+      \vspace{0.5\baselineskip}
+      \Comment{$\triangleright$ \textbf{\textit{Stage 2: Generate}}}
+      Fine-tune small language model $\text{LM}$ on $\mathcal{D}$ \\
+      Sample synthetic pool $\mathcal{D}_\text{synth} = \{\tilde{z}_c\}_{c=1}^{M}$ from $\text{LM}$
+
+      \vspace{0.5\baselineskip}
+      \Comment{$\triangleright$ \textbf{\textit{Stage 3: Distill}}}
+      Embed: $\phi(z_n)$ for $n \in [N]$; $\phi(\tilde{z}_c)$ for $c \in [M]$ \\
+      Compute cost matrix $C_{nc} = \|\phi(z_n) - \phi(\tilde{z}_c)\|^2$ \\
+      Solve $\gamma^* \leftarrow \text{Sinkhorn}(C, w, \mathbf{1}/M, \varepsilon)$ \hfill via Eq.~\ref{eq:ot} \\
+      Distill $\tilde{\mathcal{D}} \leftarrow \text{top}\text{-}K\!\left(\{\tilde{z}_c\},\; \textstyle\sum_n \gamma^*_{nc}\right)$ \hfill\textit{(by received mass)}
+
+      \vspace{0.5\baselineskip}
+      \Return{$\tilde{\mathcal{D}}$}
+    \end{algorithm}
+  \end{minipage}
+\end{center}

@@ -1,0 +1,52 @@
+\section{Large-Scale Models and Knowledge Distillation} \label{sec:11-introduction-largescale}
+\begin{foldable}
+  The history of modern \ac{AI} illustrates the bitter lesson~\cite{sutton2019bitter}: general, compute-driven approaches eventually outperform hand-crafted solutions.
+  When AlexNet~\cite{krizhevsky2012imagenet} appeared in 2012, its roughly 60\,M parameters and strong performance on ImageNet signalled that raw model capacity, combined with enough data and compute, could surpass decades of hand-crafted feature engineering.
+  An arms race followed that has not slowed since.
+  Vision models scaled rapidly: parameter counts of VGGNet~\cite{simonyan2014very} and ResNet~\cite{he2016deep} reached hundreds of millions, while vision transformers soon crossed the 1\,B scale~\cite{dosovitskiy2020image,zhai2022scaling}.
+  Language models followed an even steeper trajectory after the Transformer~\cite{vaswani2017attention} architecture arrived, with BERT~\cite{devlin2019bert} featuring 340\,M parameters, followed by GPT-3~\cite{brown2020language} reaching 175\,B parameters the year after.
+  As of writing, flagship \ac{AI} models~\cite{anthropic2026assessing,openai2025introducing} are all speculated to have reached trillions of parameters, especially when open-source counterparts too fall in this range~\cite{meta2025llama4,yang2025qwen3}, backed by compute infrastructure demands~\cite{elmeleegy2024demystifying}.
+  Their training data have expanded in tandem to tens of trillions of tokens, estimated to have exhausted 80\% of the high-quality English-language surface web~\cite{villalobos2024position}.
+  The empirical result is clear: larger models, trained on larger datasets, consistently achieve state-of-the-art performance across vision, language, and multimodal tasks.
+\end{foldable}
+
+\begin{foldable}
+  Yet scaling success has created a deployment paradox: the models with the strongest benchmark performance are exactly the ones real-world systems struggle most to accommodate.
+  Practical deployment is governed not by leaderboard rankings but by hard physical, economic, and legal constraints.
+  These constraints operate on two distinct fronts.
+\end{foldable}
+
+\begin{foldable}
+  The first front concerns the model at inference time.
+  Edge devices (smartphones, microcontrollers, or embedded sensors) are subject to fixed limits on silicon area, working memory, power draw, and thermal dissipation.
+  A model requiring tens of gigabytes of weights and billions of floating-point operations per forward pass simply cannot execute within these envelopes.
+  Safety-critical and real-time applications further compound this with latency requirements.
+  For example, an autonomous vehicle processing sensor data cannot tolerate a round-trip to a remote server, a clinical decision-support system must respond within the timescales of patient care, and a fraud detection system must act before a transaction clears.
+  Even in cloud settings, where hardware constraints are nominally relaxed, the economics of serving a multi-billion-parameter model at consumer scale are severe.
+  Offline deployments such as disaster response, rural healthcare, and maritime or aerospace operations face the same problem in its starkest form: no server is reachable, so the model must run locally or not at all.
+  The research community has responded with a family of model compression techniques: pruning, quantization, low-rank adaptation, and \ac{KD}, all aiming to produce smaller, faster models with minimal accuracy loss.
+  \ac{KD} in particular transfers knowledge from a teacher model to a student model, requiring no weight access and no structural modification.
+\end{foldable}
+
+\begin{foldable}
+  The second front concerns the data volume required to build and adapt these models.
+  Pre-training on billions of images and documents demands massive infrastructure (storage, pipelines, distributed clusters) available only to a handful of organisations worldwide.
+  This incurs expense on training and fine-tuning, often requiring hundreds of hours and terabytes of task-specific data.
+  For organisations adapting models frequently, cumulative costs rival the original pre-training expense.
+  Energy expenditure compounds this further: a single training run emits carbon dioxide comparable to several passenger vehicles~\cite{strubell2019energy}.
+  Beyond these economic pressures, data access is independently constrained by legal and institutional barriers.
+  Privacy legislation such as the \ac{GDPR}~\cite{eu2016gdpr} in Europe and the \ac{HIPAA}~\cite{us1996hipaa} in the United States restrict data centralization.
+  Datasets are also proprietary, with organisations unwilling to share data that underpins their competitive advantage.
+  This creates friction for collaboration and research, since researchers must either forgo real-world data or work through complex legal and ethical requirements to access it.
+  Dataset compression techniques, coreset selection, prototype-based methods, and \ac{DD}, address these constraints.
+  \ac{DD} in particular optimizes a synthetic set so that models trained on it match full-dataset performance, capturing essential knowledge within a minimal data budget.
+\end{foldable}
+
+\begin{foldable}
+  Both compression dimensions are independently valuable, but neither is sufficient on its own: a practitioner who compresses only the model still faces the full cost of training data at adaptation time, while one who compresses only the data still deploys a model too large for the target hardware.
+  Together, model and dataset distillation\footnote{This thesis uses \textit{knowledge distillation} as an umbrella term for both \textit{model distillation} and \textit{dataset distillation}; the two terms are used explicitly when the contexts are ambiguous.} address the full spectrum of these constraints, in a way that sets them apart from other compression families.
+  Both treat compression as a knowledge transfer problem through different mechanisms: model distillation via teacher output, dataset distillation via synthetic data.
+  Both are therefore concerned with the fidelity of what is transferred, not just the efficiency of the transfer.
+  This concern is what makes the practical gaps non-trivial: when data access is restricted, when the teacher is a black box, or when the target modality is discrete, the central question becomes whether the distilled signal remains faithful to the original.
+  The following sections examine where these gaps arise and how the contributions of this thesis address them.
+\end{foldable}

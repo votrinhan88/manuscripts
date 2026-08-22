@@ -1,10 +1,16 @@
-\chapter{TAKE: Trajectory-Aware Knowledge Estimation for Text Dataset Distillation}
-\label{ch:50-research03}
+\acresetall
+
+\chapter[Trajectory-Aware Knowledge Estimation for Text Dataset Distillation]{Trajectory-Aware Knowledge Estimation \\ for Text Dataset Distillation} \label{ch:50-research03}
+
+\begin{foldable}
+  The background on text \ac{DD} (\S\ref{sec:26-background-datasetdistill-textdd}) lays out what a complete method has to do, and \S\ref{sec:27-background-influence} and \S\ref{sec:28-background-ot} pin down the two parts no prior method has solved together: at extreme compression, importance scores read off a single checkpoint are systematically pulled toward noisy examples, and even with corrected scores, independent ranking cannot guarantee that the selected subset covers the weighted distribution.
+  This chapter develops \textbf{\acl{TAKE}} (\textbf{\acs{TAKE}}), which scores each sample by integrating its influence over the entire training trajectory rather than at a single point, and then uses those scores as the source measure in a discrete Optimal Transport selection over an \ac{LLM}-generated candidate pool.
+  The trajectory-aware score corrects the bias that the single-checkpoint baseline introduces, and the \ac{OT} formulation turns sample-level scoring into a corpus-level selection objective whose output remains human-readable.
+\end{foldable}
 
 \input{./content/50-research03/51-research03-introduction}
-\input{./content/50-research03/52-research03-related}
-\input{./content/50-research03/53-research03-theory}
-\input{./content/50-research03/54-research03-methodology}
-\input{./content/50-research03/55-research03-experiments}
-\input{./content/50-research03/56-research03-limitations}
-\input{./content/50-research03/57-research03-conclusion}
+\input{./content/50-research03/52-research03-theory}
+\input{./content/50-research03/53-research03-method}
+\input{./content/50-research03/54-research03-experiments}
+\input{./content/50-research03/55-research03-limitations}
+\input{./content/50-research03/56-research03-conclusion}

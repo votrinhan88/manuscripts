@@ -1,0 +1,52 @@
+\section{Dataset Distillation and Practical Gaps} \label{sec:13-introduction-dataset}
+\begin{foldable}
+  Alongside model compression, a parallel line of research targets the dataset side of the problem.
+  Several families of techniques have emerged for reducing the volume of training data while preserving its utility.
+  \textit{Prototype} and \textit{clustering}-based methods represent the full dataset by a small set of centroids, discarding individual samples once the cluster structure is captured~\cite{macqueen1967some,dempster1977maximum}.
+  \textit{Coreset selection} methods score and rank individual samples by their estimated importance to the learned model, then retain only the top-ranked subset~\cite{sener2018active}.
+  \textit{Dataset distillation} (\ac{DD}) takes a fundamentally different approach: rather than selecting from existing samples, it synthesizes an entirely new, compact dataset whose training signal matches that of the full corpus~\cite{wang2018dataset}.
+  This end-to-end optimization of the distilled set, rather than the selection or summarisation of existing ones, is what distinguishes \ac{DD} from all prior dataset compression methods and constitutes the central subject of this section.
+\end{foldable}
+
+\begin{foldable}
+  The intuition behind \ac{DD} mirrors that of \ac{KD}: a large dataset encodes knowledge not merely in its individual labels, but in the statistical relationships among its samples.
+  Those include the frequencies, co-occurrence patterns, decision boundaries, and distributional structure that a model internalises over the course of training.
+  The central question \ac{DD} poses is whether a much smaller synthetic set can preserve this distributed knowledge faithfully enough that a model trained on it behaves comparably to one trained on the full dataset.
+  This is a stronger requirement than coreset selection, which asks only that the retained samples be individually representative.
+  Specifically, \ac{DD} asks that the distilled set collectively reproduce the learning dynamics of the original dataset.
+\end{foldable}
+
+\begin{foldable}
+  The objective is intuitive: create a small synthetic dataset such that a model trained on it learns just as well as one trained on the full corpus.
+  The seminal approach, \textit{gradient matching}~\cite{wang2018dataset}, formalizes this by optimizing the distilled set so that the gradients it produces during training, computed from the training loss at each step, closely match those produced by the full dataset.
+  Since gradients drive parameter updates, matching them ensures the model follows nearly identical optimization steps regardless of which dataset it trains on.
+  In other words, the distilled set steers the learning process along nearly the same path as the full data would, even though it contains far fewer examples.
+  The idea is simple but strong: if the learning trajectory stays the same, the final model should be nearly identical.
+  Subsequent refinements have explored matching full training trajectories~\cite{cazenavette2022dataset} or embedding distributions~\cite{zhao2023dataset} rather than individual gradients, but all share this core principle.
+\end{foldable}
+
+\begin{foldable}
+  Despite this progress, existing \ac{DD} methods have been developed almost exclusively for image data, and their core mechanisms do not transfer to the text modality.
+  The mismatch is not superficial: it reflects two structural incompatibilities.
+  The first is that text operates over \textit{discrete tokens} that resist interpolation.
+  Gradient matching, trajectory matching, and distribution matching all rely on computing gradients through the distilled samples with respect to their continuous pixel values; a small perturbation to a pixel produces a smooth, differentiable change in the loss.
+  Text tokens admit no such perturbation: changing a token is an all-or-nothing substitution, and omitting even a single rare but semantically critical token constitutes a complete loss of the knowledge it encodes.
+  The second incompatibility is that text exhibits \textit{non-local dependencies}: the meaning of a sentence can hinge on a word several positions away, and the coherence of a paragraph depends on relationships that span its full length.
+  Image \ac{DD} methods originally treat distilled image samples as continuous pixel values, which enables gradient-based optimization directly.
+  For texts, however, tokens are discrete and non-differentiable, and workarounds that optimize in continuous embedding space produce architecture-locked vectors that cannot be audited or reused, sacrificing the human-readability that makes a distilled corpus practical.
+\end{foldable}
+
+\begin{foldable}
+  The second gap is more fundamental and intensifies at extreme compression ratios: the smaller the distilled set, the higher the knowledge content placed on each retained sample.
+  In the text modality, this burden is compounded by discrete sparsity.
+  A rare token that appears only a handful of times in the full corpus may be absent entirely from a small distilled set, yet the knowledge it encodes may be irreplaceable.
+  Standard importance-scoring approaches, which rank samples independently by their estimated influence on the learned model, cannot correct for this.
+  Independent scoring captures the importance of each sample in isolation but ignores dataset-level structure, and will systematically omit rare but critical linguistic patterns in favour of high-frequency, easy-to-score examples.
+  At the most aggressive compression ratios, this failure mode becomes categorical.
+  Each distilled sample must carry more knowledge than any single sample in the original dataset, yet the scoring mechanism provides no way to enforce that the selected set collectively spans the full distribution.
+\end{foldable}
+
+\begin{foldable}
+  Together, these gaps define the requirements for a principled text \ac{DD} method: it must handle discrete tokens without continuous interpolation, preserve the distributional structure of the original corpus collectively rather than sample-by-sample, and produce human-readable output that can be audited and reused.
+  \S\ref{sec:14-introduction-fidelity} examines the distributional consequences of failing to meet these requirements and identifies the unifying principle, \textit{distributional fidelity}, that connects the gaps in model distillation and dataset distillation alike.
+\end{foldable}

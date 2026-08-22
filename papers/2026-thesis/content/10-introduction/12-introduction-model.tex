@@ -1,0 +1,49 @@
+\section{Model Distillation and Practical Gaps} \label{sec:12-introduction-model}
+\begin{foldable}
+  The research community has responded with model compression techniques that recover deployable models without giving up too much of the performance earned through scale.
+  \textit{Pruning} removes redundant weights or entire sub-networks, reducing parameter counts and, with appropriate hardware support, inference time~\cite{han2015learning,molchanov2016pruning}.
+  \textit{Quantization} reduces the numerical precision of weights and activations from standard 32-bit floating point to lower-bit representations, cutting memory footprint and accelerating arithmetic on compatible hardware~\cite{hubara2018quantized,jacob2018quantization}.
+  \textit{Low-rank adaptation} decomposes weight matrices into products of lower-rank factors, reducing the number of trainable parameters while preserving model expressivity~\cite{hu2022lora}.
+  Each of these approaches has yielded meaningful compression ratios, and in practice they are often combined.
+  Among them, \textit{\acl{KD}}~\cite{hinton2015distilling} occupies a distinct position: it frames compression as a learning problem in which a compact \textit{student} network is trained to replicate the behaviour of a large, pre-trained \textit{teacher} network.
+  \ac{KD} is architecture-agnostic: the student need not share the teacher's topology or depth.
+  It never touches the teacher's internal parameters, giving the freedom to design students suited to their deployment targets.
+  What makes the approach work is what the teacher conveys beyond its final decision.
+\end{foldable}
+
+\begin{foldable}
+  Transferring knowledge as hard labels are sparse: all probability mass concentrates on a single correct class, discarding any signal about the relative plausibility of the rest.
+  The teacher's output distribution, by contrast, spreads probability mass across many classes in a way that reflects its learned understanding of the input: for a given image of a cat, assigning most mass to \texttt{cat}, a smaller amount to \texttt{dog}, and a tiny but non-zero amount to \texttt{leopard} or \texttt{tiger}, while assigning essentially nothing to \texttt{car} or \texttt{aeroplane}.
+  These non-zero probabilities encode inter-class similarity, also termed \textit{dark knowledge}: it is present in every teacher query but discarded when supervision is collapsed to a hard label~\cite{hinton2015distilling}.
+  Training the student to match these \textit{soft targets} transfers this relational structure directly.
+  This is why the \ac{KD} objective combines a \ac{KL} divergence on temperature-scaled teacher and student distributions with a cross-entropy term on hard labels.
+  Yet this effectiveness rests on two critical assumptions: (1)~the full training dataset is available for querying the teacher, and (2)~the teacher exposes its complete output distribution rather than a truncated prediction.
+  In many real deployments, both assumptions fail.
+\end{foldable}
+
+\begin{foldable}
+  Consider first the assumption on having data access.
+  Training data for high-performing models is often the most commercially and legally sensitive asset held by an organisation.
+  Privacy legislation such as \ac{GDPR}\cite{eu2016gdpr} and \ac{HIPAA}\cite{us1996hipaa} in the United States strictly limits the collection, retention, and redistribution of personal or medical records, making it legally impossible to share the data used to train a clinical imaging model with a third-party deployer.
+  Even where regulation is not a binding constraint, intellectual property law and commercial confidentiality create strong incentives to withhold training corpora: a company that has spent years curating a proprietary dataset will not release it merely to facilitate compression of the model it trained.
+  Beyond legal and strategic barriers, raw cost is a practical obstacle: large-scale datasets in computer vision and natural language processing can occupy terabytes of storage and require expensive curation pipelines, making them infeasible to distribute or even store locally at the deployment site.
+  The net effect is that knowledge transfer is gated by access to the original training data.
+  This constraint exists on a spectrum, from \textit{few-shot} settings in which only a handful of samples are available, to fully \textit{data-free} settings in which no original data exists at all, with the latter being the strictly harder regime.
+\end{foldable}
+
+\begin{foldable}
+  The second assumption, white-box access to the teacher, is equally fragile in practice.
+  The dominant commercial model for deploying large neural networks has shifted decisively toward black-box inference services.
+  GPT-style language models, vision classification services, and multimodal foundation models are made available as hosted endpoints: a client submits an input and receives a prediction, but the model weights, architecture, and internal activations never leave the server.
+  Even the output is often severely truncated; many production services return only the top-predicted class label or a short ranked list, rather than the full probability distribution over thousands of categories.
+  This hard-label regime is a deliberate design choice, since returning full softmax distributions would expose the model to higher risks of extraction attacks and reverse-engineering.
+  The consequence for distillation is severe: without access to the teacher's soft probability vector, the student loses the inter-class similarity information that makes \ac{KD} more effective than training on one-hot labels alone.
+\end{foldable}
+
+\begin{foldable}
+  Taken together, these two gaps force compounding compromises: absent or incomplete training data degrades the coverage of the distillation signal, while black-box access degrades its quality.
+  The effect is more than a practical inconvenience.
+  Each constraint reshapes the statistical character of whatever signal remains: the student is left with a signal that is at once narrower in scope and poorer in relational content than the original \ac{KD} formulation assumes.
+  This raises a basic question: how much of the teacher's knowledge can be faithfully recovered under such restrictions?
+  \S\ref{sec:14-introduction-fidelity} frames this question through the lens of distributional fidelity and examines what it demands of any principled solution.
+\end{foldable}

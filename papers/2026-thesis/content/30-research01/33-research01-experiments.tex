@@ -1,0 +1,461 @@
+\section{Experiments} \label{sec:33-research01-experiments}
+\begin{foldable}
+  We conduct a wide range of experiments to show our improvements over current few-shot \ac{KD} baselines.
+  We also include cross-architecture \ac{KD}, visualization, ablation studies, and comparison with data-free \ac{KD} methods.
+\end{foldable}
+
+\subsection{Baselines}
+\begin{foldable}
+  We compare our method DivBFKD with the following baselines:
+  \begin{itemize}
+    \item \textit{Student-Full}: The student is trained on the whole teacher's training set.
+    \item \textit{Student-Alone}: The student is trained on the few-shot set $\mathcal{D}$.
+    \item {
+        \textit{Standard-KD}~\cite{hinton2015distilling}: The student is trained with the standard \ac{KD} loss (Eq.~\ref{eq:StandardKD}) on $\mathcal{D}$.
+        We select temperature $\lambda=0.9$, a standard value used in \ac{KD} methods~\cite{hinton2015distilling,tian2020contrastive,yuan2020revisiting,ma2021undistillable}.
+      }
+    \item \textit{Few-shot \ac{KD}} methods: We compare with two white-box methods, FSKD~\cite{kimura2018few} and WaGe~\cite{kong2020learning}, and two black-box methods, BBKD~\cite{wang2020neural} and FS-BBT~\cite{nguyen2022black}.
+  \end{itemize}
+\end{foldable}
+
+\begin{foldable}
+  For fair comparisons, we use the same teacher-student network architecture and the same numbers of real and synthetic images $N$ and $M$ as in other few-shot \ac{KD} methods~\cite{kimura2018few,wang2020neural,nguyen2022black}.
+  Their accuracy numbers are obtained from~\cite{nguyen2022black}\footnote{This is possible because we use benchmark datasets with fixed train and test splits.}.
+  For our method, we set the quantile $q = 0.1$ to select high-confidence images across all experiments.
+  We repeat each experiment three times with random seeds and report the averaged accuracy with standard deviation on the hold-out test set.
+\end{foldable}
+
+\subsection{Implementation Details}
+
+\subsubsection{Datasets}
+\begin{table}[ht]
+  \centering
+  \begin{threeparttable}
+    \caption[Dataset details in DivBFKD.]{
+      Dataset details in DivBFKD.
+      $N$ ($\times 10^3$) denotes the number of images in thousands and $K$ denotes the number of classes.
+      Dimension (images and transforms) are in pixels (px).
+    }
+    \label{tab:Dataset-details}
+    \begin{tabular}{c c c c c}
+      \toprule
+      \textbf{Dataset} & $N~(\times 10^3)$ & $K$ & \textbf{Dimension} & \textbf{Transforms} \\
+      \midrule
+      MNIST         & 60  & 10   & $1\times 28 \times 28$          & Resize to 32$\times$32 \\
+      FMNIST       & 60  & 10   & $1\times 28 \times 28$           & Resize to 32$\times$32 \\
+      SVHN          & 73  & 10   & $3\times 32 \times 32$          & $\Bigl[$ \makecell{Zero-padding (4 px/side) \\ Random crop to $32\times32$} $\Bigr]$\\
+      CIFAR10       & 50  & 10   & $3\times 32 \times 32$          & $\Biggl[$ \makecell{Zero-padding (4 px/side) \\ Random horizontal flip \\ Random crop to $32\times32$} $\Biggr]$\\
+      CIFAR100      & 50  & 100  & $3\times 32 \times 32$          & $\Biggl[$ \makecell{Zero-padding (4 px/side) \\ Random horizontal flip \\ Random crop to $32\times32$} $\Biggr]$\\
+      Tiny-ImageNet & 100 & 200  & $3\times 64 \times 64$          & $\Biggl[$ \makecell{Zero-padding (8 px/side) \\ Random horizontal flip \\ Random crop to $64\times64$} $\Biggr]$\\
+      Imagenette    & 9.5 & 10   & $3\times 408 \times 472 ^{(*)}$ & $\Biggl[$ \makecell{Resize to $256\times256$ \\ Random horizontal flip \\ Random crop to $224\times224$} $\Biggr]$\\
+      \bottomrule
+    \end{tabular}
+    \begin{tablenotes}[flushleft] \footnotesize
+    \item {[$*$] Imagenette dimensions are reported as mean values}
+    \end{tablenotes}
+  \end{threeparttable}
+\end{table}
+
+\begin{foldable}
+  We evaluate our method across seven benchmark image datasets: MNIST, FMNIST, SVHN, CIFAR10, CIFAR100, Tiny-ImageNet, and Imagenette~\cite{lecun1998gradient,xiao2017fashion,netzer2011reading,le2015tiny,krizhevsky2009learning,howard2020imagenette}.
+  These datasets cover different difficulty levels, including: (1) \textit{Simple} datasets with MNIST, FMNIST, SVHN, and CIFAR10 (10 classes) and (2) \textit{Complex} datasets with CIFAR100 (100 classes), Tiny-ImageNet (200 classes), and Imagenette (high-resolution at 224\texttimes 224).
+\end{foldable}
+
+\begin{foldable}
+  Following~\cite{wang2020neural,nguyen2022black}, to construct the few-shot dataset $\mathcal{D}$, we used $N = 2000$ images for MNIST, FMNIST, SVHN, CIFAR10, and Imagenette, $N=5000$ images for CIFAR100, and $N=10000$ images for Tiny-ImageNet.
+  They were randomly drawn from the original training set such that each class had $N/K$ images ($K$ is the number of classes).
+\end{foldable}
+
+\subsubsection{Teacher and Student}
+\begin{foldable}
+  We consider several popular network architectures for distillation, namely LeNet5~\cite{lecun1998gradient}, AlexNet~\cite{krizhevsky2012imagenet}, and ResNet~\cite{he2016deep}, and VGG~\cite{simonyan2014very}.
+  These architectures are widely used to evaluate previous few-shot \ac{KD} methods~\cite{kimura2018few,wang2020neural,nguyen2022black}.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Teacher training.} We trained the teacher network with a stochastic gradient descent (SGD) optimizer using 0.9 momentum, $5\times10^{-4}$ weight decay, and 128 batch size.
+  We fixed the learning rate to $10^{-2}$ on MNIST and FMNIST.
+  On other datasets, we scheduled the learning rate to $10^{-1}$ at the beginning and decreased it by ten times at 50\% and 75\% progress.
+  We trained for 100 epochs on MNIST and FMNIST, and 200 epochs on other datasets.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Student training.} For a fair comparison, we used the same number of synthetic images for distillation as in other few-shot \ac{KD} methods~\cite{kimura2018few,wang2020neural,nguyen2022black}, which is 24\,K for MNIST, 48\,K for FMNIST, 40\,K for SVHN, CIFAR10, CIFAR100, and Imagenette, and 50\,K for Tiny-ImageNet.
+  We trained the Student with an SGD optimizer using 0.9 momentum and $5 \times 10^{-4}$ weight decay.
+  We fixed the learning rate to $10^{-2}$ on MNIST and FMNIST.
+  On other datasets, we scheduled the learning rate to $10^{-1}$ at the beginning and decrease it by ten times at 50\% and 75\% distillation progress.
+  We used a batch size of 250 and the number of epochs of 100 for MNIST, 200 for FMNIST and SVHN, 400 for CIFAR10 and Imagenette, and 1000 for CIFAR100 and Tiny-ImageNet.
+\end{foldable}
+
+\subsubsection{WGAN}
+\begin{foldable}
+  \textbf{Architecture.} We employed a deep convolutional GAN as in~\cite{radford2015unsupervised}, where the generator and discriminator had symmetrical architectures.
+  The generator accepts latent vectors of dimension 100 for MNIST, 200 for FMNIST, and 256 for other datasets.
+  The latent inputs are then projected to 256 base feature maps of dimension 8$\times$8 (except for Imagenette, 7$\times$7), which then undergo batch normalization.
+  These feature maps are passed through upscaling convolutional blocks, each consisting of a nearest neighbor (2$\times$) upsample layer, a convolutional layer with half the channels, a batch normalization, and a leaky ReLU activation.
+  Finally, once the feature maps have identical dimension to that of the training images, they are compressed to either grayscale or RGB with a final convolutional layer and a sigmoid activation to map the output pixel values to range $[0, 1]$.
+
+  The discriminator feeds forward input images through convolutional blocks, each consisting of a (0.5$\times$) downscaling convolutional layer, a batch normalization (except for the first block), and a leaky ReLU activation.
+  While the final block has 256 base feature maps of dimension 8$\times$8 (except for Imagenette, 7$\times$7), each previously adjacent block has half the channels.
+  These base feature maps are eventually passed through a linear layer to yield a scalar score.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Training.} We followed the implementation in~\cite{gulrajani2017improved} to train our WGAN~\cite{arjovsky2017wasserstein}.
+  As recommended, we enforced the Lipschitz constraint on the discriminator with gradient penalty, whose coefficient with the Wasserstein loss was set to 10:1.
+  The number of discriminator updates per generator updates was set to 5.
+  However, we alternatively used the RMSProp optimizer with learning rate $5 \times 10^{-5}$ and batch size 250 for both models.
+  We used the number of epochs of 500 for MNIST, 1000 for FMNIST and SVHN, 2000 for CIFAR10 and Imagenette, and 5000 for CIFAR100 and Tiny-ImageNet.
+\end{foldable}
+
+\subsection{Distillation performance}
+
+\subsubsection{Simple datasets} \label{sec:experiments-simple-datasets}
+\begin{table}[ht]
+  \centering
+  \begin{threeparttable}
+    \caption[DivBFKD accuracy on Simple datasets.]{
+      DivBFKD distillation accuracy (\%) on Simple datasets.
+      $N$ and $M$ show the budget of real and synthetic images.
+    }
+    \label{tab:04-experiments-results_few_classes}
+    \begin{tabular}{l l l l l}
+      \toprule
+      \textbf{Dataset} & \textbf{MNIST} & \textbf{FMNIST} & \textbf{SVHN} & \textbf{CIFAR10} \\
+      $(N,M)$ & (2\,K, 24\,K) & (2\,K, 48\,K) & (2\,K, 40\,K) & (2\,K, 40\,K) \\
+      \midrule
+      Teacher                   & 99.28                   & 90.90                   & 96.16                   & 90.05 \\
+      Student-Full              & \meanstd{98.91}{0.08}   & \meanstd{88.68}{0.53}   & \meanstd{95.61}{0.07}   & \meanstd{87.58}{0.36} \\
+      \midrule
+
+      \multicolumn{5}{c}{\textbf{Smaller Architecture}} \\
+      \midrule
+      Student-Alone             & \meanstd{95.14}{0.19}   & \meanstd{79.24}{1.05}   & \meanstd{85.68}{0.46}   & \meanstd{59.02}{0.54} \\
+      Standard-KD\blackbox      & \meanstd{95.36}{0.11}   & \meanstd{80.76}{0.37}   & \meanstd{89.11}{0.22}   & \meanstd{59.77}{0.96} \\
+      FSKD\whitebox             & 80.43\dg                & 68.64\dg                & $-$                     & 40.58\dg \\
+      WaGe\whitebox             & $-$                     & 85.18\dg                & $-$                     & 73.08\dg \\
+      FS-BBT\blackbox           & 98.42\dg                & 84.73\dg                & $-$                     & 74.10\dg \\
+      \textbf{DivBFKD}\blackbox & \meanstdbf{98.58}{0.06} & \meanstdbf{86.50}{0.18} & \meanstdbf{94.47}{0.12} & \meanstdbf{76.97}{0.56} \\
+      \midrule
+
+      \multicolumn{5}{c}{\textbf{Same Architecture}} \\
+      \midrule
+      BBKD\blackbox             & 98.74\dg                & 80.90\dg                & $-$                     & 74.60\dg \\
+      FS-BBT\blackbox           & 98.91\dg                & 86.53\dg                & $-$                     & 76.17\dg \\
+      \textbf{DivBFKD}\blackbox & \meanstdbf{98.97}{0.04} & \meanstdbf{87.65}{0.37} & \meanstdbf{94.61}{0.08} & \meanstdbf{78.07}{0.26} \\
+      \bottomrule
+    \end{tabular}
+    \begin{tablenotes}[flushleft] \footnotesize
+    \item {
+        [(W)] white-box; [(B)] black-box; [$-$] not reported; [$\dagger$] reported from respective paper; [\textbf{bold}] best results.
+      }
+    \end{tablenotes}
+  \end{threeparttable}
+\end{table}
+
+\begin{foldable}
+  Following~\cite{nguyen2022black}, we conduct distillation in two settings:
+  \begin{enumerate}
+    \item \textit{Smaller} architecture: The student has a smaller architecture than the teacher: LeNet5 to LeNet5-Half on MNIST, FMNIST; and AlexNet to AlexNet-Half on SVHN, CIFAR10.\footnote{The \textit{-Half} version has half the channels in each layer.}
+    \item \textit{Same} architecture: The student has an identical architecture to the teacher.
+  \end{enumerate}
+\end{foldable}
+
+\begin{foldable}
+  We report the results in Table~\ref{tab:04-experiments-results_few_classes} and make the following observations:
+  \begin{itemize}
+    \item Our method DivBFKD improves by around 3-6\% over Standard-KD on MNIST, FMNIST, and SVHN and by significantly 17\% on CIFAR10.
+    \item {
+        Compared to other few-shot \ac{KD} methods, our DivBFKD also excels in both smaller and same architecture settings.
+        It improves upon second-best FS-BBT by around 2\% on FMNIST and CIFAR10.
+      }
+    \item {
+        The performance gap between our DivBFKD and its upper bound Student-Full is very close on MNIST (0.33\%), FMNIST (2.18\%), and SVHN (1.14\%).
+        We emphasize that Student-Full uses the teacher's training set ($\ge$ 60\,K real images), much larger than the 2\,K real images we started with.
+      }
+  \end{itemize}
+\end{foldable}
+
+\subsubsection{Complex datasets} \label{sec:experiments-complex-datasets}
+\begin{foldable}
+  Similar to~\cite{wang2020neural,nguyen2022black,kong2020learning}, we distill from ResNet32 to ResNet20 on CIFAR100 and Tiny-ImageNet (Table~\ref{tab:ResultsHundredClasses}).
+  With limited data, Student-Alone loses roughly half of its accuracy compared to Student-Full.
+  As a naive solution, Standard-KD improves over Student-Alone 10\% on CIFAR100 and 14\% on Tiny-ImageNet.
+  Ultimately, our method DivBFKD is the best method, exceeding the second-best FS-BBT by 3\% on CIFAR100 and 1\% on Tiny-ImageNet.
+\end{foldable}
+
+\begin{foldable}
+  We further evaluate our method on high-resolution images with Imagenette.
+  On 2\,K real images, Student-Alone achieves 76.80\% while Standard-KD marginally improves to 76.94\%.
+  DivBFKD further improves upon this result by 10\%, approximating Student-Full.
+\end{foldable}
+
+\begin{table}[ht]
+  \centering
+  \begin{threeparttable}
+    \caption[DivBFKD accuracy on Complex datasets.]{
+      DivBFKD distillation accuracy (\%) on Complex datasets.
+      $N$ and $M$ show the budget of real and synthetic images.
+    }
+    \label{tab:ResultsHundredClasses}
+    \begin{tabular}{l l l l}
+      \toprule
+      \textbf{Dataset} & \textbf{CIFAR100} & \textbf{Tiny-ImageNet} & \textbf{Imagenette} \\
+      $(N,M)$                   & (5\,K, 40\,K)           & (10\,K, 50\,K)        & (2\,K, 40\,K) \\
+      \midrule
+      Teacher                   & 71.41                   & 56.27                 & 90.47 \\
+      Student-Full              & \meanstd{68.28}{0.20}   & \meanstd{51.51}{0.31} & \meanstd{89.89}{0.41} \\
+      \midrule
+      Student-Alone             & \meanstd{35.71}{0.39}   & \meanstd{26.59}{0.25} & \meanstd{76.80}{0.78} \\
+      Standard-KD\blackbox      & \meanstd{45.76}{0.48}   & \meanstd{40.42}{0.19} & \meanstd{76.94}{0.14} \\
+      WaGe\whitebox             & 20.32\dg                & $-$                   & $-$ \\
+      BBKD\blackbox             & 53.41\dg                & 40.01\dg              & $-$ \\
+      FS-BBT\blackbox           & 56.28\dg                & 43.29\dg              & $-$ \\
+      \textbf{DivBFKD}\blackbox & \meanstdbf{59.91}{0.31} & \meanstdbf{44.25}{0.38} & \meanstdbf{86.48}{0.72} \\
+      \bottomrule
+    \end{tabular}
+    \begin{tablenotes}[flushleft] \footnotesize
+    \item[] {
+        [(W)] white-box; [(B)] black-box; [$-$] not reported; [$\dagger$] reported from respective paper; [\textbf{bold}] best results.
+      }
+    \end{tablenotes}
+  \end{threeparttable}
+\end{table}
+
+\subsubsection{Cross-architecture distillation} \label{sec:experiments-crossarch}
+\begin{foldable}
+  In previous subsections, we distill from the teacher to a student networks of similar architectures to have a consistent setting with other few-shot \ac{KD} methods (\eg, LeNet5 to LeNet5-Half, AlexNet to AlexNet-Half, and ResNet32 to ResNet20).
+  This section further explores the cases where the teacher and student architectures belong to different families: ResNet~\cite{he2016deep}, VGG~\cite{simonyan2014very}, and AlexNet~\cite{krizhevsky2012imagenet}.
+  We adopt the same setting from the standard experiment on CIFAR10 from \S\ref{sec:experiments-complex-datasets}.
+  Table~\ref{tab:Cross-architecture} shows the performance of our method DivBFKD with three teachers ResNet32, VGG16, and AlexNet combined with three students ResNet20, VGG11, and AlexNet-Half on CIFAR10.
+\end{foldable}
+
+\begin{table}[ht]
+  \centering
+  \begin{threeparttable}
+    \caption[DivBFKD cross-architecture accuracy on CIFAR10.]{
+      DivBFKD cross-architecture distillation accuracy (\%) on CIFAR10.
+    }
+    \label{tab:Cross-architecture}
+    \begin{tabular}{c c|c c c c c}
+      \toprule
+      \multicolumn{2}{c|}{\textbf{Architecture}} & \multicolumn{5}{c}{\textbf{Accuracy}}\\
+      Teacher & Student & Teacher & S-Full & S-Alone & Standard-KD & DivBFKD \\
+      \midrule
+      ResNet32 & ResNet20     & 93.34 & & & \meanstd{65.86}{1.90} & \meanstd{84.05}{0.10} \\
+      VGG16    & ResNet20     & 91.30 & \meanstd{92.34}{0.06} & \meanstd{64.52}{1.60} & \meanstd{64.76}{0.89} & \meanstd{80.69}{0.48} \\
+      AlexNet  & ResNet20     & 90.05 & & & \meanstd{65.29}{0.89} & \meanstd{79.57}{0.16} \\
+      \midrule
+      ResNet32 & VGG11        & 93.34 & & & \meanstd{53.78}{0.78} & \meanstd{69.42}{0.83} \\
+      VGG16    & VGG11        & 91.30 & \meanstd{89.12}{0.17} & \meanstd{53.34}{0.57} & \meanstd{53.80}{1.21} & \meanstd{75.41}{0.06} \\
+      AlexNet  & VGG11        & 90.05 & & & \meanstd{53.51}{0.14} & \meanstd{74.60}{0.29} \\
+      \midrule
+      ResNet32 & AlexNet-Half & 93.34 & & & \meanstd{60.36}{0.82} & \meanstd{74.70}{0.31} \\
+      VGG16    & AlexNet-Half & 91.30 & \meanstd{87.58}{0.36} & \meanstd{59.02}{0.54} & \meanstd{60.47}{0.10} & \meanstd{76.16}{0.57} \\
+      AlexNet  & AlexNet-Half & 90.05 & & & \meanstd{59.77}{0.96} & \meanstd{76.97}{0.56} \\
+      \bottomrule
+    \end{tabular}
+    \begin{tablenotes}[flushleft] \footnotesize
+    \item {Same teacher-student pairs share the same Student-Full and Student-Alone accuracy.}
+    \end{tablenotes}
+  \end{threeparttable}
+\end{table}
+
+\begin{foldable}
+  We have the following observations:
+  \begin{itemize}
+    \item Among three architecture families, ResNet is the best one with a 93.34\% Teacher, 92.34\% Student-Full, and 64.52\% Student-Alone.
+    \item Standard-KD is helpful and it is always better than Student-Alone in all teacher-student combinations.
+    \item {
+        VGG is better than AlexNet when the teacher and the student are trained on the whole training set.
+        However, VGG student is worse than AlexNet student when it is trained on the few-shot dataset.
+        Namely, Student-Alone of VGG11 has 53.34\% accuracy while Student-Alone of AlexNet-Half has 59.02\% accuracy.
+      }
+    \item Our method DivBFKD remarkably improves accuracy over Standard-KD by 14--22\% on all teacher-student combinations.
+    \item Distillation is often most effective when the teacher's and student's architecture belong to the same family.
+  \end{itemize}
+  Overall, the robust performance across multiple data scales and architectures suggests that our method successfully tackles the black-box few-shot \ac{KD} setting.
+\end{foldable}
+
+\subsection{Diversity of our synthetic images}
+
+\subsubsection{Comparison with the teacher's training images.}
+
+\begin{foldable}
+  As we mentioned earlier, our goal is to generate synthetic images close to the teacher's training images.
+  To prove this argument, we embed and visualize the teacher's training images (they are \textit{unknown} and not used in the \ac{KD} process) and our synthetic images of CIFAR10 in Fig.~\ref{fig:Distributions-of-CIFAR10}.
+  It shows that our synthetic images belong to the distribution of the teacher's training images.
+  With the teacher's supervision, our synthetic images show their strong resemblance to the teacher's training images.
+\end{foldable}
+
+\begin{foldable}
+  For quantitative results, we compute the \textit{Coverage} metric~\cite{alaa2022faithful} to measure the fraction of teacher's training samples whose neighborhoods contain at least one synthetic sample.
+  Our synthetic images achieve 0.42, compared to 0.18 of the few-shot images and 0.29 of the synthetic images generated from the standard WGAN.
+  This shows that our synthetic images resemble many variability of the teacher's training images, thus improving image diversity.
+\end{foldable}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=1\columnwidth]{./figures/30-research01/34-research01-experiments-viz-embed2d.png}
+  \caption[DivBFKD image embeddings on CIFAR10.]{
+    DivBFKD image embeddings of teacher's training images, few-shot images, and synthetic images on CIFAR10.
+  }
+  \label{fig:Distributions-of-CIFAR10}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \caption[DivBFKD visualization of real and synthetic images on CIFAR10.]{
+    DivBFKD visualization of real and synthetic images along with their predictive labels and confidence-scores provided by the teacher on CIFAR10.
+  }
+  \label{fig:Visualization}
+  \begin{subfigure}[t]{0.475\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{./figures/30-research01/34-research01-experiments-viz-real.pdf}
+    \caption{Real images}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.475\columnwidth}
+    \centering
+    \includegraphics[width=\linewidth]{./figures/30-research01/34-research01-experiments-viz-synth.pdf}
+    \caption{Synthetic images}
+  \end{subfigure}
+\end{figure}
+
+\subsubsection{Quality and quantitative measurements}
+\begin{foldable}
+  We randomly visualize 24 real images and 24 synthetic images generated by our WGAN in Fig.~\ref{fig:Visualization}.
+  Primarily, our goal is not to generate visually aesthetic images but to generate diverse images that the teacher confidently predicts their labels.
+  As a side note, image quality is also not a strict requirement in \ac{KD} methods relied on synthetic images~\cite{chen2019data,wang2020neural,wang2021zero}.
+  However, our synthetic images in Fig.~\ref{fig:Visualization}(b) are able to show convincing properties of their real counterparts.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Inception score (IS) and Fr\'{e}chet inception distance (FID).} To quantify the diversity and quality of synthetic images, we compute the IS~\cite{salimans2016improved} (higher is better) and FID~\cite{heusel2017gans} (lower is better) of our synthetic images in Table~\ref{tab:IS-FID}.
+  We compare with the standard WGAN and FS-BBT (the second-best baseline), where our method achieves the best scores.
+  These results confirm that our method generate synthetic images with high diversity and quality, and explain their effectiveness for the distillation step.
+\end{foldable}
+
+\begin{table}[ht]
+  \centering
+  \begin{threeparttable}
+    \caption{DivBFKD synthetic image quality on CIFAR10.}
+    \label{tab:IS-FID}
+    \begin{tabular}{l c c}
+      \toprule
+      \textbf{Method} & \textbf{IS ($\uparrow$)} & \textbf{FID ($\downarrow$)} \\
+      \midrule
+      CVAE (from~\cite{nguyen2022black}) & 3.51          & 19.91 \\
+      Standard WGAN                      & 3.99          & 14.79 \\
+      WGAN with AT (Ours)                & \textbf{4.42} & \textbf{13.96} \\
+      \bottomrule
+    \end{tabular}
+    \begin{tablenotes}[flushleft] \footnotesize
+    \item {[AT] adaptive thresholds.}
+    \end{tablenotes}
+  \end{threeparttable}
+\end{table}
+
+\subsection{Ablation studies}
+
+\subsubsection{Impacts of different components}
+\begin{foldable}
+  As described in \S\ref{sec:32-research01-framework}, the core components of our method include WGAN and adaptive thresholds in the generation phase, and class balancing in the distillation phase.
+  Adding both latter components to WGAN completes our method.
+  Table~\ref{tab:Ablation-study-Components} breaks down the contribution of each component, where both adaptive thresholds (AT) and class balancing (CB) improve our accuracy when applied either independently or jointly.
+\end{foldable}
+
+\begin{table}[ht]
+  \centering
+  \begin{threeparttable}
+    \caption[DivBFKD ablation study: incremental components.]{
+      DivBFKD ablation study: student accuracy (\%) with incremental components.
+    }
+    \label{tab:Ablation-study-Components}
+    \begin{tabular}{l c c}
+      \toprule
+      \textbf{Components}                 & \textbf{CIFAR10}        & \textbf{Tiny-ImageNet} \\
+      \midrule
+      WGAN~\cite{arjovsky2017wasserstein} & \meanstd{75.59}{0.69}   & \meanstd{42.70}{0.25} \\
+      WGAN with AT                        & \meanstd{76.35}{0.21}   & \meanstd{43.25}{0.71} \\
+      WGAN with CB                        & \meanstd{76.88}{0.45}   & \meanstd{43.75}{0.40} \\
+      \textbf{DivBFKD}                    & \meanstdbf{76.97}{0.56} & \meanstdbf{44.25}{0.38} \\
+      \bottomrule
+    \end{tabular}
+    \begin{tablenotes}[flushleft] \footnotesize
+    \item {[AT] adaptive thresholds; [CB] class balancing.}
+    \end{tablenotes}
+
+  \end{threeparttable}
+\end{table}
+
+\subsubsection{Impacts of the numbers of real and synthetic images}
+\begin{foldable}
+  We investigate our performance with varying amounts of data on CIFAR10.
+  Fig.~\ref{fig:34-research01-experiments-abla_data}(a) shows that both Standard-KD and our DivBFKD improve student accuracy with more real images, as expected.
+  At $N$ = 5\,K, our DivBFKD achieves 79.93\%, while Standard-KD only achieves 72.66\%.
+  Conversely, at $N$ = 250, Standard-KD drops abruptly to 33.33\%, while our method still has an acceptable 66.76\%.
+  This trend proves that our method can still distill robustly in extremely limited data cases.
+  Besides, we also expect that our performance should improve with more synthetic images.
+  This agrees with Fig.~\ref{fig:34-research01-experiments-abla_data}(b) where our DivBFKD clearly outperforms Standard-KD and improves with larger $M$.
+\end{foldable}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.485\columnwidth]{./figures/30-research01/34-research01-experiments-ablation-N.pdf}
+  \hspace{0.2cm}
+  \includegraphics[width=0.485\columnwidth]{./figures/30-research01/34-research01-experiments-ablation-M.pdf}
+  (a)\hspace{0.49\columnwidth}(b)
+  \caption[DivBFKD accuracy versus image budget on CIFAR10.]{
+    DivBFKD accuracy versus the budget of real ($N$) and synthetic images ($M$) on CIFAR10.
+  }
+  \label{fig:34-research01-experiments-abla_data}
+\end{figure}
+
+\subsubsection{Impact of the quantile}
+\begin{foldable}
+  In our method, the quantile $q$ is principally used to compute adaptive thresholds to determine high-confidence images.
+  Contrarily, while too small $q$ might introduce counter-productive noise, too large $q$ does not allow enough high-confidence images to improve diversity.
+  We achieve a relatively stable accuracy of 76.22--76.97\% with $q\in[0.03,0.10]$ (Fig.~\ref{fig:Results-Hyperparameter-tuning}) and recommend this range for a good trade-off between image diversity and training stability.
+\end{foldable}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.75\columnwidth]{./figures/30-research01/34-research01-experiments-hyperparam-q.pdf}
+  \caption[DivBFKD accuracy versus quantile on CIFAR10.]{
+    DivBFKD accuracy versus the quantile $q$ on CIFAR10.
+  }
+  \label{fig:Results-Hyperparameter-tuning}
+\end{figure}
+
+\subsection{Comparison with data-free KD methods} \label{ssec:04-experiments-comparison_zero_shot}
+\begin{foldable}
+  We also compare our method with several popular data-free (zero-shot) \ac{KD} methods, including four white-box methods: Meta-KD~\cite{lopes2017data}, ZSKD~\cite{nayak2019zero}, DAFL~\cite{chen2019data}, and DFKD~\cite{wang2021data}, and two black-box methods ZSDB3KD~\cite{wang2021zero} and IDEAL~\cite{zhang2022ideal}.
+  From Table~\ref{tab:04-experiments-comparison_data_free}, our method DivBFKD can successfully take advantage of a small amount of data (2\,K images) and perform much better than data-free methods on FMNIST and CIFAR10, while it is comparable on MNIST.
+\end{foldable}
+
+\begin{table}[ht]
+  \centering
+  \begin{threeparttable}
+    \caption[DivBFKD accuracy compared with zero-shot KD methods.]{
+      DivBFKD distillation accuracy (\%) compared with zero-shot KD methods.
+    }
+    \label{tab:04-experiments-comparison_data_free}
+    \begin{tabular}{l|c|c|c}
+      \hline
+      \textbf{Dataset} & \textbf{MNIST} & \textbf{FMNIST} & \textbf{CIFAR10}  \\
+      \hline
+      Meta-KD\whitebox          & 92.47          & $-$            & $-$ \\
+      ZSKD\whitebox             & 98.77          & 79.62          & 69.56 \\
+      DAFL\whitebox             & 98.20          & $-$            & 66.38 \\
+      DFKD\whitebox             & \textbf{99.08} & $-$            & 73.91 \\
+      ZSDB3KD\blackbox          & 96.54          & 72.31          & 59.46 \\
+      IDEAL\blackbox            & 96.32          & 83.92          & 65.61 \\
+      \textbf{DivBFKD}\blackbox & 98.97          & \textbf{87.65} & \textbf{78.07} \\
+      \hline
+    \end{tabular}
+    \begin{tablenotes}[flushleft] \footnotesize
+    \item {[(W)] white-box; [(B)] black-box; [$-$] not reported; [\textbf{bold}] best results.}
+    \end{tablenotes}
+  \end{threeparttable}
+\end{table}

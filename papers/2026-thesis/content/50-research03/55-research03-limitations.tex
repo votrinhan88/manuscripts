@@ -1,0 +1,24 @@
+\section{Limitations and Ethical Considerations} \label{sec:55-research03-limitations}
+
+\begin{foldable} % Limitations
+  This method has three limitations.
+  (\textbf{1})~\textbf{Gradient norm proxy.}
+  $I_{(n,t)}$ uses plain gradient norms rather than Fisher-preconditioned scores; the Goodfellow trick~\cite{goodfellow2015efficient} keeps per-sample cost at $O(C + d_\phi)$ per checkpoint.
+  K-FAC~\cite{martens2015optimizing} or EKFAC~\cite{george2018fast} preconditioning are extensions to consider when calibrated magnitude scores are needed.
+  (\textbf{2})~\textbf{Encoder dependence.}
+  The \ac{OT} cost matrix inherits the geometry of $\phi$; a mismatched encoder distorts transport costs.
+  The $L$-Lipschitz assumption on $\ell$ (Theorem~1) holds approximately when $\phi$ is task-aligned and embeddings are normalized, but remains an approximation for cross-entropy over discrete text.
+  (\textbf{3})~\textbf{Synthetic pool coverage.}
+  Pool diversity is bounded by the generator's domain coverage.
+  Fine-tuning on $\mathcal{D}_\text{train}$ helps address this.
+\end{foldable}
+
+\begin{foldable} % Ethical considerations
+  Two ethical considerations apply to TAKE.
+  (\textbf{1})~\textbf{Bias propagation.}
+  Distillation concentrates the statistical properties of $\mathcal{D}_\text{train}$, including demographic biases.
+  Corpus auditing before distillation is recommended.
+  (\textbf{2})~\textbf{Privacy risk.}
+  Language models fine-tuned on sensitive data may memorize training examples, a risk not fully eliminated by synthetic data generation.
+  Distance-to-closest-record (DCR) screening of $\mathcal{D}_\text{synth}$ can verify that synthetic samples are not verbatim copies; for regulated domains, differential privacy at the fine-tuning stage provides a formal guarantee against memorization.
+\end{foldable}

@@ -1,0 +1,61 @@
+\section{Limitations and Future Directions} \label{sec:62-conclusion-future}
+
+\begin{foldable}
+  Each contribution operates within boundaries that are not incidental but structural: they follow from the design choices that make each method tractable under its respective access constraints.
+  Mapping these boundaries is therefore a prerequisite for extending the programme, not a concession to its incompleteness.
+\end{foldable}
+
+\subsection{Technical Limitations} \label{subsec:62-conclusion-future-technical}
+
+\begin{foldable}
+  DivBFKD inherits the instability of adversarial training at scale: the WGAN loop is sensitive to generator-discriminator balance, and on-the-fly injection of high-confidence real images interacts with discriminator convergence in ways we have not fully characterised at larger resolutions.
+  The adaptive thresholds are calibrated against the teacher's class-wise accuracy on the available few-shot set and therefore correct for distributional bias within those classes; they are blind to domain shift between the few-shot set and the teacher's original training distribution.
+  More fundamentally, high-confidence filtering guarantees teacher agreement but not task-relevant diversity: a set of confident images may still be clustered in feature space if the teacher is confidently right for consistent visual reasons.
+\end{foldable}
+
+\begin{foldable}
+  DIPKD's Synthesis phase generates priors from hierarchical multi-scale uniform noise with geometric transforms and semantic cutmixing.
+  This procedure yields structural diversity but is semantically agnostic: the priors may not cover the natural image manifold in fine-grained or domain-specific tasks where intra-class variation is subtle.
+  The primer student is pre-selected by architecture without a criterion matching its geometric capacity to the synthetic distribution it will process, and the soft labels it produces are an approximation of the teacher's dark knowledge, with no principled bound on the gap between primer and teacher distributions.
+\end{foldable}
+
+\begin{foldable}
+  TAKE's trajectory-aware influence scores are computed from reciprocal gradient norms; trajectory integration substantially mitigates hard-sample bias, but the scores lack Fisher preconditioning and rankings among samples with similar gradient magnitudes may be imperfectly calibrated.
+  The discrete \ac{OT} cost matrix is defined in the encoder's embedding space, so encoder misalignment propagates directly into the transport plan.
+  The \ac{LLM} generation pool fine-tuned on the source corpus risks memorizing rare examples, raising privacy concerns under membership inference, and the Sinkhorn solver scales quadratically in pool size, constraining candidate diversity at extreme compression.
+  Across all three contributions, the shared cross-cutting limitation is the assumption of teacher correctness: errors, biases, and long-tail failures in the teacher propagate through each framework without detection or correction.
+\end{foldable}
+
+\subsection{Theoretical Open Problems} \label{subsec:62-conclusion-future-theoretical}
+
+\begin{foldable}
+  The fidelity-efficiency Pareto frontier is uncharacterised in all three regimes.
+  No formal bound relates the distributional coverage of a synthetic or selected set to the generalization gap of a student trained on it, because the relevant bound must account jointly for the synthesis or selection procedure, the student architecture, and the task loss.
+  Privacy-fidelity coupling is similarly unexplored: methods that enforce fidelity by anchoring synthesis or selection to real data---as both DivBFKD and TAKE do---may inadvertently increase leakage under membership inference, yet the privacy-fidelity trade-off has no formal treatment in the current framework.
+\end{foldable}
+
+\begin{foldable}
+  The hard-sample bias that TAKE's trajectory integration corrects is empirically documented but causally unresolved: it is not known whether the bias is a selection effect, in which high-gradient samples are disproportionately noisy, or a representation effect, in which convergence-point gradients systematically underweight samples that shaped early feature learning.
+  Resolving this distinction has direct implications for when and how trajectory integration should be designed.
+  Finally, evaluation protocols for black-box \ac{KD} and text \ac{DD} are unstandardised across the field---different works vary teacher architectures, student capacity ratios, compression factors, and test procedures---making reliable cross-method comparison and characterisation of fidelity gains difficult.
+\end{foldable}
+
+\subsection{Future Directions} \label{subsec:62-conclusion-future-directions}
+
+\begin{foldable}
+  The most direct extension of DivBFKD is to replace the WGAN generator with a diffusion model conditioned on teacher predictions, which would simultaneously address training instability and semantic agnosticism of the synthesis prior.
+  Per-class confidence gates could be learned via bilevel optimisation, with the outer loop minimising student-teacher disagreement on a held-out set, replacing the current heuristic threshold with a criterion directly tied to the distillation objective.
+  Analysing the robustness of DivBFKD-distilled models to covariate shift and adversarial perturbation---as flagged in Chapter~\ref{ch:30-research01}---is a prerequisite for deployment assurance, since capability transfer and safety transfer are not guaranteed to coincide.
+\end{foldable}
+
+\begin{foldable}
+  DIPKD's synthesis prior could be grounded in teacher-gradient saliency maps, even under black-box access, using gradient-free attribution methods to condition noise initialisation on the teacher's discriminative regions.
+  Neural architecture search applied to primer student selection, guided by a diversity criterion on the synthetic distribution, would replace unprincipled pre-selection.
+  Replacing logit matching in the Distillation phase with metric learning on primer embeddings would reduce sensitivity to the primer-teacher distribution gap by targeting structural similarity rather than output matching.
+\end{foldable}
+
+\begin{foldable}
+  For TAKE, Fisher-preconditioning the influence scores is the natural next step: it would account for loss-landscape curvature and provide better-calibrated rankings, at the cost of Hessian estimation.
+  Differential privacy for the \ac{LLM} generation pool under explicit $\varepsilon$ budgets would formalize the privacy guarantee; greedy lexicographic selection or neural hashing for candidate embeddings would reduce the quadratic scaling of discrete \ac{OT} and enable larger, more diverse pools.
+  The broader agenda is integrating distributional fidelity with robustness, fairness, and calibration as co-equal design constraints from the outset---not as post-hoc evaluation criteria applied after the fidelity objective has already been optimised.
+\end{foldable}

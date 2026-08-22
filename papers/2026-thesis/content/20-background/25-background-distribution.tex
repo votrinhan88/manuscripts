@@ -1,0 +1,162 @@
+\section{Distributional Fidelity and Synthetic Data} \label{sec:25-background-distribution}
+\begin{foldable}
+  All three contributions operate under restricted access: few-shot data (Chapter~\ref{ch:30-research01}), no data (Chapter~\ref{ch:40-research02}), or an oversized corpus (Chapter~\ref{ch:50-research03}).
+  In each case the available training signal is insufficient to directly support high-fidelity distillation.
+  The unifying thread is \textit{distributional fidelity}: whether the compact training signal, synthetic images or a selected text surrogate, adequately covers the original distribution.
+  This section develops that thread as the strategic frame for Chapters~\ref{ch:30-research01}--\ref{ch:50-research03}, moving from the threat (\S\ref{sec:25-background-distribution-deficit}) to the toolkit (\S\ref{sec:25-background-distribution-mechanisms}) to diagnosis (\S\ref{sec:25-background-distribution-diagnosis}) to remedy (\S\ref{sec:25-background-distribution-remedy}).
+\end{foldable}
+
+\subsection{The Fidelity Deficit} \label{sec:25-background-distribution-deficit}
+\begin{foldable}
+  Restricted access degrades the training signal in a specific way: it reduces distributional coverage, not just signal quantity.
+  A smaller or noisier signal misses portions of the original distribution; no downstream algorithm can recover knowledge absent from the training signal.
+  This is not just a data scarcity problem; it is a structural problem in what information remains available after restriction.
+  A few-shot dataset may contain high-quality examples, but if they cluster in a single mode of the teacher's distribution, no amount of augmentation or model capacity can teach the student about the other modes.
+  Similarly, a data-free generator may produce thousands of plausible images, but if they concentrate on prototypical exemplars, they omit the boundary-region examples where the student most needs guidance.
+  This mismatch between signal quantity and distributional coverage is the defining constraint of restricted-access distillation.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Coverage as a component of distributional fidelity:}
+  In model distillation (Chapters~\ref{ch:30-research01}--\ref{ch:40-research02}), the student's accuracy on held-out data is bounded by the fraction of the teacher's distribution covered by the synthetic training set.
+  Even if the student has infinite capacity and each synthetic example carries high-quality supervision, it cannot learn structure it has never seen.
+  If the teacher's decision boundary has structure in a region $\mathcal{R}$ that the synthetic set omits, the student will generalize randomly there.
+  In dataset distillation (Chapter~\ref{ch:50-research03}), the surrogate's utility is bounded by how well it represents the full corpus distribution in the learning objective's space.
+  A surrogate composed entirely of easy-to-classify examples may cover the input space densely yet fail to represent the corpus distribution over the learning trajectories that matter: and representative examples that capture the distributional core, boundary-adjacent examples that refine decisions.
+  Coverage is therefore a necessary condition for distributional fidelity, not a separate objective; and for dataset distillation (Chapter~\ref{ch:50-research03}), fidelity to the full corpus distribution is the objective itself.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Three instantiations of the same deficit:}
+  Few-shot access leaves entire regions of the teacher's distribution unsampled, creating a convex-hull barrier: the student cannot generalize beyond the modes present in the few-shot set, no matter how well it fits them.
+  Data-free access forces synthesis without any real-data anchor, causing the generator to gravitate toward the modes its implicit prior favours, abandoning regions where label feedback is sparse or contradictory.
+  An oversized corpus, filtered naively by importance scores (gradient norms, loss values), concentrates on outliers and mislabeled examples at convergence, missing the representative core because noisy examples retain large gradients while clean examples' gradients vanish.
+  All three are coverage failures under different constraints: first, insufficient data; second, no ground-truth reference; third, misaligned importance metrics.
+\end{foldable}
+
+\begin{foldable}
+  This shared structure motivates a unified treatment: synthetic data (or a selected surrogate) must be evaluated and enforced on global fidelity, not just on fidelity of individual examples.
+  The diagnostic distinction between Density (quality of individual examples) and Coverage (breadth of distributional support) must be maintained throughout design, optimization, and evaluation.
+\end{foldable}
+
+\subsection{Generation Mechanisms} \label{sec:25-background-distribution-mechanisms}
+\begin{foldable}
+  Synthetic data is generated differently depending on modality and access constraints, but both modalities share a common representational ground.
+  Understanding the generation mechanism matters because the affordances and failure modes of each mechanism directly constrain which coverage-enforcement strategies are viable.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{For images (Chapters~\ref{ch:30-research01}--\ref{ch:40-research02}):}
+  \Acp{GAN}~\cite{goodfellow2014generative} frame synthesis as a minimax game between generator $G: \mathcal{Z} \to \mathcal{X}$ and discriminator $D: \mathcal{X} \to [0,1]$.
+  The generator samples from a latent distribution and produces candidate images; the discriminator learns to distinguish real from generated.
+  Vanilla GANs suffer training instability when real and generated distributions are disjoint; the Jensen-Shannon divergence provides poor gradient signals and the generator collapses to a few high-density modes.
+  This mode collapse is particularly severe in few-shot and data-free settings: when the generator is trained on few examples or receives only hard-label feedback, it has no signal to explore regions beyond the modes it has seen or can easily guess.
+  \Ac{WGAN-GP}~\cite{gulrajani2017improved} addresses this by replacing Jensen-Shannon divergence with Wasserstein-1 distance, which provides more stable gradients even when distributions are disjoint.
+  \Ac{WGAN-GP} stabilises training and improves mode coverage by rewarding the discriminator for producing valid gradients everywhere in the input space, not just where the two distributions overlap.
+  \Ac{WGAN-GP} is the generative backbone for Chapters~\ref{ch:30-research01} and~\ref{ch:40-research02}, chosen for its stability and natural alignment with distributional fidelity objectives.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{For text (Chapter~\ref{ch:50-research03}):}
+  \Acp{LLM} generate text autoregressively, sampling tokens sequentially from learned conditional distributions $p(t_i | t_1, \ldots, t_{i-1})$.
+  Unlike image generation via continuous pixel optimization, text generation is inherently discrete: there is no gradient with respect to token indices, and straight-through estimators introduce severe approximation errors when applied to long sequences.
+  Fine-tuning an \ac{LLM} on the task corpus and sampling from it produces fluent, human-readable synthetic examples, sidestepping the gradient-flow problem that makes pixel-space optimization inapplicable.
+  The autoregressive sampling process ensures that generated text inherits the distributional properties of the training corpus: if the corpus is biased toward certain sentence structures or vocabulary, the \ac{LLM}-generated samples will reflect that bias.
+  Fine-tuning on the task corpus steers generation toward task-relevant vocabulary and sentence structure, improving distributional alignment over generic \ac{LLM} sampling.
+  The remaining challenge is distributional fidelity: even an well-fine-tuned \ac{LLM} may oversample frequent patterns and neglect rare but informative examples, producing a fluent yet distributional-unfaithful surrogate.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Embedding space as common ground:}
+  In both modalities, generated data is projected into a modality-specific embedding space via a pre-trained encoder, \eg, ResNet for images, BERT for text.
+  This continuous representation decouples evaluation from the raw format of the generated data and provides a common geometric space in which distributional structure, mode collapse, and coverage gaps become measurable.
+  The embedding space therefore serves as the shared interface between generation (this subsection), diagnosis (\S\ref{sec:25-background-distribution-diagnosis}), and active enforcement (\S\ref{sec:25-background-distribution-remedy}).
+\end{foldable}
+
+\subsection{Diagnosing Coverage Failures} \label{sec:25-background-distribution-diagnosis}
+\begin{foldable}
+  Measuring coverage requires separating \textbf{fidelity} (quality of individual examples) from \textbf{diversity} (breadth of distributional support); standard metrics conflate the two.
+  \Ac{IS}~\cite{salimans2016improved} and \ac{FID}~\cite{heusel2017gans} are the dominant metrics for evaluating generative models.
+  \ac{IS} measures fidelity via class-conditional sharpness: samples should have high predicted class confidence (sharp posterior) and collectively span many classes.
+  \ac{FID} measures distributional distance by computing the 2-Wasserstein distance between real and generated embeddings, balancing fidelity (proximity of generated samples) and diversity (spread across feature space).
+  Both metrics operate in embedding space and aggregate fidelity and diversity into a single number.
+  This aggregation is the core problem: a generator can achieve low \ac{FID} by concentrating on high-density modes (high fidelity, narrow diversity) while leaving low-density regions empty.
+  For example, in ImageNet, some classes are visually prototypical (\texttt{chihuahua} or \texttt{golden retriever}) while others have high variance (\texttt{dog}, which includes hundreds of distinct breeds and poses).
+  A generator achieving low \ac{FID} might produce crisp, classifiable images of prototypical dogs while missing the long tail of atypical poses, unusual lighting, and boundary-region examples that appear in the real dataset.
+  This coverage failure is invisible in the aggregate \ac{FID} score.
+\end{foldable}
+
+\begin{foldable}
+  \textit{Density} and \textit{Coverage}~\cite{naeem2020reliable} decompose these explicitly.
+  Density measures fidelity: the average distance from each generated sample to its nearest real neighbor in embedding space (lower is better; generated samples are close to the real distribution).
+  Coverage measures recall: the fraction of the real distribution that has at least one generated sample nearby (higher is better; the real distribution is well-represented).
+  A dataset can have high Density but low Coverage (a few crisp, real-looking samples missing most of the distribution) or high Coverage but low Density (samples spread across the distribution but perceptually distorted).
+  Coverage is the primary diagnostic across all three settings.
+  Qualitative diagnosis via t-SNE~\cite{van2008visualizing} or UMAP~\cite{mcinnes2018umap} in embedding space reveals whether synthetic samples cluster narrowly (high density, low coverage: mode collapse) or span the full distributional support (high coverage: good diversity).
+  This structural information, which modes are covered, which are missed, where clusters occur, is essential for debugging and is invisible in aggregate scores.
+\end{foldable}
+
+\begin{foldable}
+  Low \ac{FID} does not imply high Coverage.
+  Conversely, high Coverage does not guarantee high Density: a broad sample set may under-represent the high-density modes of the real distribution.
+  Coverage must be treated as an independent objective, not a consequence of good generation.
+  This dissociation points to a core requirement: evaluation alone cannot prevent coverage failures.
+  Measuring coverage after synthesis is too late; the damage is structural.
+  Diversity must be actively enforced during training, generation, and selection, upstream of the final distillation, before the distribution of the resulting set is ever measured.
+  A generator trained without explicit coverage incentives will naturally concentrate on high-reward modes (high confidence from the discriminator, or high agreement with the teacher), abandoning regions where feedback is ambiguous or absent.
+\end{foldable}
+
+\subsection{Active Fidelity Recovery} \label{sec:25-background-distribution-remedy}
+\begin{foldable}
+  Each instantiation of the fidelity deficit (\S\ref{sec:25-background-distribution-deficit}) requires an active mechanism matched to its constraints; diagnosis alone cannot correct a coverage failure.
+  The challenge is that each setting imposes different structural constraints: few-shot has a data anchor but limited diversity; data-free has no anchor; text has discrete tokens and importance-weighted selection objectives.
+  Three concrete mechanisms span the design space, each tailored to its setting's affordances and constraints.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Few-shot model distillation (Chapter~\ref{ch:30-research01}).}
+  The generator is trained on few-shot data and inherits the distribution of that data.
+  Mode collapse occurs not because the generator is inherently limited, but because the gradient signal available during training covers only the few-shot modes.
+  The generator cannot be improved by training longer: it learns the few-shot distribution perfectly and has nothing left to learn.
+  Correcting this requires external signal from outside the few-shot set.
+  Adaptive confidence filtering provides this signal: after generating candidates, the method filters via teacher querying, retaining only synthetic samples on which the teacher has high confidence (above a per-class adaptive threshold).
+  High teacher confidence indicates that the sample is in a region the teacher knows well; rejection sampling on low-confidence samples pushes the generator toward unexplored regions where the teacher's decision boundary is uncertain.
+  Per-class thresholds prevent imbalance: a class with few prototype modes might naturally have fewer high-confidence synthetics, skewing the final distribution.
+  This pushes coverage beyond the convex hull of the few-shot set by using the teacher as a guide to which regions are under-explored.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Data-free model distillation (Chapter~\ref{ch:40-research02}).}
+  Without any real-data anchor, the generator gravitates toward the modes its implicit prior (\eg, uniform noise, natural image statistics) favours.
+  These priors concentrate mass on simple, prototypical structures because they generalize well and are easy to learn from minimal training signal.
+  Multi-scale noise synthesis addresses this by injecting structured noise at multiple frequency scales before each teacher query.
+  Low-frequency noise introduces coarse-level diversity (different global scene structures); high-frequency noise adds fine-level variation (texture, details).
+  This prevents the generator from collapsing to a single reconstruction.
+  Complementing this, a contrastive objective operates on the generated candidates in embedding space, pushing them apart before any teacher interaction.
+  The contrastive loss encourages samples to cluster in different regions of the embedding space, spreading the synthetic set to cover more modes.
+  Only after this structural diversity is enforced are samples queried to the teacher for label feedback.
+  This two-stage approach (diversity-first, then label-conditioning) corrects the failure mode where hard-label feedback alone drives convergence to high-confidence modes.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Text dataset distillation (Chapter~\ref{ch:50-research03}).}
+  The problem is two-fold: single-checkpoint gradient-norm importance scores are unreliable at convergence, and independent ranking-based selection cannot enforce distributional objectives.
+  Trajectory-aware scoring integrates importance signals across multiple training checkpoints rather than a single convergence point.
+  Early checkpoints produce large gradients for all examples; late checkpoints produce large gradients mainly for hard/noisy examples.
+  Averaging across the trajectory dilutes the late-stage noise emphasis, producing calibrated scores that reflect each example's true contribution to learning.
+  However, corrected scores alone are insufficient: naive ranking selects the top-$K$ examples by score, ignoring relationships and redundancy.
+  Discrete optimal transport reformulates selection as a distributional problem: given importance weights on the full corpus, select a $K$-sized subset that minimises the Wasserstein distance between the weighted source distribution and the selected subset.
+  This allows the solver to trade off individual importance scores for joint distributional coverage, deselecting redundant high-importance examples if that makes room for under-represented but collectively important regions.
+\end{foldable}
+
+\begin{foldable}
+  The pattern is the same across all three: name the fidelity deficit $\to$ understand its structural cause $\to$ apply an upstream mechanism to correct it $\to$ verify with Coverage metrics.
+  Distributional fidelity is an explicit design objective enforced during training and selection, not a property hoped for after the fact.
+  Each mechanism operates before the final distillation loss is computed, ensuring that the training signal available to the student covers the target distribution.
+\end{foldable}
+
+\begin{foldable}
+  The same fidelity concern applies when the training data itself is compressed rather than the model: a selected text surrogate must cover the original corpus distribution just as a synthetic image set must cover the teacher's distribution.
+  Dataset Track (\S\ref{sec:26-background-datasetdistill}--\S\ref{sec:28-background-ot}) develops this parallel, introducing the dataset distillation landscape and the importance-scoring and optimal-transport tools that operationalise distributional fidelity in the discrete text domain.
+  The mechanisms differ, selection vs.\ generation and discrete vs.\ continuous, but the principle is identical: distributional fidelity must be actively enforced, not assumed.
+\end{foldable}

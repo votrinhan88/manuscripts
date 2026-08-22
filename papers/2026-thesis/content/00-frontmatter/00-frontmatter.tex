@@ -1,61 +1,23 @@
 % Page 1: Title Page
-\begin{titlepage}
-  \centering
-  \vspace*{\fill}
-  {\LARGE \fontfamily{lmr}\bfseries Knowledge Distillation under Practical Constraints \\ for Models and Datasets \par}
-  \vspace{2cm}
-  {\Large \authorname, \authordegrees \par}
-  \vspace{3cm}
-  {Submitted in fulfilment of the requirements for the degree of\\
-  \degree \par}
-  \vspace{2cm}
-  {\Large \university \par}
-  \vspace{0.5cm}
-  {\large \submissiondate \par}
-  \vspace{2.5cm}
-  \vfill
-\end{titlepage}
+\input{./content/00-frontmatter/01-titlepage}
 
 % Page 2: Candidate Declaration (mandatory, signed)
-% Option A: Include signed PDF scan
-% \includepdf[pages=-]{extra_pages/candidate_declaration.pdf}
-% Option B: LaTeX version (replace with PDF before submission)
-\begin{foldable}
-  \chapter*{Candidate Declaration}
-
-  I certify the following about the thesis entitled \textit{\thesistitle} submitted for the degree of \degree.
-
-  \begin{enumerate}[label=\alph*.]
-    \item I am the creator of all or part of the whole work(s) (including content and layout) and that where reference is made to the work of others, due acknowledgment is given.
-    \item The work(s) are not in any way a violation or infringement of any copyright, trademark, patent, or other rights whatsoever of any person.
-    \item That if the work(s) have been commissioned, sponsored or supported by any organization, I have fulfilled all of the obligations required by such contract or agreement.
-    \item That any material in the thesis which has been accepted for a degree or diploma by any university or institution is identified in the text.
-  \end{enumerate}
-
-  \vspace{2cm}
-  \noindent Full Name: \authorname \\
-  Signed: \hrulefill \\
-  Date: \submissiondate \\[1cm]
-  \noindent\small{Deakin University CRICOS Provider Code: \cricos}
-\end{foldable}
+\input{./content/00-frontmatter/02-candidature}
 
 % Page 3: RTP/Funding Acknowledgement (if scholarship received)
-% \includepdf[pages=-]{extra_pages/rtp_acknowledgement.pdf}
+\input{./content/00-frontmatter/03-funding}
 
 % Page 4: Acknowledgements (optional)
-\input{./content/00-frontmatter/01-acknowledgements}
+\input{./content/00-frontmatter/04-acknowledgements}
 
 % Page 5: List of Publications (optional)
-\input{./content/00-frontmatter/02-publications}
+\input{./content/00-frontmatter/05-publications}
 
-% Authorship Statements (one per multi-authored publication)
-% Include signed PDF forms:
-% \includepdf[pages=-]{extra_pages/authorship_ch3.pdf}
-% \includepdf[pages=-]{extra_pages/authorship_ch4.pdf}
-% \includepdf[pages=-]{extra_pages/authorship_ch5.pdf}
+% Optional: Authorship Statements (if applicable, one per multi-authored publication)
+\input{./content/00-frontmatter/06-authorship}
 
 % Abstract
-\input{./content/00-frontmatter/03-abstract}
+\input{./content/00-frontmatter/09-abstract}
 
 % Table of Contents, Lists
 \cleardoublepage

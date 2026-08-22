@@ -1,0 +1,19 @@
+\acresetall
+
+\chapter{Conclusion} \label{ch:60-conclusion}
+
+\begin{foldable}
+  This thesis addresses knowledge distillation along two complementary axes.
+  The first is the \textit{model axis}: Chapters~\ref{ch:30-research01} and~\ref{ch:40-research02} compress a learned function under progressively tighter access restrictions---from few-shot black-box to fully data-free black-box---where the teacher withholds both its training data and its internal representations.
+  The second is the \textit{data axis}: Chapter~\ref{ch:50-research03} compresses the training corpus itself, distilling a large text dataset into a compact human-readable surrogate under the additional constraint that tokens are discrete and non-differentiable.
+  Together, these two axes trace a complete arc from model compression to data compression, both navigated under practical restrictions that standard \ac{KD} methods assume away.
+\end{foldable}
+
+\begin{foldable}
+  Across both axes, \textit{distributional fidelity}---the degree to which the compact training signal faithfully represents the source distribution---is the binding constraint.
+  Each contribution treats fidelity not as a property to hope for at sufficient scale, but as an objective to enforce by design: through adaptive confidence filtering, through structurally diverse synthesis priors, and through trajectory-aware influence weighting coupled with globally optimal transport.
+  Section~\ref{sec:61-conclusion-summary} synthesises how each contribution realises this principle; Section~\ref{sec:62-conclusion-future} maps what the programme leaves open.
+\end{foldable}
+
+\input{./content/60-conclusion/61-conclusion-summary}
+\input{./content/60-conclusion/62-conclusion-future}

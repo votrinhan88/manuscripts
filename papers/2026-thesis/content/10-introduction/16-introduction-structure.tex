@@ -1,0 +1,19 @@
+\section{Thesis Structure} \label{sec:16-introduction-structure}
+\begin{foldable}
+  This thesis is organised around two complementary tracks unified by \textit{distributional fidelity}.
+  \textbf{Model Track} addresses model distillation under restricted teacher access, progressing from few-shot to data-free settings.
+  \textbf{Dataset Track} addresses dataset distillation for text, producing compact, human-readable corpora under extreme compression.
+\end{foldable}
+
+\begin{foldable}
+  \textbf{Chapter~\ref{ch:20-background}} establishes shared foundations, then divides into two parallel strands for model distillations and dataset distillation, accordingly.
+  Both tracks converge on \textit{distributional fidelity}: whether the compressed artifact, student model or surrogate corpus, faithfully represents the original training distribution, enabling effective distillation under restricted access.
+  \textbf{Model Track (Chapters~\ref{ch:30-research01}--\ref{ch:40-research02})} develops model distillation with a black-box teacher, with an emphasis on image classification.
+  Chapter~\ref{ch:30-research01} addresses few-shot constraints, where a small number of real training images are available.
+  Chapter~\ref{ch:40-research02} removes access to real training data, forcing distillation from black-box signals alone.
+  \textbf{Dataset Track (Chapter~\ref{ch:50-research03})} develops dataset distillation, specifically distilling a large training corpus into a compact set of human-readable examples.
+  Discrete tokens and extreme compression ratios introduce distinct constraints, but the unifying principle is the same: distributional fidelity under information scarcity.
+  \textbf{Chapter~\ref{ch:60-conclusion}} draws the contributions across both tracks together, surfacing common themes and placing them within the trajectory of \ac{KD} research.
+  The chapter discusses limitations and identifies directions for future work.
+  Readers may follow the thesis sequentially or by track (Model Track in Chapters~\ref{ch:30-research01}--\ref{ch:40-research02}, Dataset Track in Chapter~\ref{ch:50-research03}).
+\end{foldable}

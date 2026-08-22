@@ -1,8 +1,15 @@
-\chapter{DIPKD: Diverse Image Priors for Black-box Data-free Knowledge Distillation}
-\label{ch:40-research02}
+\acresetall
+
+\chapter[Diverse Image Priors for Black-box Data-free Knowledge Distillation]
+{Diverse Image Priors \\ for Black-box Data-free Knowledge Distillation} \label{ch:40-research02}
+
+\begin{foldable}
+  Section~\ref{sec:24-background-kdrestricted-bbdatafree} identifies two structural deficits in black-box data-free \ac{KD}: the domain-coverage deficit (without real images to anchor the generator, the synthesized distribution is not constrained to cover the teacher's training distribution) and the information-bottleneck deficit (hard top-1 labels discard the inter-class relational structure that soft targets encode).
+  Prior methods~\cite{wang2021zero, zhang2022ideal, yuan2024data} resolve at most one deficit independently; closing the gap requires a unified approach that enforces diversity during synthesis while recovering soft signals during distillation.
+  This chapter answers the open problem posed at the end of \S\ref{sec:24-background-kdrestricted-bbdatafree} by proposing \acl{DIPKD}: a three-phase pipeline where hierarchical noise and contrastive learning enforce diverse image synthesis, and a primer student supplies soft surrogate logits to restore the dark-knowledge signal lost to black-box access.
+\end{foldable}
 
 \input{./content/40-research02/41-research02-introduction}
-\input{./content/40-research02/42-research02-related}
-\input{./content/40-research02/43-research02-framework}
-\input{./content/40-research02/44-research02-experiments}
-\input{./content/40-research02/45-research02-conclusion}
+\input{./content/40-research02/42-research02-framework}
+\input{./content/40-research02/43-research02-experiments}
+\input{./content/40-research02/44-research02-conclusion}

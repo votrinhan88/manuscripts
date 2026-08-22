@@ -1,0 +1,27 @@
+\chapter*{Abstract} \label{sec:03-abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+\begin{foldable}
+  Recent advances in \acl{AI} have been driven by increasingly large and complex models, trained on increasingly large datasets.
+  Yet, model and dataset size are practical bottlenecks across all stages of a model's life cycle, from data preparation and training through to deployment and storage.
+  Among compression techniques for both models and datasets, \ac{KD} stands out because it treats compression as a knowledge transfer problem rather than a reduction problem.
+  Specifically, model distillation trains a small student model to mimic the outputs of a larger teacher model.
+  Dataset distillation, in turn, synthesizes a small, informative dataset that yields downstream performance comparable to its larger counterpart.
+\end{foldable}
+
+\begin{foldable}
+  However, several practical constraints limit the applicability of \ac{KD} in real-world settings.
+  Model distillation methods typically assume full access to the original training dataset and to the internal parameters of the teacher network.
+  This assumption routinely fails in practice, where data is limited or unavailable because of proprietary or privacy restrictions, and where teacher models are exposed only as black-box interfaces.
+  Dataset distillation, on the other hand, has matured for image domains but remains underexplored for text, where the discrete and compositional nature of language poses distinct challenges.
+  The distilled text dataset must also withstand extreme compression ratios while remaining human-readable for auditability and interpretability.
+\end{foldable}
+
+\begin{foldable}
+  This thesis addresses \ac{KD} under three restrictive settings: (i) few-shot access to real data with a black-box teacher, (ii) complete absence of real data with a black-box teacher, and (iii) text dataset distillation, where the goal is to synthesize a tiny surrogate dataset that preserves model training utility.
+  We motivate our approaches through the lens of \textit{distributional fidelity}: whether the compact artefact, the student model or the surrogate corpus, faithfully represents the original.
+  For the first setting, we propose \textit{\acl{DivBFKD}} (\ac{DivBFKD}), a framework that improves the diversity of the limited training data by generating high-quality synthetic samples, supporting black-box \ac{KD} from only a few samples per class.
+  For the second setting, we propose \textit{\acl{DIPKD}} (\ac{DIPKD}), a data-free black-box \ac{KD} method that synthesizes training images by incorporating structured image priors, then optimizes them for diversity via a contrastive objective.
+  For the third setting, we propose \textit{\acl{TAKE}} (\ac{TAKE}), which distills a large corpus into a compact dataset of high-influence, human-readable synthetic texts.
+  Across all three settings, our methods reach state-of-the-art performance on \ac{KD} benchmarks, showing that effective distillation is achievable under severe practical constraints.
+\end{foldable}

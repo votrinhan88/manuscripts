@@ -1,0 +1,131 @@
+\section{Theoretical Framework} \label{sec:52-research03-theory}
+
+\subsection{Reweighted Distribution Matching for Dataset Distillation} \label{sec:52-research03-theory-rdm}
+\begin{foldable} % DD --> DM
+    The \acl{DD} objective seeks $\tilde{\mathcal{D}}$ with $|\tilde{\mathcal{D}}| = K \ll N$ minimizing the loss on the original data:
+    \begin{equation}
+        \min_{\tilde{\mathcal{D}}}\; \mathbb{E}_{\theta_0 \sim p(\theta_0)} \left[ \mathbb{E}_{z \sim \mathcal{D}} \left[ \ell\!\left(z;\; F(\theta_0; \tilde{\mathcal{D}}, \eta, T)\right) \right] \right]
+        \label{eq:dataset-distillation}
+    \end{equation}
+    where $F(\theta_0; \tilde{\mathcal{D}}, \eta, T)$ denotes the model obtained by running $T$ steps of gradient descent with learning rate $\eta$ on $\tilde{\mathcal{D}}$ from initialization $\theta_0$.
+    This bi-level problem is intractable for discrete text.
+    We relax it to distribution matching via the gradient-field equivalence argument~\cite{zhao2023dataset}: if $\tilde{\mathcal{D}}$ induces the same expected gradient field as $\mathcal{D}$ throughout training, the two runs converge to comparable parameters.
+    Since $\nabla_\theta \mathbb{E}_{z \sim P}[\ell(z;\theta)] = \mathbb{E}_{z \sim P}[\nabla_\theta \ell(z;\theta)]$, matching distributions in a task-relevant feature space controls the gradient field --- making distribution matching a tractable surrogate for~\eqref{eq:dataset-distillation}.
+    This yields the distribution matching~(DM) objective:
+    \begin{equation}
+        \min_{|\tilde{\mathcal{D}}| = K}\; d\!\left(P_{\tilde{\mathcal{D}}},\; P_{\mathcal{D}}\right)
+        \label{eq:distribution-matching}
+    \end{equation}
+    for a divergence $d$ in a task-relevant feature space.
+    Eq.~\eqref{eq:distribution-matching} is a surrogate, not an equivalence; the formal gap bound appears as Theorem~\ref{thm:gap} once $d$ is specified.
+\end{foldable}
+
+\begin{foldable} % Uniform DM --> RDM
+    At extreme compression ($\rho = K/N \ll 1$), uniform matching allocates prototypes proportional to density --- but not all regions contribute equally to learning.
+    Dense easy regions consume budget that would be better spent on moderate and boundary samples near decision boundaries, which carry the most information for model robustness.
+    We instead reweight the source by per-sample importance: define $w_n \geq 0$, $\sum_n w_n = 1$, inducing $P^w = \sum_n w_n \delta_{z_n}$, yielding the \ac{RDM} objective:
+    \begin{equation}
+        \min_{|\tilde{\mathcal{D}}| = K}\; d\!\left(P_{\tilde{\mathcal{D}}},\; P^w\right)
+        \label{eq:reweighted-distribution-matching}
+    \end{equation}
+    The weights $w_n$ must reflect downstream learning contribution, not geometry alone, motivating gradient-based estimation.
+    Influence self-scores~\cite{koh2017understanding} are the natural candidate: they are task-aligned by construction and theoretically grounded.
+    We now show that the simplest instantiation---$w_n \propto \mathcal{I}_\text{self}(z_n)$ at a single checkpoint, select top-$K$---fails on both counts: the weights are biased toward noisy samples (Proposition~\ref{prop:hsb}), and independent top-$K$ selection ignores distributional coverage (Remark~\ref{rem:coverage}).
+    \begin{remark}[Double relaxation gap] \label{rem:double-gap}
+        Moving from~\eqref{eq:dataset-distillation} to~\eqref{eq:distribution-matching} incurs a gradient-field approximation error (bounded formally by Theorem~\ref{thm:gap}); moving from~\eqref{eq:distribution-matching} to~\eqref{eq:reweighted-distribution-matching} replaces the uniform source $P_\mathcal{D}$ with the reweighted source $P^w$, incurring an additional cost:
+        \begin{equation}
+            \text{Gap}_2 \leq L \cdot W_1(P_\mathcal{D}, P^w) = L \cdot W_1\!\left(\tfrac{1}{N}\textstyle\sum_n \delta_{z_n},\; \textstyle\sum_n w_n \delta_{z_n}\right).
+            \label{eq:gap2}
+        \end{equation}
+        Since both measures have the same support, $W_1(P_\mathcal{D}, P^w) \leq \text{diam}(\mathcal{Z}) \cdot \frac{1}{2}\sum_n |w_n - 1/N|$, which is directly computable from the $\kappa_n$ scores and small when $w_n \approx 1/N$ (uniform weights recover DM).
+        The reweighting is beneficial precisely when this gap is outweighed by the reduction in downstream loss from correcting the \ac{HSB}, as formalized in Proposition~\ref{prop:traj} (\S\ref{sec:53-research03-method-gradient}).
+    \end{remark}
+\end{foldable}
+
+
+\subsection{The Naive Instantiation Fails: Two Open Problems} \label{sec:52-research03-theory-failures}
+\begin{foldable} % Setup
+    Define the influence self-score at checkpoint $\hat{\theta}$ as
+    \begin{equation}
+        \mathcal{I}_\text{self}(z_n; \hat{\theta}) = \nabla_\theta \ell(z_n; \hat{\theta})^\top H_{\hat{\theta}}^{-1} \nabla_\theta \ell(z_n; \hat{\theta}),
+        \label{eq:influence-self}
+    \end{equation}
+    where $H_{\hat{\theta}} = \frac{1}{N}\sum_n \nabla^2_\theta \ell(z_n; \hat{\theta})$ is the empirical Hessian, specializing~\cite{koh2017understanding} by setting the test point equal to the training point.
+    High $\mathcal{I}_\text{self}$ identifies atypical examples: samples that are difficult to fit and exert outsized influence on the model's parameters, which in practice are the noisy ones.
+    This suggests a naive pipeline: set $w_n \propto \mathcal{I}_\text{self}(z_n; \hat{\theta})$ and return $\arg\max_{|\mathcal{A}|=K} \sum_{i \in \mathcal{A}} w_i$; we identify two orthogonal failures of this strategy.
+    The first failure is a bias in the weights themselves, due to the heterogeneous gradient magnitudes across clean and noisy samples that emerges over the training trajectory.
+\end{foldable}
+
+\begin{foldable} % Proposition 1: HSB
+    \begin{proposition}[Hard-Sample Bias] \label{prop:hsb}
+        Let $\mathcal{D}_\text{clean}, \mathcal{D}_\text{noisy}$ partition $\mathcal{D}$, and assume:
+        \begin{enumerate}[label=\textbf{(A\arabic*)},leftmargin=*]
+            \item $\|\nabla_\theta \ell(z; \hat{\theta})\| \leq \epsilon$ for $z \in \mathcal{D}_\text{clean}$, i.e., clean samples have near-zero gradient at convergence;
+            \item $\|\nabla_\theta \ell(z; \hat{\theta})\| \geq \delta \gg \epsilon$ for $z \in \mathcal{D}_\text{noisy}$, i.e., noisy samples retain large residual gradients;
+            \item $H_{\hat\theta}$ is symmetric positive definite with $\lambda_{\min}(H_{\hat\theta}) > 0$ (which holds whenever the model is not at a degenerate critical point).
+        \end{enumerate}
+        Let $\text{cond}(H) = \lambda_{\max}(H) / \lambda_{\min}(H)$ denotes the condition number of the Hessian $H$.
+        Then:
+        \begin{equation}
+            \Delta_\textup{HSB} := \mathbb{E}_{z \sim \mathcal{D}_\textup{noisy}}[\mathcal{I}_\textup{self}(z;\hat{\theta})]
+            - \mathbb{E}_{z \sim \mathcal{D}_\textup{clean}}[\mathcal{I}_\textup{self}(z;\hat{\theta})]
+            \;\geq\; \frac{\delta^2 - \text{cond}(H_{\hat{\theta}}) \cdot \epsilon^2}{\lambda_{\max}(H_{\hat{\theta}})}
+            \;>\; 0
+            \label{eq:hsb}
+        \end{equation}
+    \end{proposition}
+    \begin{proof}
+        The argument bounds $\mathcal{I}_\text{self}(z)$ above for clean samples and below for noisy samples via the spectrum of $H_{\hat\theta}^{-1}$, then subtracts the resulting partition-wise expectations.
+        Write $\nabla \equiv \nabla_\theta \ell(z;\hat\theta)$ so that $\mathcal{I}_\text{self}(z) = \nabla^\top H_{\hat\theta}^{-1} \nabla$.
+
+        \textit{Step 1 (spectral bounds).}
+        By (A3), $H_{\hat\theta}$ is symmetric positive definite, so $H_{\hat\theta}^{-1}$ is too, with eigenvalues in $[1/\lambda_{\max}(H_{\hat\theta}), 1/\lambda_{\min}(H_{\hat\theta})]$.
+        Applying the Rayleigh quotient to $H_{\hat\theta}^{-1}$ gives:
+        \begin{equation}
+            \frac{\|\nabla\|^2}{\lambda_{\max}(H_{\hat\theta})}
+            \;\leq\; \mathcal{I}_\text{self}(z)
+            \;\leq\; \frac{\|\nabla\|^2}{\lambda_{\min}(H_{\hat\theta})}.
+        \end{equation}
+        Specializing to the two partitions using (A1) and (A2) and taking expectations (the bounds are uniform over each partition, so expectation preserves them):
+        \begin{align}
+            \mathbb{E}_{z \sim \mathcal{D}_\text{clean}}[\mathcal{I}_\text{self}(z)]
+            &\leq \frac{\epsilon^2}{\lambda_{\min}(H_{\hat\theta})}, \\
+            \mathbb{E}_{z \sim \mathcal{D}_\text{noisy}}[\mathcal{I}_\text{self}(z)]
+            &\geq \frac{\delta^2}{\lambda_{\max}(H_{\hat\theta})}.
+        \end{align}
+
+        \textit{Step 2 (combining and positivity).}
+        Subtracting the clean bound from the noisy bound, the difference of expectations satisfies
+        \begin{equation}
+            \mathbb{E}_{z \sim \mathcal{D}_\textup{noisy}}[\mathcal{I}_\textup{self}(z)] - \mathbb{E}_{z \sim \mathcal{D}_\textup{clean}}[\mathcal{I}_\textup{self}(z)]
+            \;\geq\; \frac{\delta^2}{\lambda_{\max}(H_{\hat\theta})} - \frac{\epsilon^2}{\lambda_{\min}(H_{\hat\theta})}.
+        \end{equation}
+        Substituting $\lambda_{\min}(H_{\hat\theta}) = \lambda_{\max}(H_{\hat\theta})/\text{cond}(H_{\hat\theta})$ on the right-hand side and identifying the left-hand side with $\Delta_\textup{HSB}$ recovers \eqref{eq:hsb}.
+        Positivity holds whenever $\delta/\epsilon > \sqrt{\text{cond}(H_{\hat\theta})}$, which is mild given $\delta \gg \epsilon$; in the interpolation regime ($\epsilon \to 0$) it is trivially satisfied.
+    \end{proof}
+    Because clean gradients vanish at convergence by definition of a local minimum, the bias is \textit{structural}: it cannot be corrected by post-hoc rescaling of single-checkpoint scores, but only by integrating gradient signals across the training trajectory.
+    The binary partition simplifies exposition; in practice the bias is monotone in $\|\nabla\|$, as the spectral bounds above show directly.
+    \begin{remark}[Gradient norm as special case] \label{rem:grad-norm}
+        Setting $H = I$ in \eqref{eq:influence-self} recovers $\mathcal{I}_\text{self}(z) = \|\nabla\|^2$.
+        Under this substitution, \eqref{eq:hsb} reduces to $\Delta_\text{HSB} \geq \delta^2 - \epsilon^2 > 0$, which holds without any spectral assumption on $H$.
+        The gradient norm used in TAKE (\S\ref{sec:53-research03-method-gradient}) therefore inherits the same structural bias: it is not merely a tractable proxy but satisfies the \ac{HSB} lower bound directly.
+    \end{remark}
+\end{foldable}
+
+\begin{foldable} % Remark 1: independent scoring != coverage
+    Even with unbiased weights, a second failure remains: top-$K$ selection is blind to distributional coverage.
+    \begin{remark}[Independent scoring $\neq$ distributional coverage] \label{rem:coverage}
+        Any rank-and-select strategy decomposes as a sum of independent terms, invariant to pairwise distances between selected samples.
+        In contrast, $d(P_{\tilde{\mathcal{D}}}, P^w)$ penalizes redundancy and rewards coverage.
+        Concretely, if $\phi(z_i) \approx \phi(z_j)$ and both have high $w_i, w_j$, independent scoring selects both; a distributional objective assigns nearly the same cost to selecting just one, freeing a slot for an uncovered region.
+    \end{remark}
+\end{foldable}
+
+\begin{foldable} % Two open problems
+    The two failures compound: biased $w_n$ misdirects a population-level solver toward noisy regions; correct $w_n$ fed into an independent selector still produces redundancy.
+    They respectively yield two open problems:
+    \begin{enumerate}[label=\textbf{(\alph*)}]
+        \item \label{open-problem-weight} \textbf{Biased weighting.} Estimate $w_n$ by integrating gradient signals across the learning trajectory $\{\theta_t\}_{t=0}^{T-1}$, reducing $\Delta_\textup{HSB}$---which we will address in \S\ref{sec:53-research03-method-gradient} (formalized as Proposition~\ref{prop:traj}).
+        \item \label{open-problem-select} \textbf{Independent selection.} Solve \eqref{eq:reweighted-distribution-matching} directly for a metric $d$ that jointly optimises coverage of $P^w$---which we will address in \S\ref{sec:53-research03-method-ot}.
+    \end{enumerate}
+\end{foldable}

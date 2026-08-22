@@ -1,0 +1,54 @@
+\section{Distributional Fidelity of the Training Signal} \label{sec:14-introduction-fidelity}
+\begin{foldable}
+  The restrictions described in the previous subsections do not merely reduce the quantity of available supervision, but instead reshape its statistical character.
+  A student trained under a limited data constraint, or a model fine-tuned on a compressed corpus can only learn from whatever training signal is actually present.
+  If that signal fails to faithfully represent the distribution the teacher was trained on, then the student inherits a systematically distorted picture of the teacher's knowledge.
+  The term \textit{distributional fidelity} names this property: the degree to which the training signal available to the student covers the target distribution in a representative and unbiased way.
+  When distributional fidelity is low, distillation fails because the information it needs is not present in the signal it receives.
+\end{foldable}
+
+\begin{foldable}
+  In model distillation, distributional fidelity shows up as a coverage problem that worsens as data access diminishes.
+  Gaps in coverage correspond directly to gaps in the student's knowledge domain: regions of the teacher's input distribution that the student never trains on remain unknown to it, regardless of model capacity.
+  In the few-shot setting, a handful of real samples cannot span the full diversity of the teacher's input distribution, and synthetic data generated from them inherits the same distributional limits.
+  Generative models can extend synthesis beyond these limits, but without external guidance they remain tethered to the modes the few-shot set already represents.
+  Diversity of the generated set, specifically its ability to reach regions the few-shot examples do not represent, is therefore the binding challenge.
+  In the data-free setting, the problem is more severe: without any real-data anchor, synthetic images serve as a substitute, seeding synthesis with structured diversity before any teacher query.
+  Yet this does not guarantee coverage: the central challenge is ensuring that synthetic samples collectively capture \textit{diverse patterns and semantics} of the teacher's knowledge domain, rather than merely satisfying its hard labels.
+\end{foldable}
+
+\begin{foldable}
+  The black-box constraint compounds the limited data setting by further degrading the signal quality.
+  In practice, black-box access exists on a spectrum: some services return a truncated probability distribution over the top-$k$ classes, while others return only a single integer identifying the predicted class.
+  Even the softer end of this spectrum degrades distributional fidelity: a truncated distribution discards the long tail of inter-class relationships that the teacher's full softmax encodes.
+  At the hard-label extreme, the distilled prediction distribution collapses to a one-hot spike, carrying only the identity of the predicted class and none of the relational structure that distinguishes \ac{KD} from ordinary supervised training.
+  The central challenge is therefore to recover knowledge in the form of soft labels, the inter-class relational structure that grounds the original \ac{KD} formulation~\cite{hinton2015distilling}, from a teacher interface that deliberately withholds it.
+\end{foldable}
+
+\begin{foldable}
+  Dataset distillation tackles distributional fidelity from a different angle: preserving knowledge for downstream utility.
+  Compared with prototype and coreset methods, dataset distillation approximates the original data with synthetic samples, free of the constraint of the existing data support.
+  In principle, this can raise the fidelity and downstream quality of the distilled data.
+  At extreme compression ratios, however, preserving fidelity is still hard: each distilled sample must carry a disproportionately higher informational load.
+  A principled method must therefore perform \textit{knowledge estimation} on each sample and ensure that the distilled set collectively covers the full distribution, rather than over-representing some regions and under-representing or omitting others.
+  The optimization objective must therefore be \textit{global}: selecting samples independently by any per-sample score cannot guarantee coverage, since it ignores relationships between chosen samples and leaves redundant or unrepresented regions uncorrected.
+  The \textit{discrete} nature of text also prevents the original gradient-based optimization from transferring directly.
+  This constraint demands a discrete optimization method that handles text tokens without sacrificing human-readability.
+\end{foldable}
+
+\begin{foldable}
+  All three settings exhibit the same underlying problem: failure modes that undermine distributional fidelity.
+  In model distillation, coverage deficit arises through generative collapse in \textit{black-box few-shot} or lack of knowledge anchor \textit{black-box data-free}.
+  In dataset distillation, it arises through compression and interpretability requirements of \textit{text datasets}.
+  Across all cases, the training signal fails to faithfully represent the target distribution: it over-represents some regions and under-represents or entirely omits others.
+  The diagnostic question is identical in every setting: does the data the student actually trains on give sufficient, representative coverage of the knowledge the teacher possesses?
+  Fidelity deficit is the root cause of these failures, not a symptom.
+  No algorithmic refinement can recover knowledge that is absent from the training signal.
+  Recognising this unifies what would otherwise appear as three separate technical problems.
+\end{foldable}
+
+\begin{foldable}
+  Treating distributional fidelity as a first-class design objective, rather than a collateral outcome, is the commitment that motivates all three contributions of this thesis.
+  Each contribution targets a distinct failure mode, unified by one principle: distillation quality is bounded by signal representativeness, not algorithmic sophistication.
+  \S\ref{sec:15-introduction-contributions} describes how each contribution realizes this principle in concrete, experimentally validated form.
+\end{foldable}
