@@ -44,7 +44,7 @@
   To improve BBDFKD, we propose \textbf{\acl{DIPKD}} (\acs{DIPKD}), structured into three collaborative phases:
   \begin{enumerate}
     \item {
-        In the \textbf{Synthesis} phase, we design a pipeline to create \textit{image priors} $\mathcal{X}_\mathcal{P}$ that simulate the hierarchical structures, nonlinearity, and meaningful semantics in natural scenes and objects.
+        In the \textbf{Synthesis} phase, we design a pipeline to create \textit{image priors} $\mathcal{X}_\mathcal{P}$ that simulate the hierarchical structures, nonlinearity, and spatial structure in natural scenes and objects.
         This is achieved via three sub-components: hierarchical noise, nonlinear transformation, and semantic cutmixing.
       }
     \item {
@@ -53,7 +53,7 @@
       }
     \item {
         Finally, in the \textbf{Distillation} phase, we use the optimized dataset $\mathcal{D}$ to distill the student $S$.
-        Crucially, we extract \textit{soft} knowledge from the primer student $S_0$ to restore the inter-class signals absent in previous BBDFKD methodologies.
+        Crucially, we extract \textit{soft} knowledge from the primer student $S_0$ as surrogate supervision for the inter-class signals absent in previous BBDFKD methodologies.
       }
   \end{enumerate}
 \end{foldable}
@@ -67,7 +67,7 @@
     In the \textbf{Synthesis} phase, we generate image priors $\mathcal{X}_\mathcal{P}$ with 3 sub-components.
     (\textbf{1})~\textbf{Hierarchical noise}: We sample $x_\text{hn}$ from multi-scale noise images to capture hierarchical structures.
     (\textbf{2})~\textbf{Nonlinear transform}: We transform $x_\text{hn}$ to $x_\text{nt}$ with nonlinear filters to capture nonlinearity.
-    and (\textbf{3})~\textbf{Semantic cutmixing}: We apply cutmixing on $x_\text{nt}$ with a semantic mask $\hat{m}$ to construct the final images $x$, simulating diverse semantics.
+    and (\textbf{3})~\textbf{Semantic cutmixing}: We apply cutmixing on $x_\text{nt}$ with a semantic mask $\hat{m}$ to construct the final images $x$, simulating diverse spatial structures.
     Our image priors $\mathcal{X}_\mathcal{P}$ are visually much more diverse than noise images sampled from random Gaussian or random uniform distributions $\mathcal{X}_{\mathcal{N}}, \mathcal{X}_\mathcal{U}$.
   }
   \label{fig:43-research02-framework-viz-synthesis}
@@ -76,7 +76,7 @@
 \begin{foldable} % Motivation --> overview of 3 components
   Natural images are characterized by strong local pixel structures and complex, nonlinear semantics~\cite{lecun1998gradient}.
   To capture these properties, we generate image priors $\mathcal{X}_\mathcal{P}$ through a pipeline of three stages: \textit{hierarchical noise}, \textit{nonlinear transformation}, and \textit{semantic cutmixing}, visualized in Fig.~\ref{fig:43-research02-framework-viz-synthesis}.
-  This pipeline serves to capture the structural and semantic breadth of the expert's original knowledge domain through enhanced diversity.
+  This pipeline serves to capture the structural breadth of the expert's original knowledge domain through enhanced diversity.
 \end{foldable}
 
 \subsubsection{Hierarchical noise} \label{sec:43-research02-framework-synthesis-hiernoise}
@@ -118,7 +118,7 @@
 \begin{foldable} % Motivation
   We aim to augment synthetic images with the cohesive structures often found in natural objects.
   However, previous techniques like CutMix~\cite{yun2019cutmix} rely on simple rectangular occlusions that lack semantic meaning.
-  To address this, we extend CutMix by improving the masking process to nonlinearly blend image pairs into \textit{semantically coherent} structures.
+  To address this, we extend CutMix by improving the masking process to nonlinearly blend image pairs into irregular, spatially coherent structures, which we call \textit{semantic cutmix}. These masks are structural: they are not object-level segments, and a teacher label on a blended image does not make it a meaningful class instance.
 \end{foldable}
 
 \begin{foldable} % Design: diverging filter, mask, and cutmix
@@ -140,7 +140,7 @@
   \begin{equation} \label{eq:synthesis-semcutmix}
     x= \text{CutMix}(x_i, x_j; \hat{m}), \text{\quad s.t. \quad} x_i,x_j \sim \{x_\text{nt}\} \cup \mathcal{X}_\text{mc} \text{ and } x_i \ne x_j.
   \end{equation}
-  This approach ensures the synthetic domain of $\mathcal{X}_\mathcal{P}$ captures diverse semantics required for effective black-box knowledge acquisition.
+  This approach encourages the synthetic domain of $\mathcal{X}_\mathcal{P}$ to capture diverse structural patterns useful for black-box knowledge acquisition.
 \end{foldable}
 
 \subsection{Contrast: Collaborative diversity optimization} \label{sec:43-research02-framework-contrast}
@@ -182,8 +182,8 @@
 \subsection{Distillation: Restoring informative signals} \label{sec:43-research02-framework-distillation}
 \begin{foldable}
   Once the synthetic dataset $\mathcal{D}$ has been optimized for diversity, we use it for the final training of the student $S$.
-  Our objective is to restore the high-bandwidth signals typical of standard \ac{KD}~\cite{hinton2015distilling}, \ie, incorporating both \textit{hard} and \textit{soft} knowledge, which were \textit{limited or entirely absent} in recent works~\cite{wang2021zero, zhang2022ideal, yuan2024data}.
-  Having privileged access to the primer network $S_0$, we form an optimal distillation objective by jointly matching the student's logits $S^\mathcal{Z}(x)$ with soft labels $S_{0}^\mathcal{Z}(x)$ and hard labels $\hat{y}_{T}^\text{hard}$:
+  Our objective is to approximate the high-bandwidth signals typical of standard \ac{KD}~\cite{hinton2015distilling}, \ie, incorporating both \textit{hard} and \textit{soft} knowledge, which were \textit{limited or entirely absent} in recent works~\cite{wang2021zero, zhang2022ideal, yuan2024data}.
+  Having privileged access to the primer network $S_0$, we form a distillation objective by jointly matching the student's logits $S^\mathcal{Z}(x)$ with soft labels $S_{0}^\mathcal{Z}(x)$ and hard labels $\hat{y}_{T}^\text{hard}$:
   \begin{equation} \label{eq:loss-kd-total}
     \mathcal{L}_{S}
     = \mathcal{L}_\text{Hard-KD} + \mathcal{L}_\text{Soft-KD} \\

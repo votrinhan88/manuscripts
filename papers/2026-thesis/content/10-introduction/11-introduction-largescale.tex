@@ -30,16 +30,16 @@
 
 \begin{foldable}
   The second front concerns the data volume required to build and adapt these models.
-  Pre-training on billions of images and documents demands massive infrastructure (storage, pipelines, distributed clusters) available only to a handful of organisations worldwide.
+  Pre-training on billions of images and documents demands massive infrastructure (storage, pipelines, distributed clusters) available only to a handful of organizations worldwide.
   This incurs expense on training and fine-tuning, often requiring hundreds of hours and terabytes of task-specific data.
-  For organisations adapting models frequently, cumulative costs rival the original pre-training expense.
+  For organizations adapting models frequently, cumulative costs rival the original pre-training expense.
   Energy expenditure compounds this further: a single training run emits carbon dioxide comparable to several passenger vehicles~\cite{strubell2019energy}.
   Beyond these economic pressures, data access is independently constrained by legal and institutional barriers.
   Privacy legislation such as the \ac{GDPR}~\cite{eu2016gdpr} in Europe and the \ac{HIPAA}~\cite{us1996hipaa} in the United States restrict data centralization.
-  Datasets are also proprietary, with organisations unwilling to share data that underpins their competitive advantage.
+  Datasets are also proprietary, with organizations unwilling to share data that underpins their competitive advantage.
   This creates friction for collaboration and research, since researchers must either forgo real-world data or work through complex legal and ethical requirements to access it.
   Dataset compression techniques, coreset selection, prototype-based methods, and \ac{DD}, address these constraints.
-  \ac{DD} in particular optimizes a synthetic set so that models trained on it match full-dataset performance, capturing essential knowledge within a minimal data budget.
+  \ac{DD} in particular optimizes a synthetic set so that models trained on it approach full-dataset performance, capturing essential knowledge within a minimal data budget.
 \end{foldable}
 
 \begin{foldable}

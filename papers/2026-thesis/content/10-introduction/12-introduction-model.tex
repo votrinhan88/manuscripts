@@ -5,7 +5,7 @@
   \textit{Quantization} reduces the numerical precision of weights and activations from standard 32-bit floating point to lower-bit representations, cutting memory footprint and accelerating arithmetic on compatible hardware~\cite{hubara2018quantized,jacob2018quantization}.
   \textit{Low-rank adaptation} decomposes weight matrices into products of lower-rank factors, reducing the number of trainable parameters while preserving model expressivity~\cite{hu2022lora}.
   Each of these approaches has yielded meaningful compression ratios, and in practice they are often combined.
-  Among them, \textit{\acl{KD}}~\cite{hinton2015distilling} occupies a distinct position: it frames compression as a learning problem in which a compact \textit{student} network is trained to replicate the behaviour of a large, pre-trained \textit{teacher} network.
+  Among them, \textit{\acl{KD}}~\cite{hinton2015distilling} occupies a distinct position: it frames compression as a learning problem in which a compact \textit{student} network is trained to replicate the behavior of a large, pre-trained \textit{teacher} network.
   \ac{KD} is architecture-agnostic: the student need not share the teacher's topology or depth.
   It never touches the teacher's internal parameters, giving the freedom to design students suited to their deployment targets.
   What makes the approach work is what the teacher conveys beyond its final decision.
@@ -23,7 +23,7 @@
 
 \begin{foldable}
   Consider first the assumption on having data access.
-  Training data for high-performing models is often the most commercially and legally sensitive asset held by an organisation.
+  Training data for high-performing models is often the most commercially and legally sensitive asset held by an organization.
   Privacy legislation such as \ac{GDPR}\cite{eu2016gdpr} and \ac{HIPAA}\cite{us1996hipaa} in the United States strictly limits the collection, retention, and redistribution of personal or medical records, making it legally impossible to share the data used to train a clinical imaging model with a third-party deployer.
   Even where regulation is not a binding constraint, intellectual property law and commercial confidentiality create strong incentives to withhold training corpora: a company that has spent years curating a proprietary dataset will not release it merely to facilitate compression of the model it trained.
   Beyond legal and strategic barriers, raw cost is a practical obstacle: large-scale datasets in computer vision and natural language processing can occupy terabytes of storage and require expensive curation pipelines, making them infeasible to distribute or even store locally at the deployment site.

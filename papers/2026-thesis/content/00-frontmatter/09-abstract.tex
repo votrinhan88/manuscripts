@@ -6,7 +6,7 @@
   Yet, model and dataset size are practical bottlenecks across all stages of a model's life cycle, from data preparation and training through to deployment and storage.
   Among compression techniques for both models and datasets, \ac{KD} stands out because it treats compression as a knowledge transfer problem rather than a reduction problem.
   Specifically, model distillation trains a small student model to mimic the outputs of a larger teacher model.
-  Dataset distillation, in turn, synthesizes a small, informative dataset that yields downstream performance comparable to its larger counterpart.
+  Dataset distillation, in turn, synthesizes a small, informative dataset that aims to yield downstream performance comparable to its larger counterpart.
 \end{foldable}
 
 \begin{foldable}
@@ -19,7 +19,7 @@
 
 \begin{foldable}
   This thesis addresses \ac{KD} under three restrictive settings: (i) few-shot access to real data with a black-box teacher, (ii) complete absence of real data with a black-box teacher, and (iii) text dataset distillation, where the goal is to synthesize a tiny surrogate dataset that preserves model training utility.
-  We motivate our approaches through the lens of \textit{distributional fidelity}: whether the compact artefact, the student model or the surrogate corpus, faithfully represents the original.
+  We motivate our approaches through the lens of \textit{distributional fidelity}: whether the compact artifact, the student model or the surrogate corpus, faithfully represents the original.
   For the first setting, we propose \textit{\acl{DivBFKD}} (\ac{DivBFKD}), a framework that improves the diversity of the limited training data by generating high-quality synthetic samples, supporting black-box \ac{KD} from only a few samples per class.
   For the second setting, we propose \textit{\acl{DIPKD}} (\ac{DIPKD}), a data-free black-box \ac{KD} method that synthesizes training images by incorporating structured image priors, then optimizes them for diversity via a contrastive objective.
   For the third setting, we propose \textit{\acl{TAKE}} (\ac{TAKE}), which distills a large corpus into a compact dataset of high-influence, human-readable synthetic texts.

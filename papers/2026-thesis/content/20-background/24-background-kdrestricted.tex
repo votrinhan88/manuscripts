@@ -2,7 +2,7 @@
 
 Two independent dimensions of restriction define the practical setting of model distillation: teacher access (white-box $\to$ black-box) and data availability (full $\to$ few-shot $\to$ data-free).
 This section tightens both dimensions in turn, showing how each constraint plays out, and narrows to the two most challenging and practically motivated settings: black-box few-shot \ac{KD} (Chapter~\ref{ch:30-research01}) and black-box data-free \ac{KD} (Chapter~\ref{ch:40-research02}).
-The organisation is pedagogical: we first survey white-box distillation across all data regimes, setting a baseline for how data constraints behave when teacher internals remain accessible; we then remove white-box access entirely and survey the black-box regime across data-availability scales.
+The organization is pedagogical: we first survey white-box distillation across all data regimes, setting a baseline for how data constraints behave when teacher internals remain accessible; we then remove white-box access entirely and survey the black-box regime across data-availability scales.
 
 \subsection{White-Box Model Distillation} \label{sec:24-background-kdrestricted-whitebox}
 \begin{foldable}
@@ -29,15 +29,15 @@ The organisation is pedagogical: we first survey white-box distillation across a
 
 \begin{foldable}
   Data-free white-box distillation eliminates the requirement for real training data entirely, replacing it with synthetic image generation.
-  The core strategy is \textit{model inversion}: training a generator to synthesize images that the teacher recognises as informative, using the teacher's internal structure as a guide.
-  DAFL~\cite{chen2019data} maximises activation strength and enforces diversity by penalizing the student's output entropy.
+  The core strategy is \textit{model inversion}: training a generator to synthesize images that the teacher recognizes as informative, using the teacher's internal structure as a guide.
+  DAFL~\cite{chen2019data} maximizes activation strength and enforces diversity by penalizing the student's output entropy.
   DFAD~\cite{fang2019data} introduces an adversarial distillation mechanism where a generator produces hard samples to enlarge the discrepancy between student and teacher, while both act as discriminators to reduce it.
-  DeepInversion~\cite{yin2020dreaming} inverts the teacher by optimizing inputs to maximise class-specific activation while matching the teacher's batch normalization statistics, anchoring synthesis to the teacher's training distribution.
+  DeepInversion~\cite{yin2020dreaming} inverts the teacher by optimizing inputs to maximize class-specific activation while matching the teacher's batch normalization statistics, anchoring synthesis to the teacher's training distribution.
   CMI~\cite{fang2021contrastive} applies contrastive learning to model inversion, distinguishing class-specific features and improving the diversity of synthesized images.
   NAYER~\cite{tran2024nayer} generates synthetic data by injecting noise into real examples, treating data generation as a layer in the student network for data-free distillation.
   GAN-based approaches further extend model inversion by training generative models to produce synthetic data.
   DeGAN~\cite{addepalli2020degan} uses a discriminator to improve image quality and diversity in data-free \ac{KD}.
-  Momentum Adversarial Distillation~\cite{do2022momentum} stabilises synthetic data generation through momentum updates and adversarial training, handling large distribution shifts in the data-free setting.
+  Momentum Adversarial Distillation~\cite{do2022momentum} stabilizes synthetic data generation through momentum updates and adversarial training, handling large distribution shifts in the data-free setting.
   All of these methods share one prerequisite: they require gradient flow through the teacher or read access to internal statistics (BatchNorm means and variances).
   Without white-box access, none of these techniques apply.
 \end{foldable}
@@ -47,21 +47,21 @@ The organisation is pedagogical: we first survey white-box distillation across a
   When teacher internals are inaccessible, the student loses every technical handle on the teacher's training distribution: no gradients to back-propagate synthesis refinement, no internal statistics to anchor generation, no layer activations to invert.
   The teacher becomes a sealed function that takes an image and returns a label, and the generator must reconstruct distributional coverage of the teacher's input space from the single integer the teacher outputs per query.
   This is not a harder version of model inversion; it is a different problem, requiring a different strategy.
-  The design space collapses to response-based distillation with hard-label queries only, and the information bottleneck becomes the binding constraint on what can be recovered.
+  The design space collapses to response-based distillation with output-only queries, and the information bottleneck becomes the binding constraint on what can be recovered.
 \end{foldable}
 
 \subsection{Black-Box Model Distillation: Few-Shot} \label{sec:24-background-kdrestricted-bbfewshot}
 \begin{foldable}
   The loss of white-box access eliminates every technical handle on the teacher's distribution.
-  The student's only recourse is to treat the teacher as a query interface over whatever training data is available, receiving only hard labels (single predicted class per image) rather than soft targets (probability distributions over all classes).
+  The student's only recourse is to treat the teacher as a query interface over whatever training data is available, receiving only its output class probabilities rather than logits or internal features.
   This setting is manageable when data is abundant: the student receives diverse coverage of the teacher's decision space, and the signal quality deficit is the only remaining constraint.
   But as data availability shrinks to few-shot scales, the problem changes fundamentally.
 \end{foldable}
 
 \begin{foldable}
   \textbf{Few-shot setting:} the student has access to only a small number of real training samples per class.
-  Combined with black-box access that provides only hard labels, this creates a double bind: signal quality and data coverage are both constrained, and neither can compensate for the other.
-  The student receives hard labels only (low signal quality) on a narrow set of examples (low coverage), with no obvious mechanism to escape this bind.
+  Combined with black-box access, which exposes only the teacher's output probabilities and no logits or internal features, this creates a double bind: signal quality and data coverage are both constrained, and neither can compensate for the other.
+  The student receives only output probabilities (limited signal quality) on a narrow set of examples (low coverage), with no obvious mechanism to escape this bind.
   The few-shot setting is therefore qualitatively harder than black-box with full data access, and the strategy must change.
 \end{foldable}
 
@@ -75,7 +75,7 @@ The organisation is pedagogical: we first survey white-box distillation across a
 
 \begin{foldable}
   \textbf{Standard augmentation} attempts to alleviate this by increasing the number of training examples through synthetic transformations.
-  MixUp~\cite{zhang2018mixup} interpolates between pairs of training images and their labels, creating convex combinations that encourage linear behaviour between training points.
+  MixUp~\cite{zhang2018mixup} interpolates between pairs of training images and their labels, creating convex combinations that encourage linear behavior between training points.
   CutMix~\cite{yun2019cutmix} mixes regions of different images, producing examples that combine local patches from multiple classes.
   These methods increase the effective sample count and encourage smoother decision boundaries, but they operate within the convex hull of the few-shot training set: the synthesized images are still anchored to the observed examples and do not explore unseen input regions.
   Semantic diversity, the coverage of the teacher's full input distribution, is therefore not improved by standard augmentation.
@@ -141,7 +141,7 @@ The organisation is pedagogical: we first survey white-box distillation across a
   To make the domain-coverage deficit concrete, consider a teacher trained on ImageNet, which comprises 1{,}000 classes and approximately 1.2 million training images spanning a highly multimodal natural-image manifold.
   A \ac{BBDFKD} generator with no access to real images must implicitly reconstruct this manifold from hard-label feedback alone, in effect inverting a 1{,}000-way classifier using only its top-1 decisions.
   The difficulty of this inversion is severe: natural images occupy a tiny, low-dimensional manifold within pixel space, and the fraction of pixel-space samples that fall anywhere near that manifold is vanishingly small.
-  A generator initialised from a generic prior and updated solely by top-1 label agreement will gravitate toward the modes that its prior already favours, because those are the regions where label feedback is most consistent.
+  A generator initialized from a generic prior and updated solely by top-1 label agreement will gravitate toward the modes that its prior already favors, because those are the regions where label feedback is most consistent.
   The long tail of each class, atypical viewpoints, unusual lighting, and boundary-region examples that lie close to adjacent classes, receives little or no gradient signal and remains uncovered.
   The practical consequence is a biased distillation corpus: the student is trained overwhelmingly on visually prototypical exemplars and is never exposed to the discriminative boundary structure on which the teacher's generalization depends.
   Distributional fidelity between the synthetic corpus and the teacher's training distribution is therefore violated at the level of class coverage, not just at the level of individual image quality.
@@ -149,14 +149,14 @@ The organisation is pedagogical: we first survey white-box distillation across a
 
 \begin{foldable}
   The information-bottleneck deficit is equally concrete.
-  A soft target vector encodes the full inter-class similarity structure: the probability mass assigned to visually related classes carries relational information that shapes how the student organises its own representation space.
+  A soft target vector encodes the full inter-class similarity structure: the probability mass assigned to visually related classes carries relational information that shapes how the student organizes its own representation space.
   A hard top-1 label discards all of this, recording only which class won while assigning zero to every other.
   The difference is qualitative, not merely quantitative: two images from the same coarse class but distinct fine-grained subclasses, a golden retriever and a German shepherd both labeled \texttt{dog}, receive identical supervision under hard-label access, while a soft target would assign them different relative probabilities over related breeds and thereby expose the within-class substructure.
   A student trained exclusively on hard labels cannot recover this within-class geometry; its representation must treat the two images as equivalent inputs carrying the same learning signal.
-  This is the specific failure mode that motivates the soft-label recovery component developed in Chapter~\ref{ch:40-research02}: restoring even an approximation of the soft probability vector partially repairs the distributional fidelity of the supervision signal, independent of whether the synthetic images themselves fully cover the real data manifold.
+  This is the specific failure mode that motivates the surrogate soft-label component developed in Chapter~\ref{ch:40-research02}: supplying even an approximation of the soft probability vector partially repairs the distributional fidelity of the supervision signal, independent of whether the synthetic images themselves fully cover the real data manifold.
 \end{foldable}
 
 \begin{foldable}
   \textbf{Open problem (Ch.~\ref{ch:40-research02}):}
-  In black-box data-free \ac{KD}, how can a student simultaneously (i) generate synthetic images that cover the teacher's full input distribution, and (ii) recover a soft distillation signal approximating the teacher's class probabilities, both without any real training data and with only hard-label access to the teacher?
+  In black-box data-free \ac{KD}, how can a student simultaneously (i) generate synthetic images that cover the teacher's full input distribution, and (ii) obtain a surrogate soft distillation signal in place of the teacher's class probabilities, both without any real training data and with only hard-label access to the teacher?
 \end{foldable}

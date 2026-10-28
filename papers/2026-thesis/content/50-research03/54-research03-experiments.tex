@@ -6,14 +6,14 @@
   \begin{itemize}
     \item \textbf{Random}: uniform random selection at the target budget.
     \item \textbf{EDA}~\cite{wei2019eda}: word-level augmentation (10$\times$) applied to the \textbf{Random} set.
-    \item \textbf{DiLM}~\cite{maekawa2024dilm}: \ac{LLM}-generated candidates selected by gradient matching across k-centre selection. It evaluated on both classification and \ac{NLI}.
+    \item \textbf{DiLM}~\cite{maekawa2024dilm}: \ac{LLM}-generated candidates selected by gradient matching across k-center selection. It evaluated on both classification and \ac{NLI}.
     \item \textbf{DaLLME}~\cite{tao2024textual}: synthetic texts inverted from distilled embeddings. It evaluated on classification only.
   \end{itemize}
   We evaluate TAKE at two budgets (20/cls and 0.1\%) to match DiLM's and DaLLME's reported settings, respectively.
 \end{foldable}
     
 \begin{foldable} % Datasets and models
-  We evaluate on two linguistic tasks: AG News~\cite{zhang2015character}, IMDb~\cite{maas2011learning}, SST-2 for classification; MNLI-m, QQP, and QNLI for~\ac{NLI}.
+  We evaluate on two linguistic tasks: AG News~\cite{zhang2015character}, IMDb~\cite{maas2011learning}, SST-2 for classification; MNLI-m, QQP, and QNLI for~\ac{NLI} (QQP is a sentence-pair duplicate-detection task).
   Table~\ref{tab:54-research03-experiments-datasets} summarizes their sizes and label sets.
   To match downstream evaluation, downstream models for classification are Logistic Regression~(LR) with TF-IDF~\cite{salton1988term} features, TextCNN~\cite{kim2014convolutional} and TextRNN~\cite{liu2016recurrent} with GloVe~\cite{pennington2014glove} word embeddings, and BERT~\cite{devlin2019bert}, as listed in Table~\ref{tab:54-research03-experiments-backbones}.
   For \ac{NLI}, we evaluate on BERT and Siamese LR.
@@ -188,7 +188,7 @@
 \begin{foldable} % NLI
   \textbf{Stability.}
   On MNLI-m and QQP, TAKE's errors ($\pm0.1$--$0.5$) are $5$--$7\times$ narrower than DiLM's ($\pm2.2$--$2.6$), mirroring the pattern on classification.
-  This is consistent with the \ac{OT} transport plan enforcing coverage of $P^w$ rather than selecting samples independently: deterministic coverage implies that any two runs of TAKE over the same pool yield nearly identical corpora, whereas DiLM's gradient-matching step introduces variance through its dependence on a randomly initialised model.
+  This is consistent with the \ac{OT} transport plan enforcing coverage of $P^w$ rather than selecting samples independently: deterministic coverage implies that any two runs of TAKE over the same pool yield nearly identical corpora, whereas DiLM's gradient-matching step introduces variance through its dependence on a randomly initialized model.
 \end{foldable}
 
 \subsection{Ablation on Component Contributions} \label{sec:54-research03-experiments-results-components}
@@ -214,7 +214,7 @@
     \end{tabular}
     \begin{tablenotes} \footnotesize
     \item {
-        [\bltrg] \textbf{not} inclusive of TAKE ; [\textbf{bold}] best results.
+        [\bltrg] \textbf{not} inclusive of TAKE; [\textbf{bold}] best results.
       }
     \end{tablenotes}
   \end{threeparttable}
@@ -261,7 +261,7 @@
 \begin{foldable} % Kernels
   Table~\ref{tab:results-abla-kernels} ablates the choice of temporal kernel defined in \S\ref{sec:53-research03-method-gradient-knowledge}.
   The last-checkpoint baseline is the critical exception: it falls \textit{below} the no-$\kappa$ baseline across all backbones, most severely on BERT ($-2.7$ on AG News, $-1.5$ on QQP).
-  This is precisely the failure mode identified in Proposition~\ref{prop:traj}: when $\kappa$ is extracted at convergence only, the learner has fully memorized difficult samples, so the \textit{\acl{HSB}} is intensified rather than corrected, and the selected corpus is skewed towards harder, less representative examples.
+  This is precisely the failure mode identified in Proposition~\ref{prop:traj}: when $\kappa$ is extracted at convergence only, the learner has fully memorized difficult samples, so the \textit{\acl{HSB}} is intensified rather than corrected, and the selected corpus is skewed toward harder, less representative examples.
   All other trajectory-based strategies lessen this effect and outperform the no-$\kappa$ baseline (OT only), with decreasing kernels (linear, cosine, exponential) doing so most strongly by concentrating mass on the early-to-mid training phase where the bias-correcting signal is strongest.
   The exponential kernel (TAKE default) achieves the best result in all cases, consistent with the theoretical preference for early-phase concentration of influence.
 \end{foldable}

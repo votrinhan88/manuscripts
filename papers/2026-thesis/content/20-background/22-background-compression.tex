@@ -25,7 +25,7 @@
   \textbf{Pruning} removes parameters or entire structural units from a trained network~\cite{han2015learning}.
   Unstructured pruning zeros individual weights below a magnitude threshold, yielding sparse weight tensors.
   Over 90\% of parameters in AlexNet and VGG can be pruned with negligible accuracy loss when combined with retraining.
-  However, irregular sparsity does not translate directly to wall-clock speedups without specialised sparse hardware or libraries.
+  However, irregular sparsity does not translate directly to wall-clock speedups without specialized sparse hardware or libraries.
   Structured pruning removes whole filters, channels, or layers, producing dense sub-networks that accelerate inference on commodity hardware~\cite{molchanov2016pruning}.
   The coarser granularity typically requires a larger pruning ratio to achieve the same compression as unstructured pruning.
   Pruning requires direct access to the network's weight matrices and structure.
@@ -51,7 +51,7 @@
 \begin{foldable}
   \textbf{\Acl{KD}} takes quite a different approach~\cite{hinton2015distilling}.
   Rather than modifying the teacher's parameters, it trains a separate, compact student network to reproduce the teacher's output predictions.
-  The student is initialised independently and never reads the teacher's weights, gradients, or internal activations.
+  The student is initialized independently and never reads the teacher's weights, gradients, or internal activations.
   The only interface it uses is the teacher's output, which is a vector of class probabilities for each input query.
   This output-only interface is what makes \ac{KD} compatible with settings where the teacher is accessible only as a black-box \ac{API}.
 \end{foldable}
@@ -100,14 +100,14 @@
 
 \begin{foldable}
   \textbf{Dataset distillation}~\cite{wang2018dataset} takes a different approach.
-  Rather than selecting or summarising existing samples, it optimizes a small set of synthetic samples end-to-end so that models trained on the distilled set match the performance of models trained on the full dataset.
+  Rather than selecting or summarizing existing samples, it optimizes a small set of synthetic samples end-to-end so that models trained on the distilled set match the performance of models trained on the full dataset.
   The synthetic samples are not drawn from any real distribution; they are free parameters jointly optimized with a surrogate training objective, typically by matching model parameters or gradients~\cite{zhao2021dataset} between the distilled set and the full dataset.
   Because the distilled set is not constrained to the support of the original data, it can be far more compact than any coreset.
 \end{foldable}
 
 \begin{foldable}
   The three families differ not only in mechanism but in what they preserve.
-  Prototype methods preserve cluster geometry; coreset methods preserve the loss or gradient surface of the full dataset; dataset distillation preserves model behaviour, specifically end-to-end performance on the target task.
+  Prototype methods preserve cluster geometry; coreset methods preserve the loss or gradient surface of the full dataset; dataset distillation preserves model behavior, specifically end-to-end performance on the target task.
   All three act on the training signal rather than the learned parameters, distinguishing them collectively from model compression.
   Prototype and coreset methods are bounded by the real samples that exist: no selected or summarized sample can carry more knowledge than the most informative real example.
   When the corpus is insufficient or biased, selection alone cannot recover coverage; dataset distillation, unconstrained to the original data support, is the only family that can.
@@ -133,7 +133,7 @@
   Prototype methods summarize the dataset by geometric centroids in input space: a centroid may be Euclidean-representative while bearing no relationship to the decision boundary, the analogue of a hard label that records position without recording importance.
   Coreset selection grounds selection in the learning objective and is strictly more informative, but remains bounded by the existing data: no selected sample can carry more knowledge than the most informative real example, and selection can only redistribute importance across the existing support, not extend it.
   Dataset distillation addresses both shortcomings: synthetic parameters are \textit{not bounded by the original data}, extending beyond the existing support.
-  Optimising against the training objective \textit{preserves learned knowledge} rather than surface proxies.
+  Optimizing against the training objective \textit{preserves learned knowledge} rather than surface proxies.
   Both failures thus have a common cause: compression that ignores the learning objective cannot faithfully represent the original distribution.
 \end{foldable}
 
@@ -141,6 +141,6 @@
   Both verdicts compound into a single principle.
   Model and dataset distillation survive their respective access restrictions (black-box \acp{API} on the model axis, insufficient or biased corpora on the data axis) because they treat compression as a \textbf{knowledge transfer} problem rather than a parameter reduction problem.
   The non-distillation alternatives fail for the same structural reason: hard labels discard inter-class relational structure; geometric summaries discard task-relevant importance; coreset selection is bounded by the existing distribution.
-  The shared failure mode, and the shared design objective, is \textbf{distributional fidelity}: whether the compact artefact, a student model or surrogate corpus, faithfully represents the original distribution under practical constraints.
+  The shared failure mode, and the shared design objective, is \textbf{distributional fidelity}: whether the compact artifact, a student model or surrogate corpus, faithfully represents the original distribution under practical constraints.
   The practical constraints this thesis addresses, limited real data, black-box teacher access, and discrete token modality, each degrade distributional fidelity in a specific way, and recovering it under each is the unifying objective of Chapters~\ref{ch:30-research01} through~\ref{ch:50-research03}.
 \end{foldable}

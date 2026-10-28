@@ -1,7 +1,7 @@
 \section{Deep Learning Foundations} \label{sec:21-background-deeplearning}
 \subsection{Neural Networks and Supervised Learning} \label{sec:21-background-deeplearning-nn}
 \begin{foldable}
-  A feedforward neural network maps an input vector $x \in \mathbb{R}^{d}$ to an output $\hat{\mathbf{y}}$ through a sequence of parameterised transformations.
+  A feedforward neural network maps an input vector $x \in \mathbb{R}^{d}$ to an output $\hat{\mathbf{y}}$ through a sequence of parameterized transformations.
   Each layer applies an affine map followed by a pointwise non-linearity: $h = \sigma(Wh_{\text{prev}} + b)$, where $W$ and $b$ are learnable weight matrices and bias vectors, and $\sigma$ is the activation function~\cite{rumelhart1986learning}.
   Stacking many such layers lets the network compose simple transformations into more abstract representations, a property that underlies the empirical success of deep architectures across vision, language, and beyond.
   Early networks used sigmoid or hyperbolic tangent activations, both of which saturate for large input magnitudes and produce near-zero gradients that impede learning in deep stacks~\cite{bengio1994learning}.
@@ -10,13 +10,13 @@
 \end{foldable}
 
 \begin{foldable}
-  In supervised learning, a labeled dataset $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^{N}$ is used to minimise an empirical loss with respect to the network parameters $\theta$:
+  In supervised learning, a labeled dataset $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^{N}$ is used to minimize an empirical loss with respect to the network parameters $\theta$:
   \begin{equation}
     \label{eq:21-background-deeplearning-loss-supervised}
     \mathcal{L}(\theta) = \frac{1}{N}\sum_{i=1}^{N} \ell(f_{\theta}(x_i), y_i).
   \end{equation}
   For classification tasks, $\ell$ takes the form of the cross-entropy loss between the network's predicted class probabilities $\hat{\mathbf{p}} = \text{softmax}(f_\theta(x))$ and the ground-truth one-hot label $\mathbf{y}$: $\ell = -\sum_c y_c \log \hat{p}_c$.
-  Minimising this objective encourages the network to assign high probability to the correct class and low probability to all others.
+  Minimizing this objective encourages the network to assign high probability to the correct class and low probability to all others.
   Parameters are updated via backpropagation, which applies the chain rule to compute the gradient of $\mathcal{L}$ with respect to every parameter in the network.
   Stochastic gradient descent~\cite{robbins1951stochastic} and its adaptive variants such as Adam~\cite{kingma2014adam} perform these updates on randomly sampled mini-batches rather than the full dataset, trading gradient accuracy for computational efficiency and often improving generalization through the implicit noise introduced by mini-batch sampling.
 \end{foldable}
@@ -62,9 +62,9 @@
 \end{figure}
 
 \begin{foldable}
-  The first practical realisation of this design was LeNet5~\cite{lecun1998gradient}, originally trained to classify handwritten digits.
+  The first practical realization of this design was LeNet5~\cite{lecun1998gradient}, originally trained to classify handwritten digits.
   Figure~\ref{fig:21-background-deeplearning-lenet5} shows its architecture: seven trainable layers alternating between convolutions and subsampling, beginning with 32$\times$32 input images and ending with 10 output units (one per digit class \texttt{0}--\texttt{9}).
-  The network hierarchy is evident: early layers capture low-level features (edges, corners), middle layers compose these into stroke fragments, and later layers recognise digit patterns.
+  The network hierarchy is evident: early layers capture low-level features (edges, corners), middle layers compose these into stroke fragments, and later layers recognize digit patterns.
   LeNet5 was both a proof of concept and a practical success, demonstrating that the convolutional inductive bias is a fundamental choice to vision tasks over fully connected networks.
 \end{foldable}
 
@@ -86,8 +86,8 @@
   As larger datasets and more computational resources became available, and it was hypothesized that deeper networks could capture more abstract patterns and achieve higher accuracy on large-scale problems.
   AlexNet~\cite{krizhevsky2012imagenet} and VGG~\cite{simonyan2014very} validated this hypothesis by pushing to much deeper architectures: AlexNet with 8 trainable layers and VGG with up to 19 layers.
   Yet the deeper networks remained fundamentally harder to train: optimization slowed, convergence became fragile, and the network's ability to learn useful features in early layers degraded.
-  The root cause was the \textit{vanishing gradient} problem: the gradient of the loss with respect to early-layer parameters shrinks exponentially in depth for typical weight initialisations, leaving early layers with near-zero update signals and preventing them from learning.
-  Careful choice of initialisation and activation functions can reduce this effect, but do not eliminate it, and depth remained fundamentally limited.
+  The root cause was the \textit{vanishing gradient} problem: the gradient of the loss with respect to early-layer parameters shrinks exponentially in depth for typical weight initializations, leaving early layers with near-zero update signals and preventing them from learning.
+  Careful choice of initialization and activation functions can reduce this effect, but do not eliminate it, and depth remained fundamentally limited.
 \end{foldable}
 
 \begin{foldable}
@@ -125,7 +125,7 @@
 
 \begin{foldable}
   Accuracy scales smoothly with depth, width, and input resolution across the \ac{CNN} family, but parameter and compute costs scale faster than accuracy gains.
-  Doubling depth increases parameter count roughly linearly, yet the representational gains and the compute required to realise them grow more than proportionally for many architectures, so the gap between what accuracy demands and what deployment allows widens as task difficulty increases.
+  Doubling depth increases parameter count roughly linearly, yet the representational gains and the compute required to realize them grow more than proportionally for many architectures, so the gap between what accuracy demands and what deployment allows widens as task difficulty increases.
   The need for more efficient deployable models holds regardless of where a model sits on this spectrum.
   This is the fundamental motivation for model compression, taken up in \S\ref{sec:22-background-compression}.
 \end{foldable}
@@ -146,7 +146,7 @@
 \begin{foldable}
   The shift to statistical methods replaced hand-crafted rules with data-driven models.
   Language models based on $n$-gram statistics~\cite{shannon1948mathematical}, sequence labelers based on hidden Markov models~\cite{rabiner2002tutorial}, and structured predictors based on conditional random fields~\cite{lafferty2001conditional} each brought a different inductive bias.
-  They shared a common workflow: hand-engineered features were extracted from text and fed to a probabilistic model trained to maximise likelihood on labeled corpora.
+  They shared a common workflow: hand-engineered features were extracted from text and fed to a probabilistic model trained to maximize likelihood on labeled corpora.
   Performance improved substantially over symbolic baselines, and the data-driven approach proved far more portable across domains.
   The persistent limitation, however, was representation: features were sparse, high-dimensional, and task-specific, so each new task required a fresh feature-engineering effort and no knowledge transferred between tasks~\cite{bengio2003neural}.
 \end{foldable}
@@ -155,7 +155,7 @@
   Neural methods dissolved this limitation by learning representations directly from raw text.
   Word2Vec~\cite{mikolov2013distributed} and GloVe~\cite{pennington2014glove} showed that dense, low-dimensional word embeddings trained on large unlabeled corpora encode meaningful semantic and syntactic relationships, transferring usefully to downstream tasks without task-specific feature design.
   \Acp{RNN} and later long-short term memory networks~\cite{hochreiter1997long}, extended this to variable-length sequences, enabling models to read a sentence left to right and accumulate a hidden state.
-  Seq2Seq architectures~\cite{sutskever2014sequence} added a decoder, producing the encoder-decoder template used for machine translation and summarisation.
+  Seq2Seq architectures~\cite{sutskever2014sequence} added a decoder, producing the encoder-decoder template used for machine translation and summarization.
   Two limitations remained: vanishing gradients over long sequences caused the hidden state to lose early context, and the fixed-length encoder vector was forced to compress an entire input sentence into a single representation regardless of length, a design that degraded on long inputs.
 \end{foldable}
 
@@ -173,7 +173,7 @@
   Rather than reading a sequence token by token, self-attention computes pairwise interactions between all positions simultaneously: each token attends to every other token, weighted by a learned compatibility score, and aggregates their representations accordingly.
   Multi-head attention runs several such attention functions in parallel, allowing the model to jointly attend to information from different representation subspaces.
   Positional encodings are added to the input embeddings to supply the order information that recurrence formerly provided implicitly.
-  Each Transformer block pairs multi-head attention with a feed-forward network (two fully-connected layers with a nonlinearity between them), and residual connections around both sub-layers stabilise training and preserve gradient flow.
+  Each Transformer block pairs multi-head attention with a feed-forward network (two fully-connected layers with a nonlinearity between them), and residual connections around both sub-layers stabilize training and preserve gradient flow.
   The result is a model that processes sequences in parallel, eliminates the vanishing-gradient-over-distance problem, and scales far more efficiently on modern hardware than any recurrent alternative.
   Figure~\ref{fig:21-background-deeplearning-attention} illustrates the full encoder-decoder architecture with these components stacked in sequence.
 \end{foldable}
@@ -191,9 +191,9 @@
   The Transformer's parallelism made large-scale pre-training practical, and pre-training transformed the field.
   Rather than training a model from scratch for each task, the paradigm trains a single large model on a massive unlabeled corpus and then fine-tunes it on a small task-specific dataset.
   Three architecture families followed, distinguished by the attention mask used during pre-training.
-  Encoder-only models such as BERT~\cite{devlin2019bert} apply bidirectional attention and are pre-trained via masked language modelling, making them well-suited to understanding tasks such as classification and named entity recognition.
+  Encoder-only models such as BERT~\cite{devlin2019bert} apply bidirectional attention and are pre-trained via masked language modeling, making them well-suited to understanding tasks such as classification and named entity recognition.
   Decoder-only models such as GPT~\cite{radford2018improving} apply causal (left-to-right) attention and are pre-trained via next-token prediction, making them natural generators.
-  Encoder-decoder models such as T5~\cite{raffel2020exploring} combine both, handling sequence-to-sequence tasks such as translation and summarisation.
+  Encoder-decoder models such as T5~\cite{raffel2020exploring} combine both, handling sequence-to-sequence tasks such as translation and summarization.
   This distinction is not merely taxonomic: Chapter~\ref{ch:50-research03} operates on encoder-only models fine-tuned for classification, and the dataset distillation method it proposes is designed specifically around token-level statistics produced by this architecture class.
 \end{foldable}
 
@@ -208,8 +208,8 @@
 \begin{foldable}
   Neural scaling laws showed that Transformer loss decreases smoothly and predictably as model size, dataset size, and compute increase together~\cite{kaplan2020scaling}.
   GPT-2~\cite{radford2019language} demonstrated coherent long-form generation at 1.5\,B parameters, and GPT-3~\cite{brown2020language} solved many tasks from in-context examples alone at 175\,B.
-  At sufficient scale, models began exhibiting qualitatively new behaviours (in-context learning, multi-step reasoning, and few-shot task adaptation) that were absent in smaller counterparts and not predictable by extrapolation, often called emergent abilities~\cite{wei2022emergent}.
-  Models soon crossed the 1\,T mark with the help of mixture-of-experts architectures~\cite{fedus2022switch}, but each step up this ladder multiplied training and serving costs, making frontier models accessible only to a small number of organisations.
+  At sufficient scale, models began exhibiting qualitatively new behaviors (in-context learning, multi-step reasoning, and few-shot task adaptation) that were absent in smaller counterparts and not predictable by extrapolation, often called emergent abilities~\cite{wei2022emergent}.
+  Models soon crossed the 1\,T mark with the help of mixture-of-experts architectures~\cite{fedus2022switch}, but each step up this ladder multiplied training and serving costs, making frontier models accessible only to a small number of organizations.
   The practical response has been to train a large model and distil it into a compact, deployable variant.
-  This workflow places distillation, not scale itself, at the centre of the deployment problem this thesis addresses.
+  This workflow places distillation, not scale itself, at the center of the deployment problem this thesis addresses.
 \end{foldable}

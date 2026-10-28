@@ -5,12 +5,12 @@
   \textit{Prototype} and \textit{clustering}-based methods represent the full dataset by a small set of centroids, discarding individual samples once the cluster structure is captured~\cite{macqueen1967some,dempster1977maximum}.
   \textit{Coreset selection} methods score and rank individual samples by their estimated importance to the learned model, then retain only the top-ranked subset~\cite{sener2018active}.
   \textit{Dataset distillation} (\ac{DD}) takes a fundamentally different approach: rather than selecting from existing samples, it synthesizes an entirely new, compact dataset whose training signal matches that of the full corpus~\cite{wang2018dataset}.
-  This end-to-end optimization of the distilled set, rather than the selection or summarisation of existing ones, is what distinguishes \ac{DD} from all prior dataset compression methods and constitutes the central subject of this section.
+  This end-to-end optimization of the distilled set, rather than the selection or summarization of existing ones, is what distinguishes \ac{DD} from all prior dataset compression methods and constitutes the central subject of this section.
 \end{foldable}
 
 \begin{foldable}
   The intuition behind \ac{DD} mirrors that of \ac{KD}: a large dataset encodes knowledge not merely in its individual labels, but in the statistical relationships among its samples.
-  Those include the frequencies, co-occurrence patterns, decision boundaries, and distributional structure that a model internalises over the course of training.
+  Those include the frequencies, co-occurrence patterns, decision boundaries, and distributional structure that a model internalizes over the course of training.
   The central question \ac{DD} poses is whether a much smaller synthetic set can preserve this distributed knowledge faithfully enough that a model trained on it behaves comparably to one trained on the full dataset.
   This is a stronger requirement than coreset selection, which asks only that the retained samples be individually representative.
   Specifically, \ac{DD} asks that the distilled set collectively reproduce the learning dynamics of the original dataset.
@@ -41,7 +41,7 @@
   In the text modality, this burden is compounded by discrete sparsity.
   A rare token that appears only a handful of times in the full corpus may be absent entirely from a small distilled set, yet the knowledge it encodes may be irreplaceable.
   Standard importance-scoring approaches, which rank samples independently by their estimated influence on the learned model, cannot correct for this.
-  Independent scoring captures the importance of each sample in isolation but ignores dataset-level structure, and will systematically omit rare but critical linguistic patterns in favour of high-frequency, easy-to-score examples.
+  Independent scoring captures the importance of each sample in isolation but ignores dataset-level structure, and will systematically omit rare but critical linguistic patterns in favor of high-frequency, easy-to-score examples.
   At the most aggressive compression ratios, this failure mode becomes categorical.
   Each distilled sample must carry more knowledge than any single sample in the original dataset, yet the scoring mechanism provides no way to enforce that the selected set collectively spans the full distribution.
 \end{foldable}

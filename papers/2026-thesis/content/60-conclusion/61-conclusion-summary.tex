@@ -6,36 +6,79 @@
 \end{foldable}
 
 \begin{foldable}
-  \textbf{DivBFKD} (Chapter~\ref{ch:30-research01}) addresses the few-shot black-box \ac{KD} problem, where the student has access to only a small unlabeled image set and may query the teacher solely for top-1 predictions.
-  The key observation is that diversity of the training distribution---not merely its size---determines whether WGAN-synthesised samples can provide useful gradient signal.
+  \textbf{DivBFKD} (Chapter~\ref{ch:30-research01}) addresses the few-shot black-box \ac{KD} problem, where the student has access to only a small labeled image set and may query the teacher solely for its predicted class probabilities.
+  The key observation is that diversity of the training distribution---not merely its size---determines whether WGAN-synthesized samples can provide useful gradient signal.
   DivBFKD enforces fidelity by introducing high-confidence images, those the teacher classifies with high certainty, as real-image exemplars in the WGAN discriminator loop on-the-fly.
-  Adaptive per-class confidence thresholds prevent the teacher's class-wise accuracy bias from skewing which images are admitted, ensuring that the selected exemplars represent the teacher's decision boundaries rather than its easiest cases.
-  An ablation study confirms that removing adaptive thresholds---reverting to a global cutoff---degrades performance, validating that class-wise calibration of the filtering criterion is load-bearing, not incidental.
-  DivBFKD achieves state-of-the-art performance among few-shot black-box \ac{KD} methods across multiple image classification datasets and architectures.
+  Adaptive per-class thresholds keep the easiest classes from dominating, so each class contributes reliably labeled exemplars from well inside the teacher's class regions to anchor the generator.
+  An ablation study shows that the adaptive-threshold scheme improves student accuracy over a plain WGAN, and the teacher's class-wise confidence bias motivates per-class rather than global thresholds.
+  DivBFKD achieves the highest accuracy among the compared few-shot black-box \ac{KD} methods (BBKD and FS-BBT) across the image classification datasets and architectures evaluated.
 \end{foldable}
 
 \begin{foldable}
   \textbf{DIPKD} (Chapter~\ref{ch:40-research02}) addresses the extreme case of access restriction: no real data at all, and a teacher that returns only top-1 labels.
-  The fidelity problem becomes entirely generative---the student must be trained on a synthetic distribution that covers the teacher's decision surface without any real-image anchor.
+  The fidelity problem becomes entirely generative---the student must be trained on a synthetic distribution that aims to cover the inputs relevant to the teacher's decisions, without any real-image anchor.
   DIPKD addresses this through a three-phase pipeline where each phase serves a distinct purpose.
-  The Synthesis phase constructs hierarchical multi-scale image priors from uniform noise with geometric transforms and semantic cutmixing, producing structural diversity before any teacher query.
-  The Contrast phase passes these priors through a primer student backbone and applies a contrastive objective that optimises the synthetic dataset directly, pushing candidates apart in embedding space to prevent mode collapse.
-  The Distillation phase then recovers soft probabilistic labels from the primer student---approximating the dark knowledge the black-box teacher withholds---and uses them alongside hard teacher labels to train the final student.
-  DIPKD achieves state-of-the-art performance across twelve benchmarks, with the largest gains in fine-grained and domain-specific settings where synthetic diversity is most constrained.
+  The Synthesis phase constructs hierarchical multi-scale image priors from uniform noise with nonlinear filters and semantic cutmixing, whose masks are irregular regions rather than object segments, producing structural diversity before any teacher query.
+  The Contrast phase passes these priors through a primer student backbone and applies an instance-level contrastive objective that optimizes the synthetic dataset directly, pushing each synthetic image away from all others in embedding space to prevent mode collapse.
+  The Distillation phase then takes soft outputs from the primer student as surrogate soft supervision, in place of the dark knowledge the black-box teacher withholds, and uses them alongside hard teacher labels to train the final student.
+  DIPKD achieves state-of-the-art performance on 11 of the 12 benchmarks (all except Tiny-ImageNet), with substantial gains on several complex and domain-specific datasets where synthetic diversity is most constrained.
 \end{foldable}
 
 \begin{foldable}
   \textbf{TAKE} (Chapter~\ref{ch:50-research03}) shifts the problem domain from image model compression to text dataset distillation~(\ac{DD}), and with it the distributional fidelity problem shifts from generation to selection.
-  The goal is to replace a large labeled text corpus with a compact surrogate that preserves downstream task performance.
+  The goal is to replace a large labeled text corpus with a compact surrogate that approximates downstream task performance.
   TAKE is the first text \ac{DD} method to simultaneously satisfy three desiderata: knowledge-based weighting of samples by their task-aligned contribution, a dataset-level distillation objective that aligns the selected corpus with the full source distribution, and human-readable output that is auditable and transferable across architectures.
-  Trajectory-aware influence scoring computes importance weights from reciprocal gradient norms accumulated across the training trajectory, correcting the hard-sample bias that convergence-point scoring introduces by assigning inflated importance to noisy or boundary examples.
-  An \ac{LLM} generation pool produces diverse textual candidates, and discrete \ac{OT} via the Sinkhorn algorithm selects the subset that globally minimises the entropically regularised transport cost between the candidate pool and the source distribution.
-  The importance-weighted \ac{OT} objective combines task alignment and distributional coverage as complementary objectives: importance alone directs the budget but ignores global structure; coverage alone ensures spread but ignores contribution; together they close failure modes that neither addresses individually.
+  Trajectory-aware influence scoring computes importance weights from reciprocal gradient norms accumulated across the training trajectory, correcting the hard-sample bias, whereby scoring at the convergence point tends to assign inflated importance to hard examples such as noisy or boundary ones.
+  An \ac{LLM} generation pool produces diverse textual candidates, and discrete \ac{OT} via the Sinkhorn algorithm selects the subset that globally minimizes the entropically regularized transport cost between the candidate pool and the source distribution.
+  The importance-weighted \ac{OT} objective combines task alignment and distributional coverage as complementary objectives, and in our ablation, adding importance weights to the \ac{OT} objective improves over \ac{OT} alone.
   TAKE matches or exceeds prior text \ac{DD} baselines across six language benchmarks at extreme compression, establishing the first end-to-end text \ac{DD} method with theoretical guarantees.
 \end{foldable}
 
 \begin{foldable}
-  Across all three contributions, the fidelity-first design stance enables deployment in regimes that scale-dependent assumptions foreclose: edge and embedded devices for DivBFKD and DIPKD, and low-resource, privacy-constrained, and carbon-sensitive language model development for TAKE.
+  Table~\ref{tab:contributions-comparison} compares the three contributions by assumptions, information, mechanism, key result, and limitation.
+\end{foldable}
+
+\begin{table}[ht]
+  \centering
+  \begin{threeparttable}
+    \caption{Comparison of the three thesis contributions.}
+    \label{tab:contributions-comparison}
+    \setlength{\tabcolsep}{8pt}
+    \begin{tabular}{>{\raggedright\arraybackslash}p{2.1cm} >{\raggedright\arraybackslash}p{3.8cm} >{\raggedright\arraybackslash}p{3.8cm} >{\raggedright\arraybackslash}p{3.8cm}}
+      \toprule
+      \textbf{Aspect} & DivBFKD & DIPKD & TAKE \\
+      \midrule
+      Assumptions
+        & A small labeled image set. A black-box teacher.
+        & No real data. A black-box teacher.
+        & A labeled text corpus. A fine-tunable \ac{LLM}. \\
+      \addlinespace
+      Information
+        & Class probabilities for queried images.
+        & Top-1 label for queried images.
+        & Per-sample gradients over the training trajectory. An \ac{LLM}-generated candidate pool. \\
+      \addlinespace
+      Mechanism
+        & WGAN with high-confidence images as extra real images. Adaptive per-class thresholds.
+        & Image priors built from noise. Instance-level contrastive learning. A primer student for surrogate soft labels.
+        & Trajectory-aware influence scores. Discrete \ac{OT} between the pool and the source distribution. \\
+      \addlinespace
+      Key result
+        & Highest accuracy among the compared few-shot methods. A 17\% gain over standard \ac{KD} on CIFAR-10.
+        & State of the art on 11 of 12 benchmarks. Tiny-ImageNet is the exception.
+        & Matches or exceeds the compared baselines on six benchmarks at extreme compression. \\
+      \addlinespace
+      Limitation
+        & Confidence is a proxy for coverage. Training queries the teacher more. GAN training can be unstable.
+        & Priors are structurally diverse but not semantic. The pipeline needs extra queries and training.
+        & The loss-gap bound holds only under assumptions. The encoder is fixed. The generator limits pool coverage. \\
+      \bottomrule
+    \end{tabular}
+  \end{threeparttable}
+\end{table}
+
+\begin{foldable}
+  Across all three contributions, the fidelity-first design stance opens the potential for deployment in regimes that scale-dependent assumptions foreclose: edge and embedded devices for DivBFKD and DIPKD, and low-resource, privacy-constrained, and carbon-sensitive language model development for TAKE.
   Model compression reduces inference cost and latency; dataset distillation reduces training expenditure, data-governance risk, and cumulative carbon footprint across full development lifecycles.
   The practical impact scales with the tightness of the constraint: the more restricted the access regime, the larger the relative gain from enforcing fidelity actively rather than assuming it.
 \end{foldable}

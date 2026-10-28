@@ -7,7 +7,7 @@
   K-FAC~\cite{martens2015optimizing} or EKFAC~\cite{george2018fast} preconditioning are extensions to consider when calibrated magnitude scores are needed.
   (\textbf{2})~\textbf{Encoder dependence.}
   The \ac{OT} cost matrix inherits the geometry of $\phi$; a mismatched encoder distorts transport costs.
-  The $L$-Lipschitz assumption on $\ell$ (Theorem~1) holds approximately when $\phi$ is task-aligned and embeddings are normalized, but remains an approximation for cross-entropy over discrete text.
+  The $L$-Lipschitz assumption on $\ell$ (Theorem~\ref{thm:gap}) holds approximately when $\phi$ is task-aligned and embeddings are normalized, but remains an approximation for cross-entropy over discrete text.
   (\textbf{3})~\textbf{Synthetic pool coverage.}
   Pool diversity is bounded by the generator's domain coverage.
   Fine-tuning on $\mathcal{D}_\text{train}$ helps address this.

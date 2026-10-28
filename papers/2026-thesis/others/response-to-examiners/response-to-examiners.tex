@@ -1,0 +1,123 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[top=2.3cm,bottom=2.3cm,left=2.6cm,right=2.6cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{pdfpages}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,urlcolor=blue,linkcolor=black]{hyperref}
+\input{../../others/diff-workflow/output/summary-of-changes-stats} % \nrowslisted, \nrowsdropped, \mincutoff (written by changes_report.py)
+\pagestyle{plain}
+\setlength{\parskip}{0.55em}
+\linespread{1.15}
+\newenvironment{foldable}{}{}
+
+\newcommand{\authorname}{Tri Nhan Vo}
+\newcommand{\degree}{Doctor of Philosophy}
+\newcommand{\submissiondate}{October, 2026}
+
+\begin{document}
+
+\begin{center}
+  {\LARGE\bfseries Response to the Examiners' Reports \par}
+  \vspace{0.5cm}
+  {on the Thesis for the degree of \degree \par}
+  \vspace{0.3cm}
+  {\Large \bfseries Knowledge Distillation under Practical Constraints \\ for Models and Datasets \par}
+  \vspace{0.3cm}
+  {\large \authorname \par}
+  {\submissiondate \par}
+  \vspace{0.3cm}
+\end{center}
+
+\vspace{\baselineskip}
+
+\begin{foldable}
+  \textit{Dear Examiners,}
+\end{foldable}
+
+\begin{foldable}
+  I sincerely thank you both for the time, dedication, and expertise you gave to examining my thesis.
+  The reports were detailed and constructive, and they pointed to specific places where the thesis could say more precisely what it does and what its evidence supports.
+  Revising my thesis in response has greatly improved its clarity, coherence, and overall quality.
+\end{foldable}
+
+\begin{foldable}
+  \vspace{0.3cm}
+  \textbf{\large Revision Summary}
+\end{foldable}
+
+\begin{foldable}
+  The examination reports raised three main themes.
+  The first theme is the \textbf{consistency and scope} of the claims.
+  Several statements claimed somewhat more than the evidence fully supports.
+  These included how my first body of work on \textit{DivBFKD} described the teacher's outputs, what high teacher confidence implies, how widely the state-of-the-art and ``first'' claims apply, and how closely a distilled corpus matches full-data performance.
+  I checked each claim against the experiments and the chapters it appears in.
+  I now state the access setting of each method exactly, name the baselines each result is compared with, and mark theoretical results as holding under stated assumptions.
+  I also changed wording that depended on a proxy.
+  One example is confidence used in place of closeness to the training distribution.
+  The new wording now states closely what I measured.
+\end{foldable}
+
+\begin{foldable}
+  The second theme is how accurately I described the \textbf{mechanisms}.
+  The reports asked me to separate structural diversity from semantic diversity in \textit{DIPKD}.
+  Their comments on the primer student and on TAKE pointed the same way: the primer student's outputs act as surrogate supervision, and \textit{TAKE}'s output is a selected surrogate corpus rather than a subset of the original data.
+  I revised the method descriptions, the background chapter, and the concluding chapter so that they use the same terms and describe the same mechanism.
+\end{foldable}
+
+\begin{foldable}
+  The third theme is the \textbf{practical constraints} that motivate the thesis.
+  I first clarified what distributional fidelity means in each part of the thesis.
+  I additionally introduced a new summary table in the concluding chapter, which compares the assumptions, information, mechanism, results, and limitations of the three methods.
+  The table has put the research works in a comparable qualitative medium, and greately clarified the thesis' scope of work.
+\end{foldable}
+
+\begin{foldable}
+  I would also like to explain, with respect, the places where I made a different choice.
+  Distributional fidelity is not yet developed into a formal framework or a quantitative measure here, and this is restated as an open problem.
+  Compute and teacher-query costs were not newly measured, so they are discussed qualitatively and marked as not fully measured.
+  In TAKE, the embedding model used was fixed throughout, and thus reported as not ablated as a limitation.
+  Also, QQP remains among the sentence-pair tasks, with a short note on its nature.
+  Finally, claims of novelty and ``first'' are kept, since they held at the time of each publication.
+  Your view on these choices would be welcome.
+  Aside from these matters, I have also made quality-of-life changes, such as fixing minor typos and errors throughout to improve readability.
+\end{foldable}
+
+\begin{foldable}
+  \vspace{0.3cm}
+  \textbf{\large Tracked changes}
+\end{foldable}
+
+\begin{foldable}
+  To make the changes easy to track, I also include (1) a \textit{Summary of Changes} table in the following pages of this response, and (2) an \textit{Editorial Version} of the thesis after that table, with in-line formatting of original and revised texts.
+  They are generated from the two versions of the thesis and lists every segments that changed, appear in red strikethrough and inserted words in blue underline.
+  Minor changes are skipped to avoid cluttering the table with insignificant edits.
+\end{foldable}
+
+\begin{foldable}
+  To automatically and unbiasedly generate these ``\textit{diff-documents}'', I wrote a script that compares the difference and score them by a heuristic word-level \textit{Levenshtein distance} across a sentence or adjacent sentences.
+  In short, inserting, deleting, or replacing a whole word costs one, a common function word (a/an/the, prepositions, etc.) costs 0.25.
+  A segment's score is the sum over its words.
+  The same rule applies to every sentences, and has been tested for reproducibility.
+\end{foldable}
+
+\begin{foldable}
+  The Summary of Changes table, starting on the next page, lists every change that scores at least~\mincutoff, which means every change that alters at least one word.
+  A higher cutoff would shorten the table, but it would hide some short but meaningful edits that addresses your concerns.
+  That gives \nrowslisted{} segments with non-trivial changes.
+  Please use the Editorial Version to read all changes in their original context, which follows after the table.
+\end{foldable}
+
+\begin{foldable}
+  Thank you again for your careful reading and your guidance.
+\end{foldable}
+
+Sincerely,\\
+Tri Nhan Vo
+
+\clearpage
+\includepdf[pages=-,fitpaper=true,pagecommand={\thispagestyle{empty}},picturecommand={\put(421,22){\makebox(0,0){\thepage}}}]{../../others/diff-workflow/output/summary-of-changes.pdf}
+\includepdf[pages=-,fitpaper=true]{../../others/diff-workflow/output/main-diffexamined.pdf}
+
+\end{document}

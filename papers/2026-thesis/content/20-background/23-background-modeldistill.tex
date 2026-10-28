@@ -3,7 +3,7 @@
 \begin{foldable}
   The idea of training a smaller student network to mimic a larger teacher originated with model compression~\cite{bucila2006model}.
   This was formalized as \textit{knowledge distillation} (\ac{KD})~\cite{hinton2015distilling}, proposing that students learn not from hard labels but from soft probabilistic targets that encode the teacher's learned structure.
-  Model distillation trains a compact \textit{student} network $S$ to replicate the behaviour of a large, pre-trained \textit{teacher} network $T$, illustrated in Figure~\ref{fig:23-background-modeldistill-overview}.
+  Model distillation trains a compact \textit{student} network $S$ to replicate the behavior of a large, pre-trained \textit{teacher} network $T$, illustrated in Figure~\ref{fig:23-background-modeldistill-overview}.
   The goal is to transfer the teacher's learned \textit{decision-boundary structure} and relational knowledge, the structured understanding of the task and its geometry acquired over the full training budget, rather than requiring pointwise input-output fidelity on a fixed set of training examples.
   This distinguishes distillation from model approximation, which targets pointwise structural matching, and from label smoothing, which perturbs labels uniformly without reference to the teacher's learned geometry.
 \end{foldable}
@@ -27,7 +27,7 @@
 \end{foldable}
 
 \begin{foldable}
-  \Acl{KD} recovers dark knowledge by training the student to minimise the \ac{KL} divergence between the teacher's output distribution $q$ and the student's $p$:
+  \Acl{KD} recovers dark knowledge by training the student to minimize the \ac{KL} divergence between the teacher's output distribution $q$ and the student's $p$:
   \begin{equation}
     \mathcal{L}_{\text{KD}} = \mathcal{L}_\text{KL}(q \| p).
     \label{eq:kd-loss-core}
@@ -60,7 +60,7 @@
   The original formulation transfers knowledge through the teacher's output distribution, but the field has since expanded to exploit richer sources of teacher signal.
   The design space of \ac{KD} decomposes along two orthogonal dimensions: (1) the \textit{source of knowledge} transferred (response-based, feature-based, or relation-based methods), and (2) the \textit{training scheme} that structures the teacher-student relationship (offline, online, self, or co-distillation).
   We first inventory the knowledge sources by examining what each family transfers and what teacher access is required, then discuss training schemes.
-  Together they characterise the full design space.
+  Together they characterize the full design space.
 \end{foldable}
 
 \begin{figure}[ht]
@@ -130,7 +130,7 @@
 \end{foldable}
 
 \begin{foldable}
-  The second axis organises methods by the \textit{training scheme}: the relationship between teacher and student during training, illustrated in Figure~\ref{fig:23-background-modeldistill-schemes}.
+  The second axis organizes methods by the \textit{training scheme}: the relationship between teacher and student during training, illustrated in Figure~\ref{fig:23-background-modeldistill-schemes}.
   \textit{Offline distillation} uses a fixed, pre-trained teacher queried through its outputs; the student is trained entirely from the teacher's frozen predictions.
   \textit{Online distillation} trains teacher and student simultaneously, allowing the teacher to evolve during the student's training.
   \textit{Self-distillation} requires no separate teacher: the student distils knowledge from its own earlier or shallower representations.
@@ -151,7 +151,7 @@
   Across all three source-of-knowledge families, two conditions are implicit: the full training dataset $\mathcal{D}$ is available to supply inputs to the teacher, and the teacher exposes at least its output probability vector.
   When either condition fails, the picture changes dramatically.
   Response-based methods' black-box compatibility becomes their sole advantage when these assumptions break: feature-based and relation-based methods become inaccessible, while response-based distillation survives, albeit degraded, under hard-label-only settings.
-  The next subsection formalizes these two assumptions and characterises what happens when they fail.
+  The next subsection formalizes these two assumptions and characterizes what happens when they fail.
 \end{foldable}
 
 \subsection{Standard Assumptions and Their Limitations} \label{sec:23-background-modeldistill-assumptions}
@@ -172,7 +172,7 @@
 \end{foldable}
 
 \begin{foldable}
-  Together, these two failures characterise the landscape of practical \ac{KD}.
+  Together, these two failures characterize the landscape of practical \ac{KD}.
   Absent original data, the distillation signal loses coverage of the true input distribution; absent soft targets, it loses the relational structure that distinguishes \ac{KD} from ordinary supervised training.
   \S\ref{sec:24-background-kdrestricted} surveys these two restriction axes, frames distributional fidelity as the binding constraint, and identifies the structural gaps that motivate Chapters~\ref{ch:30-research01}--\ref{ch:50-research03}.
 \end{foldable}

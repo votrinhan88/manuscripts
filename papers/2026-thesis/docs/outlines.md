@@ -169,7 +169,7 @@ Legends:
 ### Subsection 2.4.2: Black-Box Model Distillation: Few-Shot
 
 - [d] Black-box full-data: manageable; signal quality is the residual constraint.
-- [d] Few-shot: hard labels + sparse data create double bind; neither compensates for other.
+- [d] Few-shot: probability-only output + sparse data create double bind; neither compensates for other.
 - [d] Coverage degradation: few-shot queries cover only a few modes; student gets a biased, narrow view.
 - [d] Standard augmentation (MixUp, CutMix): increases count but stays within the few-shot support.
 - [d] Generative augmentation (BBKD, FS-BBT): extends coverage but inherits the few-shot distributional limits.
@@ -214,7 +214,7 @@ Legends:
 ### Subsection 2.5.4: Active Fidelity Recovery
 
 - [d] Each setting requires active mechanism matched to its specific constraints and affordances.
-- [d] Few-shot: adaptive confidence filtering expands beyond support via teacher-guided rejection sampling.
+- [d] Few-shot: adaptive confidence filtering expands beyond support by admitting teacher-confident samples as extra real images.
 - [d] Data-free: multi-scale noise + contrastive loss enforces diversity before teacher queries.
 - [d] Text: trajectory-aware scoring + discrete OT enforces importance-weighted distributional coverage.
 - [d] Unifying pattern: name deficit → understand cause → apply upstream mechanism → verify Coverage.
@@ -367,7 +367,7 @@ Legends:
 
 ## Section 3.4: Conclusion
 
-- [r] High-confidence filtering with adaptive per-class thresholds achieves SOTA few-shot KD.
+- [r] High-confidence filtering with adaptive per-class thresholds achieves SOTA among the compared few-shot KD methods.
 
 ---
 
@@ -378,7 +378,7 @@ Legends:
 - [r] Data-free qualitatively different from few-shot: no real-data anchor for synthesis.
 - [r] Prior BBDFKD methods encounter domain-coverage and information-bottleneck deficits.
 - [r] DIPKD: three-phase pipeline (Synthesis, Contrast, Distillation) addressing both deficits.
-- [r] Contributions: image priors, primer student, SOTA on 12 benchmarks.
+- [r] Contributions: image priors, primer student, SOTA on 11 of 12 benchmarks.
 - [r] Framework (§4.2), experiments (§4.3), conclusion (§4.4) follow.
 
 ## Section 4.2: Proposed Framework
@@ -553,7 +553,7 @@ Legends:
 - TAKE enforces fidelity over discrete tokens via trajectory-aware influence and optimal transport selection.
 - TAKE validated across five benchmarks: AG News, IMDb, SST-2 classification and MNLI-m, QQP inference.
 - In TAKE, importance-weighted OT beats importance-alone and coverage-alone selection on text benchmarks.
-- Fidelity-first design enables edge, privacy-preserving, low-resource deployment, cutting carbon and respecting data governance.
+- Fidelity-first design opens the potential for edge, privacy-preserving, low-resource deployment, cutting carbon and respecting data governance.
 
 ## Section 6.2: Limitations and Future Directions
 

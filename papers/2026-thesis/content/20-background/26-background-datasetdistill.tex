@@ -40,8 +40,8 @@
 
 \begin{foldable}
   Dataset distillation and model distillation are complementary but distinct in scope.
-  Model distillation compresses a \textit{model}: given a trained teacher, it produces a smaller student with similar predictive behaviour.
-  Dataset distillation compresses a \textit{dataset}: given a full training corpus, it produces a smaller surrogate that induces similar model behaviour when used for training.
+  Model distillation compresses a \textit{model}: given a trained teacher, it produces a smaller student with similar predictive behavior.
+  Dataset distillation compresses a \textit{dataset}: given a full training corpus, it produces a smaller surrogate that induces similar model behavior when used for training.
   Model distillation evaluates success by student accuracy on held-out test data (how well the student predicts).
   Dataset distillation evaluates success by training a model on the surrogate and measuring its accuracy on held-out test data (how well a model trained on the surrogate generalizes).
   Both problems share the distributional fidelity requirement established in \S\ref{sec:25-background-distribution}, that the student model and the surrogate corpus must represent their source distributions faithfully, but they differ in their input (a trained model vs.\ a raw dataset) and output (a model vs.\ a corpus).
@@ -128,14 +128,14 @@
   A cluster containing critical, hard-to-learn boundary examples receives the same selection budget as a cluster of redundant, easy examples.
   This violates property (1), knowledge-informed weighting.
   Moreover, the selection criterion (Euclidean proximity to centroid) is geometric, not learning-objective-aware.
-  The selection does not formally minimise any measure of distributional divergence from the weighted source, violating property (2)---the method has no principled dataset-level objective, only independent per-cluster decisions.
+  The selection does not formally minimize any measure of distributional divergence from the weighted source, violating property (2)---the method has no principled dataset-level objective, only independent per-cluster decisions.
   Clustering is a form of geometric summarization, effective for input-space coverage but not for learning-objective coverage.
 \end{foldable}
 
 \begin{foldable}
   \textbf{\ac{LLM}-based generation.}
   An alternative to selecting from $\mathcal{D}$ is to generate a synthetic candidate pool by fine-tuning a language model on $\mathcal{D}$ and sampling from it.
-  DiLM~\cite{maekawa2024dilm} is an instance of this family: it generates readable candidate texts from a fine-tuned \ac{LLM} and then selects among them by gradient matching against the training corpus, followed by $k$-centre selection.
+  DiLM~\cite{maekawa2024dilm} is an instance of this family: it generates readable candidate texts from a fine-tuned \ac{LLM} and then selects among them by gradient matching against the training corpus, followed by $k$-center selection.
   This approach is attractive for several reasons.
   First, it avoids the gradient-flow problem entirely: the generation process is autoregressive and produces fluent, human-readable text automatically, satisfying property (3) by design.
   Second, generation provides privacy: rather than extracting examples from the original dataset, the surrogate consists of new, synthetic examples, minimizing the risk of direct data leakage.

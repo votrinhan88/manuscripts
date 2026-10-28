@@ -17,7 +17,7 @@
 \begin{foldable} % Our method
   \textbf{Our method.} We propose \textbf{\acl{DIPKD}} (\acs{DIPKD}) to tackle the BBDFKD problem, \ie, training a student from a black-box teacher with only top-1 signal and without access to any real data.
   To improve \ac{KD}, we incorporate \textit{diversity}, \ie, how broadly the samples distribute, into a collaborative three-phase pipeline:{
-    (1)~\textit{Synthesis}: crafts synthetic \textit{image priors} with diverse patterns and semantics of natural objects;
+    (1)~\textit{Synthesis}: crafts synthetic \textit{image priors} with diverse structural patterns resembling natural objects;
     (2)~\textit{Contrast}: employs a \textit{primer student} to act as a white-box mediator and ensure synthetic samples are informationally distinct via contrastive learning;
     and (3)~\textit{Distillation}: distills the final student optimally with hard labels from teacher and soft probabilistic labels from the primer student.
   }
@@ -27,9 +27,9 @@
 \begin{foldable} % Contribution
   \textbf{Contribution.} In summary, we highlight our contributions as follows:
   \begin{enumerate}
-    \item We introduce \textit{image priors}, a novel class of synthetic images exhibiting diversity across hierarchical structures, nonlinearity, and semantics.
-    \item We propose the novel use of a \textit{primer student}, enabling contrastive optimization and extraction of soft probabilistic signals originally restricted in black-box \ac{KD}.
-    \item Extensive analysis of our framework demonstrates that it effectively expands the semantic coverage of synthetic domains, leading to our state-of-the-art performance across 12 benchmarks.
+    \item We introduce \textit{image priors}, a novel class of synthetic images exhibiting diversity across hierarchical structures, nonlinearity, and spatial structure.
+    \item We propose the novel use of a \textit{primer student}, enabling contrastive optimization and surrogate soft supervision where the black-box teacher provides only hard labels.
+    \item Extensive analysis of our framework shows that it expands the coverage of synthetic domains, leading to state-of-the-art performance on 11 of 12 benchmarks.
   \end{enumerate}
 \end{foldable}
 

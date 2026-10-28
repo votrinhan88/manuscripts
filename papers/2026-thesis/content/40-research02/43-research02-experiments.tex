@@ -134,6 +134,7 @@
   This confirms that $S_0$ is sufficiently competent to perform contrastive optimization and soft distillation.
   For instance, on CIFAR10, we achieve $+$3.14\% via Contrast and $+$2.10\% via Distillation.
   These results confirm that the Synthesis pipeline plays a vital role in generating diverse data, while the novel use of the primer student for Contrast and Distillation phases significantly boosts \ac{KD} performance beyond prior works.
+  In our component ablation study, the Contrast and Distillation phases add little on simple datasets but clearly help on complex ones, so the extra training beyond reusing the primer as the final student is most justified there.
 \end{foldable}
 
 \subsubsection{Embeddings analysis --- Synthesis} \label{sec:44-research02-experiments-abla-embeddings-generation}

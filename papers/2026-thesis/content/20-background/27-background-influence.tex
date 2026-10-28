@@ -20,7 +20,7 @@ The text setting introduces a structural complication, the hard-sample bias, tha
   Intuitively, the influence combines two factors: the gradient $\nabla_\theta \mathcal{L}(z_n, \hat\theta)$ (how far is $z_n$ from being fit) and $H_{\hat\theta}^{-1}$ (how sensitive are the converged parameters to that misfitting).
   A large positive influence indicates that $z_n$ is informative for learning, removing it would degrade the model significantly.
   Whereas a large negative influence indicates that $z_n$ is either mislabeled or an outlier and is harmful to generalization.
-  Influence is defined relative to convergence, not relative to a training loss threshold; it captures counterfactual impact on the final learned behaviour.
+  Influence is defined relative to convergence, not relative to a training loss threshold; it captures counterfactual impact on the final learned behavior.
 \end{foldable}
 
 \begin{foldable}
@@ -59,7 +59,7 @@ The text setting introduces a structural complication, the hard-sample bias, tha
   Single-checkpoint influence estimates, whether computed exactly or approximately as gradient norms, suffer from a systematic bias at convergence.
   After sufficient training, a well-fitted model assigns near-zero loss to clean, easy examples; their gradients $\nabla_\theta \mathcal{L}(z_n, \hat\theta)$ vanish.
   Noisy, mislabeled, or atypical examples resist convergence: the model cannot simultaneously fit them and the clean majority to perfection, so their gradients remain large.
-  A selector maximising single-checkpoint gradient norms $\|\nabla_\theta \mathcal{L}(z_n, \hat\theta)\|$ therefore preferentially selects the hardest, noisiest examples, exactly the examples most harmful to a student trained on the resulting surrogate.
+  A selector maximizing single-checkpoint gradient norms $\|\nabla_\theta \mathcal{L}(z_n, \hat\theta)\|$ therefore preferentially selects the hardest, noisiest examples, exactly the examples most harmful to a student trained on the resulting surrogate.
   This creates a perverse inversion: examples that are most influential by counterfactual impact (hard-to-fit examples that the model has compromised on) are conflated with examples that are most representative of the true distribution (central, representative examples that the model fits perfectly).
   The selector picks outliers.
   This is not a tuning problem that can be fixed by rescaling, threshold adjustment, or different gradient aggregation; it is structural.
@@ -79,7 +79,7 @@ The text setting introduces a structural complication, the hard-sample bias, tha
 \begin{foldable}
   \textbf{Trajectory integration as correction.}
   If single-checkpoint scores are biased by late-stage noise dominance, the solution is to integrate importance signals across multiple training stages rather than relying on convergence.
-  Consider the training trajectory: at early epochs, all examples have large gradients because the model's initial random initialisation is far from the true target.
+  Consider the training trajectory: at early epochs, all examples have large gradients because the model's initial random initialization is far from the true target.
   As training progresses, clean examples' gradients shrink (the model learns to fit them) while noisy examples' gradients plateau or grow (the model struggles to fit them without hurting clean examples).
   By late epochs, gradient magnitude is almost entirely determined by noise/hardness, not importance.
   Averaging gradient norms across $T$ checkpoints from different training stages $(t=1, 2, \ldots, T)$ dilutes this late-stage bias.

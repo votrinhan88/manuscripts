@@ -4,6 +4,7 @@
   A student trained under a limited data constraint, or a model fine-tuned on a compressed corpus can only learn from whatever training signal is actually present.
   If that signal fails to faithfully represent the distribution the teacher was trained on, then the student inherits a systematically distorted picture of the teacher's knowledge.
   The term \textit{distributional fidelity} names this property: the degree to which the training signal available to the student covers the target distribution in a representative and unbiased way.
+  In this thesis it takes two related forms: for Chapters~\ref{ch:30-research01} and~\ref{ch:40-research02}, coverage of the useful parts of the teacher's input or representation space; for Chapter~\ref{ch:50-research03}, matching an importance-weighted source distribution in an embedding space.
   When distributional fidelity is low, distillation fails because the information it needs is not present in the signal it receives.
 \end{foldable}
 
@@ -14,7 +15,7 @@
   Generative models can extend synthesis beyond these limits, but without external guidance they remain tethered to the modes the few-shot set already represents.
   Diversity of the generated set, specifically its ability to reach regions the few-shot examples do not represent, is therefore the binding challenge.
   In the data-free setting, the problem is more severe: without any real-data anchor, synthetic images serve as a substitute, seeding synthesis with structured diversity before any teacher query.
-  Yet this does not guarantee coverage: the central challenge is ensuring that synthetic samples collectively capture \textit{diverse patterns and semantics} of the teacher's knowledge domain, rather than merely satisfying its hard labels.
+  Yet this does not guarantee coverage: the central challenge is ensuring that synthetic samples collectively capture \textit{diverse patterns}, and ideally semantics, of the teacher's knowledge domain, rather than merely satisfying its hard labels.
 \end{foldable}
 
 \begin{foldable}
@@ -42,9 +43,9 @@
   In dataset distillation, it arises through compression and interpretability requirements of \textit{text datasets}.
   Across all cases, the training signal fails to faithfully represent the target distribution: it over-represents some regions and under-represents or entirely omits others.
   The diagnostic question is identical in every setting: does the data the student actually trains on give sufficient, representative coverage of the knowledge the teacher possesses?
-  Fidelity deficit is the root cause of these failures, not a symptom.
-  No algorithmic refinement can recover knowledge that is absent from the training signal.
-  Recognising this unifies what would otherwise appear as three separate technical problems.
+  We take fidelity deficit to be the root cause of these failures, not a symptom.
+  Algorithmic refinement alone cannot recover knowledge that is absent from the training signal.
+  Recognizing this unifies what would otherwise appear as three separate technical problems.
 \end{foldable}
 
 \begin{foldable}

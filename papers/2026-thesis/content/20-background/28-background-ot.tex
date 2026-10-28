@@ -10,7 +10,7 @@ This section develops optimal transport as the tool that closes that gap, formal
 \begin{foldable}
   \textbf{The distributional coverage problem.}
   Property~(2) requires that the selected subset jointly represent the importance-weighted distribution, not just consist of high-importance examples.
-  At extreme compression, when $K \ll N$, a natural objective emerges: select a compact subset that minimises the distance between the reweighted source distribution and the selected subset.
+  At extreme compression, when $K \ll N$, a natural objective emerges: select a compact subset that minimizes the distance between the reweighted source distribution and the selected subset.
   This is a \textit{distributional} problem: it cannot be solved by ranking examples independently.
 \end{foldable}
 
@@ -54,7 +54,7 @@ This section develops optimal transport as the tool that closes that gap, formal
   Let the source be $\{(z_n, w_n)\}_{n=1}^{N}$ where $w_n$ are normalized importance weights (each $w_n \geq 0$, $\sum_n w_n = 1$).
   The candidate pool (synthetic examples or a large real example pool) is $\{(\tilde{z}_c, 1/C)\}_{c=1}^{C}$ with uniform weights (each candidate has equal potential budget $1/C$).
   The discrete optimal transport problem is a distributional selection problem: given weighted source examples and an unweighted candidate pool, find a transport plan that moves all source mass to the candidate pool at minimum cost.
-  Formally, seek a transport plan $\gamma^* \in \mathbb{R}^{N \times C}_{\geq 0}$ minimising total transport cost subject to marginal constraints:
+  Formally, seek a transport plan $\gamma^* \in \mathbb{R}^{N \times C}_{\geq 0}$ minimizing total transport cost subject to marginal constraints:
   \begin{equation}
     \gamma^* = \arg\min_{\gamma \geq 0} \langle C_{\text{dist}}, \gamma \rangle
     \quad \text{s.t.} \quad \gamma \mathbf{1}_C = \mathbf{w}, \quad
@@ -65,7 +65,7 @@ This section develops optimal transport as the tool that closes that gap, formal
   The constraints enforce the transportation semantics: all importance mass leaves the source ($\gamma \mathbf{1}_C = \mathbf{w}$) and equal weight arrives at each candidate ($\gamma^\top \mathbf{1}_N = \tfrac{1}{C}$).
   The entry $\gamma^*_{nc}$ is a fractional transport weight encoding how much importance mass from source $z_n$ is optimally routed to candidate $\tilde{z}_c$.
   After solving, the $K$ candidates with the largest total assigned mass $m_c = \sum_n \gamma^*_{nc}$ are selected as the surrogate.
-  Finally, \ac{OT} selects jointly to minimise distributional divergence, not independently to maximise per-example scores.
+  Finally, \ac{OT} selects jointly to minimize distributional divergence, not independently to maximize per-example scores.
 \end{foldable}
 
 \begin{foldable}
@@ -75,7 +75,7 @@ This section develops optimal transport as the tool that closes that gap, formal
   This transforms the problem from a hard-constrained LP into a strongly convex one with a simple closed-form update: alternating row and column normalization.
   The update is simple: normalize rows of $\gamma$ to satisfy the source marginal, then normalize columns to satisfy the target marginal, repeat until convergence.
   Each iteration costs $O(N \cdot C)$, and convergence occurs in tens of iterations, making the algorithm practical for large pools.
-  The regularised plan $\gamma_\varepsilon^*$ converges to the exact unregularised \ac{OT} optimum $\gamma^*$ as $\varepsilon \to 0$, providing a principled approximation-accuracy tradeoff.
+  The regularized plan $\gamma_\varepsilon^*$ converges to the exact unregularized \ac{OT} optimum $\gamma^*$ as $\varepsilon \to 0$, providing a principled approximation-accuracy tradeoff.
   The regularization parameter $\varepsilon$ is a tuning knob: large $\varepsilon$ spreads mass diffusely (smooth, entropy-maximizing plan), small $\varepsilon$ produces concentrated plans closer to exact \ac{OT}.
 \end{foldable}
 
@@ -93,7 +93,7 @@ This section develops optimal transport as the tool that closes that gap, formal
 \end{foldable}
 
 \begin{foldable}
-  \textbf{Greedy $k$-centre selection} minimises worst-case distance: it chooses the two geometric extremes, again one Region~A and one Region~B candidate.
+  \textbf{Greedy $k$-center selection} minimizes worst-case distance: it chooses the two geometric extremes, again one Region~A and one Region~B candidate.
   Same outcome: both methods conflate geometric coverage with distributional fidelity, and when the two decouple, as in text where low-importance examples cluster in distinctive surface-form niches, geometry actively misleads.
 \end{foldable}
 
@@ -101,6 +101,6 @@ This section develops optimal transport as the tool that closes that gap, formal
   \textbf{Optimal transport} with weights $\mathbf{w} = (0.25, 0.25, 0.25, 0.25, 0.05, 0.05)$ constructs a plan that moves Region~A's mass (1.0 units) and Region~B's mass (0.10 units) to the candidate pool.
   The Sinkhorn plan assigns $\approx 0.50$ units to each Region~A candidate and $\approx 0.05$ units to each Region~B candidate.
   Selecting the two candidates with largest total assigned mass returns both Region~A candidates and neither Region~B candidate.
-  The surrogate omits Region~B entirely, exactly the outcome that minimises Wasserstein distance from the importance-reweighted source.
+  The surrogate omits Region~B entirely, exactly the outcome that minimizes Wasserstein distance from the importance-reweighted source.
   The advantage of \ac{OT} is not geometric coverage but \textit{importance-weighted} coverage: it concentrates surrogate capacity on the regions that matter most to the learning objective.
 \end{foldable}

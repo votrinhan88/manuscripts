@@ -22,14 +22,14 @@
   Even if the student has infinite capacity and each synthetic example carries high-quality supervision, it cannot learn structure it has never seen.
   If the teacher's decision boundary has structure in a region $\mathcal{R}$ that the synthetic set omits, the student will generalize randomly there.
   In dataset distillation (Chapter~\ref{ch:50-research03}), the surrogate's utility is bounded by how well it represents the full corpus distribution in the learning objective's space.
-  A surrogate composed entirely of easy-to-classify examples may cover the input space densely yet fail to represent the corpus distribution over the learning trajectories that matter: and representative examples that capture the distributional core, boundary-adjacent examples that refine decisions.
-  Coverage is therefore a necessary condition for distributional fidelity, not a separate objective; and for dataset distillation (Chapter~\ref{ch:50-research03}), fidelity to the full corpus distribution is the objective itself.
+  A surrogate composed entirely of easy-to-classify examples may cover the input space densely yet fail to represent the corpus distribution over the learning trajectories that matter, which requires both representative examples that capture the distributional core and boundary-adjacent examples that refine decisions.
+  Coverage is therefore a necessary condition for distributional fidelity, not a separate objective. For dataset distillation (Chapter~\ref{ch:50-research03}), fidelity to the full corpus distribution is the objective itself.
 \end{foldable}
 
 \begin{foldable}
   \textbf{Three instantiations of the same deficit:}
   Few-shot access leaves entire regions of the teacher's distribution unsampled, creating a convex-hull barrier: the student cannot generalize beyond the modes present in the few-shot set, no matter how well it fits them.
-  Data-free access forces synthesis without any real-data anchor, causing the generator to gravitate toward the modes its implicit prior favours, abandoning regions where label feedback is sparse or contradictory.
+  Data-free access forces synthesis without any real-data anchor, causing the generator to gravitate toward the modes its implicit prior favors, abandoning regions where label feedback is sparse or contradictory.
   An oversized corpus, filtered naively by importance scores (gradient norms, loss values), concentrates on outliers and mislabeled examples at convergence, missing the representative core because noisy examples retain large gradients while clean examples' gradients vanish.
   All three are coverage failures under different constraints: first, insufficient data; second, no ground-truth reference; third, misaligned importance metrics.
 \end{foldable}
@@ -52,8 +52,8 @@
   Vanilla GANs suffer training instability when real and generated distributions are disjoint; the Jensen-Shannon divergence provides poor gradient signals and the generator collapses to a few high-density modes.
   This mode collapse is particularly severe in few-shot and data-free settings: when the generator is trained on few examples or receives only hard-label feedback, it has no signal to explore regions beyond the modes it has seen or can easily guess.
   \Ac{WGAN-GP}~\cite{gulrajani2017improved} addresses this by replacing Jensen-Shannon divergence with Wasserstein-1 distance, which provides more stable gradients even when distributions are disjoint.
-  \Ac{WGAN-GP} stabilises training and improves mode coverage by rewarding the discriminator for producing valid gradients everywhere in the input space, not just where the two distributions overlap.
-  \Ac{WGAN-GP} is the generative backbone for Chapters~\ref{ch:30-research01} and~\ref{ch:40-research02}, chosen for its stability and natural alignment with distributional fidelity objectives.
+  \Ac{WGAN-GP} stabilizes training and improves mode coverage by rewarding the discriminator for producing valid gradients everywhere in the input space, not just where the two distributions overlap.
+  \Ac{WGAN-GP} is the generative backbone for Chapter~\ref{ch:30-research01}, chosen for its stability and natural alignment with distributional fidelity objectives.
 \end{foldable}
 
 \begin{foldable}
@@ -63,7 +63,7 @@
   Fine-tuning an \ac{LLM} on the task corpus and sampling from it produces fluent, human-readable synthetic examples, sidestepping the gradient-flow problem that makes pixel-space optimization inapplicable.
   The autoregressive sampling process ensures that generated text inherits the distributional properties of the training corpus: if the corpus is biased toward certain sentence structures or vocabulary, the \ac{LLM}-generated samples will reflect that bias.
   Fine-tuning on the task corpus steers generation toward task-relevant vocabulary and sentence structure, improving distributional alignment over generic \ac{LLM} sampling.
-  The remaining challenge is distributional fidelity: even an well-fine-tuned \ac{LLM} may oversample frequent patterns and neglect rare but informative examples, producing a fluent yet distributional-unfaithful surrogate.
+  The remaining challenge is distributional fidelity: even a well-fine-tuned \ac{LLM} may oversample frequent patterns and neglect rare but informative examples, producing a fluent yet distributionally unfaithful surrogate.
 \end{foldable}
 
 \begin{foldable}
@@ -75,7 +75,7 @@
 
 \subsection{Diagnosing Coverage Failures} \label{sec:25-background-distribution-diagnosis}
 \begin{foldable}
-  Measuring coverage requires separating \textbf{fidelity} (quality of individual examples) from \textbf{diversity} (breadth of distributional support); standard metrics conflate the two.
+  Measuring coverage requires separating \textbf{sample fidelity} (quality of individual examples) from \textbf{diversity} (breadth of distributional support); standard metrics conflate the two.
   \Ac{IS}~\cite{salimans2016improved} and \ac{FID}~\cite{heusel2017gans} are the dominant metrics for evaluating generative models.
   \ac{IS} measures fidelity via class-conditional sharpness: samples should have high predicted class confidence (sharp posterior) and collectively span many classes.
   \ac{FID} measures distributional distance by computing the 2-Wasserstein distance between real and generated embeddings, balancing fidelity (proximity of generated samples) and diversity (spread across feature space).
@@ -88,7 +88,7 @@
 
 \begin{foldable}
   \textit{Density} and \textit{Coverage}~\cite{naeem2020reliable} decompose these explicitly.
-  Density measures fidelity: the average distance from each generated sample to its nearest real neighbor in embedding space (lower is better; generated samples are close to the real distribution).
+  Density measures sample fidelity: the average distance from each generated sample to its nearest real neighbor in embedding space (lower is better; generated samples are close to the real distribution).
   Coverage measures recall: the fraction of the real distribution that has at least one generated sample nearby (higher is better; the real distribution is well-represented).
   A dataset can have high Density but low Coverage (a few crisp, real-looking samples missing most of the distribution) or high Coverage but low Density (samples spread across the distribution but perceptually distorted).
   Coverage is the primary diagnostic across all three settings.
@@ -120,14 +120,15 @@
   The generator cannot be improved by training longer: it learns the few-shot distribution perfectly and has nothing left to learn.
   Correcting this requires external signal from outside the few-shot set.
   Adaptive confidence filtering provides this signal: after generating candidates, the method filters via teacher querying, retaining only synthetic samples on which the teacher has high confidence (above a per-class adaptive threshold).
-  High teacher confidence indicates that the sample is in a region the teacher knows well; rejection sampling on low-confidence samples pushes the generator toward unexplored regions where the teacher's decision boundary is uncertain.
+  High teacher confidence indicates that the sample is in a region the teacher recognizes well.
+  Admitting such samples as additional real images gives the discriminator signal from outside the few-shot set, with confidence serving as a practical proxy for the teacher's input distribution.
   Per-class thresholds prevent imbalance: a class with few prototype modes might naturally have fewer high-confidence synthetics, skewing the final distribution.
   This pushes coverage beyond the convex hull of the few-shot set by using the teacher as a guide to which regions are under-explored.
 \end{foldable}
 
 \begin{foldable}
   \textbf{Data-free model distillation (Chapter~\ref{ch:40-research02}).}
-  Without any real-data anchor, the generator gravitates toward the modes its implicit prior (\eg, uniform noise, natural image statistics) favours.
+  Without any real-data anchor, the generator gravitates toward the modes its implicit prior (\eg, uniform noise, natural image statistics) favors.
   These priors concentrate mass on simple, prototypical structures because they generalize well and are easy to learn from minimal training signal.
   Multi-scale noise synthesis addresses this by injecting structured noise at multiple frequency scales before each teacher query.
   Low-frequency noise introduces coarse-level diversity (different global scene structures); high-frequency noise adds fine-level variation (texture, details).
@@ -145,7 +146,7 @@
   Early checkpoints produce large gradients for all examples; late checkpoints produce large gradients mainly for hard/noisy examples.
   Averaging across the trajectory dilutes the late-stage noise emphasis, producing calibrated scores that reflect each example's true contribution to learning.
   However, corrected scores alone are insufficient: naive ranking selects the top-$K$ examples by score, ignoring relationships and redundancy.
-  Discrete optimal transport reformulates selection as a distributional problem: given importance weights on the full corpus, select a $K$-sized subset that minimises the Wasserstein distance between the weighted source distribution and the selected subset.
+  Discrete optimal transport reformulates selection as a distributional problem: given importance weights on the full corpus, select a $K$-sized subset that minimizes the Wasserstein distance between the weighted source distribution and the selected subset.
   This allows the solver to trade off individual importance scores for joint distributional coverage, deselecting redundant high-importance examples if that makes room for under-represented but collectively important regions.
 \end{foldable}
 
@@ -157,6 +158,6 @@
 
 \begin{foldable}
   The same fidelity concern applies when the training data itself is compressed rather than the model: a selected text surrogate must cover the original corpus distribution just as a synthetic image set must cover the teacher's distribution.
-  Dataset Track (\S\ref{sec:26-background-datasetdistill}--\S\ref{sec:28-background-ot}) develops this parallel, introducing the dataset distillation landscape and the importance-scoring and optimal-transport tools that operationalise distributional fidelity in the discrete text domain.
+  Dataset Track (\S\ref{sec:26-background-datasetdistill}--\S\ref{sec:28-background-ot}) develops this parallel, introducing the dataset distillation landscape and the importance-scoring and optimal-transport tools that operationalize distributional fidelity in the discrete text domain.
   The mechanisms differ, selection vs.\ generation and discrete vs.\ continuous, but the principle is identical: distributional fidelity must be actively enforced, not assumed.
 \end{foldable}
