@@ -79,7 +79,7 @@
     \label{eq:kd-response}
   \end{equation}
   as formalized in Equation~\ref{eq:kd-loss}.
-  Variants include regression on the raw un-softened logit vector and born-again networks, in which a same-architecture student is sequentially re-distilled from the previous generation, yielding ensembles that outperform the original teacher~\cite{ba2014deep}.
+  Variants include regression on the raw un-softened logit vector and born-again networks~\cite{furlanello2018born}, in which a same-architecture student is sequentially re-distilled from the previous generation, yielding ensembles that outperform the original teacher.
   Response-based methods require only the teacher's output probability vector and are therefore compatible with any setting in which that vector is accessible, including black-box \acp{API}.
 \end{foldable}
 
@@ -101,7 +101,7 @@
   where $f^T$ and $f^S$ are teacher and student feature maps at a chosen intermediate layer, and $W$ is a learned projection matrix.
   This loss can be summed over multiple selected layer pairs.
   FitNets~\cite{romero2015fitnets} introduced matching intermediate hidden layers via a thin regressor, enabling students deeper and thinner than the teacher.
-  Attention Transfer~\cite{zagoruyko2016paying} distils spatial attention maps, capturing \textit{where} the teacher focuses rather than \textit{what} it predicts.
+  Attention Transfer~\cite{zagoruyko2016paying} distills spatial attention maps, capturing \textit{where} the teacher focuses rather than \textit{what} it predicts.
   PKT~\cite{passalis2018learning} matches kernel density estimates of teacher and student feature distributions, encoding distributional geometry rather than individual activation values.
   Feature-based methods consistently improve on response-based baselines, but their incompatibility with opaque \acp{API} is fundamental.
   Without access to the teacher's activation dimensionality and representation geometry, the projector bridging teacher and student spaces is entirely ill-posed: there is no anchor in the teacher's representation space to which the student can be steered.
@@ -133,7 +133,7 @@
   The second axis organizes methods by the \textit{training scheme}: the relationship between teacher and student during training, illustrated in Figure~\ref{fig:23-background-modeldistill-schemes}.
   \textit{Offline distillation} uses a fixed, pre-trained teacher queried through its outputs; the student is trained entirely from the teacher's frozen predictions.
   \textit{Online distillation} trains teacher and student simultaneously, allowing the teacher to evolve during the student's training.
-  \textit{Self-distillation} requires no separate teacher: the student distils knowledge from its own earlier or shallower representations.
+  \textit{Self-distillation} requires no separate teacher: the student distills knowledge from its own earlier or shallower representations.
   \textit{Co-distillation} extends this to an ensemble of students that mutually supervise one another.
   All work in this thesis operates in the offline regime.
 \end{foldable}

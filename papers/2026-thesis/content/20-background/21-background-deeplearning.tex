@@ -65,7 +65,7 @@
   The first practical realization of this design was LeNet5~\cite{lecun1998gradient}, originally trained to classify handwritten digits.
   Figure~\ref{fig:21-background-deeplearning-lenet5} shows its architecture: seven trainable layers alternating between convolutions and subsampling, beginning with 32$\times$32 input images and ending with 10 output units (one per digit class \texttt{0}--\texttt{9}).
   The network hierarchy is evident: early layers capture low-level features (edges, corners), middle layers compose these into stroke fragments, and later layers recognize digit patterns.
-  LeNet5 was both a proof of concept and a practical success, demonstrating that the convolutional inductive bias is a fundamental choice to vision tasks over fully connected networks.
+  LeNet5 was both a proof of concept and a practical success, demonstrating that the convolutional inductive bias is a fundamental choice for vision tasks over fully connected networks.
 \end{foldable}
 
 \begin{figure}[ht]
@@ -75,7 +75,8 @@
     LeNet5 architecture for handwritten digit classification.
     Input: 32$\times$32 image.
     Alternating convolutions (C) and subsampling/pooling layers (S) progressively reduce spatial resolution while increasing feature map depth.
-    The final three layers (C5, F6, F) are fully connected and produce the 10-way classification output.
+    C5 is a convolution over the resulting $5\times5$ maps, equivalent to a fully connected layer.
+    F6 and the output layer are fully connected and produce the 10-way classification output.
     This architecture established the template for modern convolutional networks: local feature extraction followed by spatial hierarchy.
   }
   \label{fig:21-background-deeplearning-lenet5}
@@ -83,7 +84,7 @@
 
 \begin{foldable}
   LeNet-5's success motivated researchers to push beyond its modest depth.
-  As larger datasets and more computational resources became available, and it was hypothesized that deeper networks could capture more abstract patterns and achieve higher accuracy on large-scale problems.
+  As larger datasets and more computational resources became available, researchers hypothesized that deeper networks could capture more abstract patterns and achieve higher accuracy on large-scale problems.
   AlexNet~\cite{krizhevsky2012imagenet} and VGG~\cite{simonyan2014very} validated this hypothesis by pushing to much deeper architectures: AlexNet with 8 trainable layers and VGG with up to 19 layers.
   Yet the deeper networks remained fundamentally harder to train: optimization slowed, convergence became fragile, and the network's ability to learn useful features in early layers degraded.
   The root cause was the \textit{vanishing gradient} problem: the gradient of the loss with respect to early-layer parameters shrinks exponentially in depth for typical weight initializations, leaving early layers with near-zero update signals and preventing them from learning.
@@ -91,17 +92,10 @@
 \end{foldable}
 
 \begin{foldable}
-  Skip connections, introduced in ResNets~\cite{he2016deep}, resolved this by creating additive shortcut paths that allow gradients to flow directly from the loss to early layers, bypassing the multiplicative chain through intermediate layers.
-  Each residual block learns only the residual $\mathcal{F}(\mathbf{x}) = \mathcal{H}(\mathbf{x}) - \mathbf{x}$ relative to its input, with the identity shortcut $\mathbf{x}$ added back at the output.
-  The effective gradient magnitude at early layers then depends on the shortest path to the loss, not on total network depth.
-  This structural change removed the depth bottleneck entirely: ResNet-152 (152 layers) trains successfully, and deeper variants continue to improve accuracy.
-  The training failure at depth is therefore not a capacity problem but a gradient propagation problem, and skip connections are its structural solution.
-\begin{foldable}
-
-\end{foldable}
   Skip connections~\cite{he2016deep}, illustrated in Figure~\ref{fig:21-background-deeplearning-skipconnection}, resolve this structurally by creating additive shortcut paths through which gradients flow directly from the loss to early layers, bypassing the multiplicative chain.
-  Each residual block learns only the residual $\mathcal{F}(\mathbf{x}) = \mathcal{H}(\mathbf{x}) - \mathbf{x}$ relative to its input, with the identity shortcut $\mathbf{x}$ added back at the output; the effective gradient magnitude at early layers then depends on the length of the shortest path to the loss, not on total network depth.
-  The training failure at depth is therefore not a capacity problem but a gradient propagation problem, and skip connections are its structural solution.
+  Each residual block learns only the residual $\mathcal{F}(\mathbf{x}) = \mathcal{H}(\mathbf{x}) - \mathbf{x}$ relative to its input, with the identity shortcut $\mathbf{x}$ added back at the output.
+  Early-layer gradients then scale with the shortest path to the loss rather than with total depth.
+  Depth hampers training mainly through optimization difficulty, which skip connections ease.
 \end{foldable}
 
 \begin{figure}[t]
@@ -116,8 +110,8 @@
 \end{figure}
 
 \begin{foldable}
-  With this foundation in place, the architectures used in this thesis can be read as a fifteen-year progression in which each generation pushes depth further and pays a higher parameter cost to do so.
-  LeNet5~\cite{lecun1998gradient} (two convolutional layers, 60\,K parameters) established the core template, convolutional feature extraction followed by fully connected classification, and remains a standard benchmark on simple datasets.
+  With this foundation in place, the architectures used in this thesis can be read as an eighteen-year progression in which each generation pushes depth further and pays a higher parameter cost to do so.
+  LeNet5~\cite{lecun1998gradient} (three convolutional layers, 60\,K parameters) established the core template, convolutional feature extraction followed by fully connected classification, and remains a standard benchmark on simple datasets.
   AlexNet~\cite{krizhevsky2012imagenet} scaled this template to five convolutional layers and 60\,M parameters, working on slightly harder datasets.
   VGGNet~\cite{simonyan2014very} and ResNet~\cite{he2016deep} are deeper and larger, suited to more complex datasets.
   These architectures remain the most widely used teacher architectures in the \ac{KD} literature and appear throughout Chapters~\ref{ch:30-research01} and~\ref{ch:40-research02}.
@@ -173,7 +167,7 @@
   Rather than reading a sequence token by token, self-attention computes pairwise interactions between all positions simultaneously: each token attends to every other token, weighted by a learned compatibility score, and aggregates their representations accordingly.
   Multi-head attention runs several such attention functions in parallel, allowing the model to jointly attend to information from different representation subspaces.
   Positional encodings are added to the input embeddings to supply the order information that recurrence formerly provided implicitly.
-  Each Transformer block pairs multi-head attention with a feed-forward network (two fully-connected layers with a nonlinearity between them), and residual connections around both sub-layers stabilize training and preserve gradient flow.
+  Each Transformer block pairs multi-head attention with a feed-forward network (two fully connected layers with a nonlinearity between them), and residual connections around both sub-layers stabilize training and preserve gradient flow.
   The result is a model that processes sequences in parallel, eliminates the vanishing-gradient-over-distance problem, and scales far more efficiently on modern hardware than any recurrent alternative.
   Figure~\ref{fig:21-background-deeplearning-attention} illustrates the full encoder-decoder architecture with these components stacked in sequence.
 \end{foldable}
@@ -210,6 +204,6 @@
   GPT-2~\cite{radford2019language} demonstrated coherent long-form generation at 1.5\,B parameters, and GPT-3~\cite{brown2020language} solved many tasks from in-context examples alone at 175\,B.
   At sufficient scale, models began exhibiting qualitatively new behaviors (in-context learning, multi-step reasoning, and few-shot task adaptation) that were absent in smaller counterparts and not predictable by extrapolation, often called emergent abilities~\cite{wei2022emergent}.
   Models soon crossed the 1\,T mark with the help of mixture-of-experts architectures~\cite{fedus2022switch}, but each step up this ladder multiplied training and serving costs, making frontier models accessible only to a small number of organizations.
-  The practical response has been to train a large model and distil it into a compact, deployable variant.
+  The practical response has been to train a large model and distill it into a compact, deployable variant.
   This workflow places distillation, not scale itself, at the center of the deployment problem this thesis addresses.
 \end{foldable}

@@ -20,7 +20,7 @@ The text setting introduces a structural complication, the hard-sample bias, tha
   Intuitively, the influence combines two factors: the gradient $\nabla_\theta \mathcal{L}(z_n, \hat\theta)$ (how far is $z_n$ from being fit) and $H_{\hat\theta}^{-1}$ (how sensitive are the converged parameters to that misfitting).
   A large positive influence indicates that $z_n$ is informative for learning, removing it would degrade the model significantly.
   Whereas a large negative influence indicates that $z_n$ is either mislabeled or an outlier and is harmful to generalization.
-  Influence is defined relative to convergence, not relative to a training loss threshold; it captures counterfactual impact on the final learned behavior.
+  Influence is defined at convergence and captures the counterfactual impact of a training sample on the final learned behavior.
 \end{foldable}
 
 \begin{foldable}
@@ -40,7 +40,7 @@ The text setting introduces a structural complication, the hard-sample bias, tha
   TracIn is naturally trajectory-aware: it integrates influence contributions across the full training arc (all $T$ steps), not just the convergence point.
   Early-stage gradients capture which examples drive initial learning; late-stage gradients capture refinement and overfitting.
   Their sum provides a balanced importance estimate.
-  TRAK~\cite{park2023trak} (Improving Tracin) scales further by projecting gradients onto low-rank subspaces, reducing both memory and computation to $O(p \cdot r)$ where $r \ll p$ is the rank.
+  TRAK~\cite{park2023trak} improves on TracIn and scales further by projecting gradients onto low-rank subspaces, reducing both memory and computation to $O(p \cdot r)$ where $r \ll p$ is the rank.
   DataInf~\cite{kwon2023datainf} pushes the cost down further by replacing $H^{-1}$ with a closed-form approximation derived from a block-diagonal Hessian assumption, avoiding both Hessian inversion and trajectory storage.
   The simplest proxy, gradient norm $\|\nabla_\theta \mathcal{L}(z_n, \hat\theta)\|$ at convergence, trades theoretical accuracy for practical speed, requiring only a single forward-backward pass.
   This single-checkpoint approximation is widely used because it has near-zero computational overhead and often works well empirically when combined with other mechanisms.

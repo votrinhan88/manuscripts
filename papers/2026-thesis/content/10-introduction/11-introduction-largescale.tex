@@ -1,11 +1,11 @@
 \section{Large-Scale Models and Knowledge Distillation} \label{sec:11-introduction-largescale}
 \begin{foldable}
   The history of modern \ac{AI} illustrates the bitter lesson~\cite{sutton2019bitter}: general, compute-driven approaches eventually outperform hand-crafted solutions.
-  When AlexNet~\cite{krizhevsky2012imagenet} appeared in 2012, its roughly 60\,M parameters and strong performance on ImageNet signalled that raw model capacity, combined with enough data and compute, could surpass decades of hand-crafted feature engineering.
+  When AlexNet~\cite{krizhevsky2012imagenet} appeared in 2012, its roughly 60\,M parameters and strong performance on ImageNet signaled that raw model capacity, combined with enough data and compute, could surpass decades of hand-crafted feature engineering.
   An arms race followed that has not slowed since.
   Vision models scaled rapidly: parameter counts of VGGNet~\cite{simonyan2014very} and ResNet~\cite{he2016deep} reached hundreds of millions, while vision transformers soon crossed the 1\,B scale~\cite{dosovitskiy2020image,zhai2022scaling}.
   Language models followed an even steeper trajectory after the Transformer~\cite{vaswani2017attention} architecture arrived, with BERT~\cite{devlin2019bert} featuring 340\,M parameters, followed by GPT-3~\cite{brown2020language} reaching 175\,B parameters the year after.
-  As of writing, flagship \ac{AI} models~\cite{anthropic2026assessing,openai2025introducing} are all speculated to have reached trillions of parameters, especially when open-source counterparts too fall in this range~\cite{meta2025llama4,yang2025qwen3}, backed by compute infrastructure demands~\cite{elmeleegy2024demystifying}.
+  As of writing, flagship \ac{AI} models~\cite{anthropic2026assessing,openai2025introducing} are all speculated to have reached trillions of parameters, especially as open-source counterparts also fall in this range~\cite{meta2025llama4,yang2025qwen3}, backed by compute infrastructure demands~\cite{elmeleegy2024demystifying}.
   Their training data have expanded in tandem to tens of trillions of tokens, estimated to have exhausted 80\% of the high-quality English-language surface web~\cite{villalobos2024position}.
   The empirical result is clear: larger models, trained on larger datasets, consistently achieve state-of-the-art performance across vision, language, and multimodal tasks.
 \end{foldable}

@@ -12,8 +12,8 @@
 \end{foldable}
 
 \begin{foldable}
-  Transferring knowledge as hard labels are sparse: all probability mass concentrates on a single correct class, discarding any signal about the relative plausibility of the rest.
-  The teacher's output distribution, by contrast, spreads probability mass across many classes in a way that reflects its learned understanding of the input: for a given image of a cat, assigning most mass to \texttt{cat}, a smaller amount to \texttt{dog}, and a tiny but non-zero amount to \texttt{leopard} or \texttt{tiger}, while assigning essentially nothing to \texttt{car} or \texttt{aeroplane}.
+  Knowledge as hard labels is sparse: all probability mass concentrates on a single correct class, discarding any signal about the relative plausibility of the rest.
+  The teacher's output distribution, by contrast, spreads probability mass across many classes in a way that reflects its learned understanding of the input: for a given image of a cat, assigning most mass to \texttt{cat}, a smaller amount to \texttt{dog}, and a tiny but non-zero amount to \texttt{leopard} or \texttt{tiger}, while assigning essentially nothing to \texttt{car} or \texttt{airplane}.
   These non-zero probabilities encode inter-class similarity, also termed \textit{dark knowledge}: it is present in every teacher query but discarded when supervision is collapsed to a hard label~\cite{hinton2015distilling}.
   Training the student to match these \textit{soft targets} transfers this relational structure directly.
   This is why the \ac{KD} objective combines a \ac{KL} divergence on temperature-scaled teacher and student distributions with a cross-entropy term on hard labels.
